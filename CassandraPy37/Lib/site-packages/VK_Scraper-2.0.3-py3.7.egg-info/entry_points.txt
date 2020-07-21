@@ -1,0 +1,3 @@
+[console_scripts]
+vk-scraper = vk_scraper.app:main
+

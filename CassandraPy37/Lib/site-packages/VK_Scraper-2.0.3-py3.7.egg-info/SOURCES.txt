@@ -1,0 +1,13 @@
+LICENSE
+MANIFEST.in
+README.md
+setup.cfg
+setup.py
+VK_Scraper.egg-info/PKG-INFO
+VK_Scraper.egg-info/SOURCES.txt
+VK_Scraper.egg-info/dependency_links.txt
+VK_Scraper.egg-info/entry_points.txt
+VK_Scraper.egg-info/requires.txt
+VK_Scraper.egg-info/top_level.txt
+vk_scraper/__init__.py
+vk_scraper/app.py
