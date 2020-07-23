@@ -42,7 +42,7 @@ class social_net_crawler():
         ia = ord('а')
         ii = ord('й')
         iz = ord('я')
-        self.alph_str = ''.join([chr(i) for i in range(ia,ii)]+[chr(i) for i in range(ii+1,iz+1)])  #без букв й , ё
+        self.alph_str = [''.join([chr(i) for i in range(ia,ii)]+[chr(i) for i in range(ii+1,iz+1)])]  #без букв й , ё
         #alph_str = ''.join([chr(i) for i in range(a,a+6)] + [chr(a+33)] + [chr(i) for i in range(a+6,a+32)]) # с буквами й , ё
         self.alph_str[0] += '\\'
 
@@ -57,6 +57,7 @@ class social_net_crawler():
         self.api_request_pause_sec = 1  # пауза между запросами к API
         self.api_limit_res = 1000       # максимум записей возвращаемых API
 
+        self.id_cash = []
 
     def gen_base_search_words(self):
         
@@ -64,18 +65,21 @@ class social_net_crawler():
             yield base_word
 
 
-    def gen_rus_alph_enum(self, level = 1):
-        
+    def gen_rus_alph_enum(self, sequence_num, level = 1):
+        """ level: =длина элемента комбинации
+            sequence_num:  номер набора комбинаций =русский и английский наборы
+        """
+
         #all_combinations = combinations_with_replacement(alph_str, level) #с повторением
-        for _alph_str in self.alph_str:
-            all_combinations = combinations(_alph_str, level)
+        all_combinations = combinations(self.alph_str[sequence_num], level)
 
-            for comb in all_combinations:
-                yield ' '.join(comb)
+        for comb in all_combinations:
+            #yield ' '.join(comb)
+            yield ''.join(comb)
 
-    def gen_search_words(self, word):
+    def gen_search_words(self, word, sequence_num = 0):
         
-        for alph in self.gen_rus_alph_enum(1):
+        for alph in self.gen_rus_alph_enum(sequence_num, level = 2):
             if not ' '+alph in word:
                 yield word+' '+alph
         
@@ -90,18 +94,21 @@ class social_net_crawler():
     def crawl_groups(self):
 
         for base_word in self.gen_base_search_words():
-            self._crawl_groups(base_word)
+            for seq_num in [0,1]:
+                self._crawl_groups(base_word, seq_num)
 
-    def _crawl_groups(self, start_word):
+    def _crawl_groups(self, start_word, sequence_num = 0):
         
-        for search_word in Crawler.gen_search_words(start_word):
+        for search_word in Crawler.gen_search_words(start_word, sequence_num):
             self.msg('Поиск групп по строке поиска: '+search_word)
             res = self._crawl_groups_api(search_word)
+            
+            self._delete_cashed_id(res['groups_list'])
+            self._add_groups_to_db(res['groups_list'])
+            
             if res['count'] >= self.api_limit_res: #это максимум что выдает
                 self.msg('Количество результатов: '+str(res['count'])+' превышает максимум: '+str(self.api_limit_res))
-                self._crawl_groups(search_word)
-            else:
-                self._add_groups_to_db(res['groups_list'])
+                self._crawl_groups(search_word, sequence_num)
 
     def _crawl_groups_api(self, search_word):
 
@@ -116,6 +123,19 @@ class social_net_crawler():
 
         for i in groups_list:
             self.add_db_func(i)
+
+    def _delete_cashed_id(self, groups_list):
+        
+        numelem = len(groups_list)
+
+        for i in range(numelem-1,-1,-1):
+            if groups_list[i]['id'] in self.id_cash:
+                groups_list.pop(i)
+            else:
+                self.id_cash.append(groups_list[i]['id'])
+        
+        self.msg('  new groups found: '+str(len(groups_list))+' / '+str(numelem))
+
 
 
 class crawler_vk(social_net_crawler):
@@ -361,15 +381,15 @@ def get_psw_mtyurin():
 
 
 
-def get_vkapi():
+def get_vkapi(service_token):
     
     #api = vk_requests.create_api(app_id=123, login='User', password='Password')
 
     #user token
-    api = vk_requests.create_api(service_token="9aa969beea9a93677185fb52f3025bcdfa06210fc001a07b33ef777293e548d872c21f20483e0c980e1a0")
+    api = vk_requests.create_api(service_token)
 
-    with open('C:\\Temp\\vktoken.txt', 'r') as f:
-        lservice_token = f.read()
+    #with open('C:\\Temp\\vktoken.txt', 'r') as f:
+    #    lservice_token = f.read()
     api = vk_requests.create_api(service_token=lservice_token)
     #service token
     #api = vk_requests.create_api(service_token="9d3933a79d3933a79d3933a74d9d48c1f699d399d3933a7c3875b521811e40677ed1bea")
@@ -416,11 +436,18 @@ def database_getRegions(api):
 
     pass
 
-def groups_search(api):
+def groups_search_default(api, pq):
 
-    groups = api.groups.search(q = 'пенза')
+    groups = api.groups.search(q = pq)
 
-    pass
+    print(pq+' .default. '+' result: '+str(groups['count']))
+
+
+def groups_search(api, pq, ptype, psort):
+
+    groups = api.groups.search(q = pq, type = ptype, sort = psort)
+
+    print(pq+' type: '+ptype+' sort: '+str(psort)+' result: '+str(groups['count']))
  
 
 def crawl_endless_scroll(login, password):
@@ -541,11 +568,19 @@ def ScrapGroups():
 
 if __name__ == "__main__":
 
-    #ScrapGroups()
+    Crawler = crawler_vk(login = '89273824101', password = get_psw_mtyurin(), base_search_words = ['пенз'], msg_func = print)
+    #groups_search_default(Crawler.api, 'пенз ио')
+    groups_search(Crawler.api, 'пенз ио', 'group', 0)
+    #groups_search(Crawler.api, 'пенз ио', 'page' , 0)
+    #groups_search(Crawler.api, 'пенз ио', 'event', 0)
+    groups_search(Crawler.api, 'пенз ио', 'group', 1)
+    groups_search(Crawler.api, 'пенз ио', 'group', 2)
+
+    #ScrapGroups()  groups_search(api, pq, ptype, psort)
 
     #crawl_endless_scroll('89273824101', get_psw_mtyurin())
 
-    #sys.exit(0)
+    sys.exit(0)
 
     #crawl_pypeeter('89273824101', get_psw_mtyurin())
 
@@ -565,6 +600,7 @@ if __name__ == "__main__":
     CassDB.Connect()
 
     Crawler = crawler_vk(login = '89273824101', password = get_psw_mtyurin(), base_search_words = ['пенз'], msg_func = print, add_db_func = CassDB.AddToBD_SocialNet)
+    Crawler.id_cash = CassDB.SelectGroupsID()
 
     #Crawler._crawl_groups_browse('пенз')
 

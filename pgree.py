@@ -49,6 +49,12 @@ class CassandraDB():
 
         self.connection.close()
 
+    def SelectGroupsID(self):
+        self.cursor.execute("SELECT account_id \
+                            FROM \"1_in_html_crowler_dirty_data\".social_net")
+        rows = self.cursor.fetchall()
+        return [row[0] for row in rows]
+
     def Select(self):
         self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
                             FROM \"1_in_html_crowler_dirty_data\".social_net")
