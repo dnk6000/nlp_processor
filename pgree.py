@@ -1,5 +1,7 @@
 import psycopg2
 
+import time
+
 def get_psw_mtyurin():
     
     with open('C:\Temp\mypsw.txt', 'r') as f:
@@ -37,13 +39,29 @@ class CassandraDB():
 
     def AddToBD_SocialNet(self, network, account_type, account_id, account_name, account_screen_name, account_closed):
 
-        self.cursor.execute("INSERT INTO \"1_in_html_crowler_dirty_data\".social_net \
-                ( network, account_type, account_id, account_name, account_screen_name, account_closed ) \
-                VALUES ( %s, %s, %s, %s, %s, %s ) \
-                ON CONFLICT ON CONSTRAINT social_net_netid DO NOTHING", 
-                (network, account_type, account_id, account_name, account_screen_name, account_closed))
+        successfully = False
+        i = 0
 
-        self.connection.commit()
+        while not successfully and i < 3:
+            try:
+                self.cursor.execute("INSERT INTO \"1_in_html_crowler_dirty_data\".social_net \
+                        ( network, account_type, account_id, account_name, account_screen_name, account_closed ) \
+                        VALUES ( %s, %s, %s, %s, %s, %s ) \
+                        ON CONFLICT ON CONSTRAINT social_net_netid DO NOTHING", 
+                        (network, account_type, account_id, account_name, account_screen_name, account_closed))
+
+                self.connection.commit()
+
+                successfully = True
+
+            except:
+                i += 1
+
+                if i >= 3:
+                    raise DBError('Ошибка записи в БД')
+                else:
+                    print('Ошибка записи в БД !!! Попытка '+str(i))
+                    time.sleep(60)
 
     def CloseConnection(self):
 
@@ -63,6 +81,8 @@ class CassandraDB():
            print(row)
            print("\n")
 
+class DBError(Exception):
+    pass
 
 if __name__ == "__main__":
     #print(get_psw_mtyurin())
