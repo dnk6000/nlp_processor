@@ -657,7 +657,7 @@ def ScrapGroups():
             for tagBlock in tagBlocks:
                 print(str(count) + 'group id '+tagBody.attrs['data-id'] + '     group name '+tagBlock.attrs['alt'])
 
-def crawl_endless_scroll_wall():
+def crawl_endless_scroll_wall(): #!!!
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
@@ -676,8 +676,9 @@ def crawl_endless_scroll_wall():
     soup = BeautifulSoup(data.text, "html.parser")
 
     #nPostTag     = { 'id' : re.compile('^post-\d*_\d*'), 'class' : re.compile('^_post.*') }  #'_post_content'
-    nPostTag     = { 'class' : re.compile('^_post post.*') } 
-    nTextTag     = { 'class' : re.compile('wall_text') } 
+    nFixedArea    = { 'class' : re.compile('wall_fixed') }
+    nPostTag      = { 'class' : re.compile('^_post post.*') } 
+    nTextTag      = { 'class' : re.compile('wall_text') } 
 
     nRepliesTag      = { 'class' : re.compile('^replies_list') }
     nRepliesContTag  = { 'class' : re.compile('^reply reply_dived') }
@@ -687,72 +688,50 @@ def crawl_endless_scroll_wall():
     #replies_list
     #reply reply_dived
     #reply_text
-
+    
 
     nShowNextRepliesTag  = { 'onclick' : re.compile('^return wall.showNextReplies') }
 
     nShowDeepRepliesTag  = { 'onclick' : re.compile('^return wall.openDeepShortReplies') }
 
 
-    #tPostTag     = soup.findAll('', { 'class' : nPostTag })
-    tPostTag     = soup.findAll('', nPostTag )
+    _post_counter = 0
+    _post_fixed = ''
 
-    for iPostTag in tPostTag:
-
-        #if not 'Греф' in iPostTag.text:
-        if not 'К происходящему в Беларуси. Протесты в Беларуси. В чём там дело?' in iPostTag.text:
-            continue
-
-        match = re.match( r'^post(-\d*)_(\d*)', iPostTag.attrs['id'] ) 
-
-        if match:
-            _replies_owner_id = match.group(1)
-            _replies_item_id = match.group(2)
-
-        else:
-            _replies_item_id = ''
-            _replies_owner_id = ''
-            print('Error: item_id not found ! ') 
-
-        tTextTag = iPostTag.findAll('', nTextTag)
+    tFixedArea     = soup.find('', nFixedArea )
+    if tFixedArea != None:
+        tPostTag     = tFixedArea.findAll('', nPostTag )
         if len(tPostTag) > 0:
-            for iTextTag in tTextTag:
-                print(iTextTag.text)
-                print('\n____________________________________________________________\n')
+            if len(tPostTag) > 1:
+                print('Error: найдено несколько фикс. постов ')
 
-        else:
-            print(iPostTag.text)
-            print('\n_x___________________________________________________________\n')
+            match = re.match( r'^post(-\d*)_(\d*)', tPostTag[0].attrs['id'] ) 
 
-        _replies_offset = 0
-        _replies_top_replies = ''
-        _replies_prev_id = ''
-
-        tRepliesTag = iPostTag.find('', nRepliesTag )
-        if tRepliesTag != None:
-            _replies_top_replies = tRepliesTag.attrs['data-top-ids']
-
-            tRepliesContTag = tRepliesTag.findAll('', nRepliesContTag )
-            if len(tRepliesContTag) > 0:
-                for iRepliesContTag in tRepliesContTag:
-                    
-                    match = re.match( r'^post(-\d*)_(\d*)', iRepliesContTag.attrs['id'] ) 
-
-                    if match:
-                        _replies_prev_id = match.group(2)
-                    else:
-                        print('Error: reply item_id not found ! ') 
-
-                    _replies_offset += 1
-                    tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                    print(tRepliesTextTag.text)
-                    print('\n       --------------------------------------------------------\n')
-
-        #----begin------------ нажатие на кнопку "Показать ответы"
-        tShowDeepRepliesTag = iPostTag.findAll('', nShowDeepRepliesTag )
-        if False & len(tShowDeepRepliesTag) > 0:
+            if match:
+                _post_fixed = match.group(2)
+            else:
+                print('Error: fixed item_id not found ! ') 
             
-            match = re.match( r'^replies_short_deep(-\d*)_(\d*)', tShowDeepRepliesTag[0].attrs['id'] ) 
+            _post_counter -= 1
+
+    #tPostTag     = soup.findAll('', { 'class' : nPostTag })
+
+    _scroll_enable =True
+
+    while _scroll_enable:
+
+        _scroll_post_count = 0
+
+        tPostTag     = soup.findAll('', nPostTag )
+
+        for iPostTag in tPostTag:
+            _post_counter += 1
+            _scroll_post_count += 1
+            #if not 'Греф' in iPostTag.text:
+            #if not 'К происходящему в Беларуси. Протесты в Беларуси. В чём там дело?' in iPostTag.text:
+            #    continue
+
+            match = re.match( r'^post(-\d*)_(\d*)', iPostTag.attrs['id'] ) 
 
             if match:
                 _replies_owner_id = match.group(1)
@@ -761,45 +740,38 @@ def crawl_endless_scroll_wall():
             else:
                 _replies_item_id = ''
                 _replies_owner_id = ''
-                print('Error: item_id not found (deep replies getting) ! ') 
+                print('Error: item_id not found ! ') 
 
-            _replies_prev_id = ''
-            _replies_offset = 0;
+            tTextTag = iPostTag.findAll('', nTextTag)
+            if len(tTextTag) > 0:
+                for iTextTag in tTextTag:
+                    print(iTextTag.text)
+                    print('\n____________________________________________________________\n')
 
-            _num_read_replies = 20
+            else:
+                print(iPostTag.text)
+                print('\n_x___________________________________________________________\n')
 
-            _params_post = {'act': 'get_post_replies', 
-                            'al': '1',
-                            'item_id': _replies_item_id,
-                            'offset': str(_replies_offset),
-                            'order': 'smart',
-                            'owner_id': _replies_owner_id,
-                            }  
 
-            if _replies_offset != 0:
-                _params_post['count'] = str(_num_read_replies)
-                _params_post['prev_id'] = str(_replies_prev_id)
-
-            _replies_offset += _num_read_replies 
-
-            _seek_next_replyes = True
+            #----begin------------ нажатие на кнопку "Показать ответы"
+            tShowDeepRepliesTag = iPostTag.findAll('', nShowDeepRepliesTag )
+            if False & len(tShowDeepRepliesTag) > 0:
             
-            while _seek_next_replyes:
-                data = session.post('https://vk.com/al_wall.php', headers = headers, data=_params_post)
+                match = re.match( r'^replies_short_deep(-\d*)_(\d*)', tShowDeepRepliesTag[0].attrs['id'] ) 
 
-                soup = BeautifulSoup(data.text.replace('\\', ''), "html.parser")
-        
-                tRepliesContTag = soup.findAll('', nRepliesContTag )
-                if len(tRepliesContTag) > 0:
-                    for iRepliesContTag in tRepliesContTag:
-                        tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                        if tRepliesTextTag != None:
-                            print(tRepliesTextTag.text)
-                            print('\n       --xxxx----------------------------------xxxxx-----------\n')
-                        else:
-                            pass #отработать другой формат сообщения 
+                if match:
+                    _replies_owner_id = match.group(1)
+                    _replies_item_id = match.group(2)
+
                 else:
-                    _seek_next_replyes = False
+                    _replies_item_id = ''
+                    _replies_owner_id = ''
+                    print('Error: item_id not found (deep replies getting) ! ') 
+
+                _replies_prev_id = ''
+                _replies_offset = 0;
+
+                _num_read_replies = 20
 
                 _params_post = {'act': 'get_post_replies', 
                                 'al': '1',
@@ -815,50 +787,111 @@ def crawl_endless_scroll_wall():
 
                 _replies_offset += _num_read_replies 
 
+                _seek_next_replyes = True
+            
+                while _seek_next_replyes:
+                    data = session.post('https://vk.com/al_wall.php', headers = headers, data=_params_post)
 
-                #tShowDeepRepliesTag = soup.findAll('', nShowNextRepliesTag )
-        #----end------------ нажатие на кнопку "Показать ответы"
+                    soup = BeautifulSoup(data.text.replace('\\', ''), "html.parser")
+        
+                    tRepliesContTag = soup.findAll('', nRepliesContTag )
+                    if len(tRepliesContTag) > 0:
+                        for iRepliesContTag in tRepliesContTag:
+                            tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
+                            if tRepliesTextTag != None:
+                                print(tRepliesTextTag.text)
+                                print('\n       --xxxx----------------------------------xxxxx-----------\n')
+                            else:
+                                pass #отработать другой формат сообщения 
+                    else:
+                        _seek_next_replyes = False
 
-        #----begin------------ нажатие на кнопку "Показать следующие комментарии"
-        tShowNextRepliesTag = iPostTag.find('', nShowNextRepliesTag )
+                    _params_post = {'act': 'get_post_replies', 
+                                    'al': '1',
+                                    'item_id': _replies_item_id,
+                                    'offset': str(_replies_offset),
+                                    'order': 'smart',
+                                    'owner_id': _replies_owner_id,
+                                    }  
 
-        if False & (tShowNextRepliesTag != None):
-            _num_read_replies = 20
+                    if _replies_offset != 0:
+                        _params_post['count'] = str(_num_read_replies)
+                        _params_post['prev_id'] = str(_replies_prev_id)
 
-            _params_post = {'act': 'get_post_replies', 
-                          'al': '1',
-                          'count': str(_num_read_replies),
-                          'item_id': _replies_item_id,
-                          'offset': str(_replies_offset),
-                          'order': 'smart',
-                          'owner_id': _replies_owner_id,
-                          'prev_id': str(_replies_prev_id),
-                          'top_replies': _replies_top_replies
-                         }  
+                    _replies_offset += _num_read_replies 
 
-            _replies_offset += _num_read_replies 
+
+                    #tShowDeepRepliesTag = soup.findAll('', nShowNextRepliesTag )
+            #----end------------ нажатие на кнопку "Показать ответы"
+
+            #----begin------------ нажатие на кнопку "Показать следующие комментарии"
+            tShowNextRepliesTag = iPostTag.find('', nShowNextRepliesTag )
+
+            if False & (tShowNextRepliesTag != None):
+                _num_read_replies = 20
+
+                _params_post = {'act': 'get_post_replies', 
+                              'al': '1',
+                              'count': str(_num_read_replies),
+                              'item_id': _replies_item_id,
+                              'offset': str(_replies_offset),
+                              'order': 'smart',
+                              'owner_id': _replies_owner_id,
+                              'prev_id': str(_replies_prev_id),
+                              'top_replies': _replies_top_replies
+                             }  
+
+                _replies_offset += _num_read_replies 
+                data = session.post('https://vk.com/al_wall.php', headers = headers, data=_params_post)
+        
+                soup = BeautifulSoup(data.text.replace('\\', ''), "html.parser")
+        
+                tRepliesTag = soup.find('', nRepliesTag )
+                if tRepliesTag != None:
+
+                    tRepliesContTag = soup.findAll('', nRepliesContTag )
+                    if len(tRepliesContTag) > 0:
+                        for iRepliesContTag in tRepliesContTag:
+                            tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
+                            if tRepliesTextTag != None:
+                                print(tRepliesTextTag.text)
+                                print('\n       --.....----------------------------------.....-----------\n')
+                            else:
+                                pass #отработать другой формат сообщения 
+            #----end------------ нажатие на кнопку "Показать следующие комментарии"
+
+
+        #----begin------------ прокрутка страницы
+        print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+        print('  _post_counter == ' + str(_post_counter))
+
+        time.sleep(2)
+
+        if _scroll_post_count > 0 & (_scroll_post_count < 10):
+            print('Warning: _scroll_post_count == ' + str(_scroll_post_count) + '  ' + url + '  _post_counter == ' + str(_post_counter))
+
+        if _scroll_post_count > 0:
+            _params_post = {'act': 'get_wall', 
+                    'al': '1',
+                    'fixed': _post_fixed,
+                    'offset': str(_post_counter),
+                    'onlyCache': 'false',
+                    'owner_id': _replies_owner_id,
+                    'type': 'own',
+                    'wall_start_from': str(_post_counter + 1),
+                    }  
             data = session.post('https://vk.com/al_wall.php', headers = headers, data=_params_post)
-        
-            soup = BeautifulSoup(data.text.replace('\\', ''), "html.parser")
-        
-            tRepliesTag = soup.find('', nRepliesTag )
-            if tRepliesTag != None:
-
-                tRepliesContTag = soup.findAll('', nRepliesContTag )
-                if len(tRepliesContTag) > 0:
-                    for iRepliesContTag in tRepliesContTag:
-                        tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                        if tRepliesTextTag != None:
-                            print(tRepliesTextTag.text)
-                            print('\n       --.....----------------------------------.....-----------\n')
-                        else:
-                            pass #отработать другой формат сообщения 
-        #----end------------ нажатие на кнопку "Показать следующие комментарии"
-
+            
+            txt = data.text.replace('\\', '')
+            txt = txt.replace('<!--{"payload":[0,["', '')
+            soup = BeautifulSoup(txt, "html.parser")
+        else:
+            _scroll_enable = False
+        #----end------------ прокрутка страницы
 
 
        # _params_post['offset']      = str(_search_group_offset)
-       # _params_post['real_offset'] = str(_search_group_offset)
+       #2 _params_post['real_offset'] = str(_search_group_offset)
 
        
         
