@@ -25,7 +25,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="crawler.py" />
-    <Compile Include="ParserAddressByNatasha.py" />
+    <Compile Include="exceptions.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="z_test_tmp.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="z_ParserAddressByNatasha.py" />
     <Compile Include="pgree.py" />
     <Compile Include="scraper.py" />
     <Compile Include="vk.py" />
