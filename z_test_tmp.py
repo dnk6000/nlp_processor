@@ -523,12 +523,20 @@ class CrawlerError(Exception):
 def e1():
     raise CrawlerError('Ошибка е1', 'www.vk.com')
 
+def ttt():
+    return 'ddddddd', 123
+
 if __name__ == "__main__":
 
-    try:
-        e1()
-    except Exception as e:
-        print(e)
+    #try:
+    #    e1()
+    #except Exception as e:
+    #    print(e)
+
+    a, b = ttt()
+
+    print(a)
+    print(b)
 
     sys.exit(0)
 

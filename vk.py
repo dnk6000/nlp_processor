@@ -33,7 +33,8 @@ class social_net_crawler():
 
     def __init__(self, 
                  base_search_words = None, 
-                 msg_func = None, 
+                 msg_func = None,
+                 warning_func = None,
                  add_db_func = None, 
                  crawl_method = 'api'):
         """
@@ -75,8 +76,9 @@ class social_net_crawler():
         a = ord('a')
         self.alphabets.append(''.join([chr(i) for i in range(a,a+26)]))
 
-        self.msg_func = msg_func        # функция для сообщений
-        self.add_db_func = add_db_func  # функция для добавления в БД
+        self.msg_func = msg_func         # функция для сообщений
+        self.warning_func = warning_func # функция для предупреждений
+        self.add_db_func = add_db_func   # функция для добавления в БД
 
         self.api_request_pause_sec = 1  # пауза между запросами к API
         self.api_limit_res = 1000       # максимум записей возвращаемых API
@@ -90,6 +92,16 @@ class social_net_crawler():
                 self.msg_func(message)
             except:
                 pass
+
+    def warning(self, message):
+
+        if not self.warning_func == None:
+            try:
+                self.warning_func(message)
+            except:
+                pass
+        else:
+            self.msg_func(message)
 
     def _add_next_search_level(self, search_elem):
         if search_elem['_level'] == 0:
@@ -242,7 +254,7 @@ class crawler_vk(social_net_crawler):
 
         self.api_available = self.login != ''
 
-        self._crawl_wall_define_tags()
+        self._cw_define_tags()
 
         if self.api_available:
             with open(self.local_service_folder + 'vktoken.txt', 'r') as f:
@@ -470,172 +482,294 @@ class crawler_vk(social_net_crawler):
     ##########################
     # wall crawling procedures
     ##########################
-    def _crawl_wall_define_tags(self):
+    def _cw_define_tags(self):
 
-        cts = CrawlTagStructure
+        tn = TagNode
+        tt = TagTree
+
         NoneFunc = None
         NoneFuncParam = None
-        OneTag = False
-        MultiTag = True
+        OneTag = False    #for soup.find()
+        MultiTag = True   #for soup.findAll()
 
-        nPostTag      = { 'class' : re.compile('^_post post.*') } 
+        rc = lambda z: { 'class' : re.compile(z) } 
+        ro = lambda z: { 'onclick' : re.compile(z) } 
+        fn = self._cw_find_tags
+        fnp = self._cw_find_tags_in_post
+        pr = lambda p1, p2, p3: { 'tag_key':p1, 'multi': p2, 'mode': p3 }
 
-        self._wall_tags_NotFound = [ [ cts( { 'class' : re.compile('message_page_title') } , OneTag , self._crawl_wall_check_not_found , 'tag 1'),
-                                       cts( { 'class' : re.compile('message_page_body') }  , OneTag , self._crawl_wall_check_not_found , 'tag 2')
-                                     ]
-                                   ]
-
-        self._wall_tags_FixedArea = [ [ cts( { 'class' : re.compile('wall_fixed') } , OneTag  , self._crawl_wall_scrap_fixed_area , 'all fixed area') ],
-                                      [ cts( nPostTag                               , MultiTag, self._crawl_wall_scrap_fixed_area , 'posts in fixed area') ]
+        nPostTag = rc('^_post post.*')
+        
+        self._cw_tg_NotFound = tt ( [ tn( fn, self._cw_check_not_found , pr(rc('message_page_title'), OneTag, 'tag 1') ),
+                                      tn( fn, self._cw_check_not_found , pr(rc('message_page_body') , OneTag, 'tag 2') )
                                     ]
+                                  )
 
-        self._wall_tags_Post = [ [ cts( nPostTag                               , MultiTag, NoneFunc, NoneFuncParam) ],
-                                 [ cts( { 'class' : re.compile('wall_text') }  , MultiTag, NoneFunc, NoneFuncParam) ]
-                               ]
+        self._cw_tg_FixedArea = tt ( tn( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
+        self._cw_tg_FixedArea.add  (    tn( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
+        
+        self._cw_tg_Replies = tt ( tn( fn, self._cw_scrap_replies , pr(rc('^replies_list')      , OneTag  , 'repl list') ) )
+        self._cw_tg_Replies.add  (     tn( fn, self._cw_scrap_replies , pr(rc('^reply reply_dived') , MultiTag, 'repl dived') ) )
+        self._cw_tg_Replies.childs[0].add( tn( fn, self._cw_scrap_replies , pr(rc('^wall_reply_text')   , OneTag  , 'repl text') ) )
 
-        self._wall_tags_Replies = [ [ cts( { 'class' : re.compile('^replies_list') }      , OneTag  , NoneFunc, NoneFuncParam) ],
-                                    [ cts( { 'class' : re.compile('^reply reply_dived') } , MultiTag, NoneFunc, NoneFuncParam) ],
-                                    [ cts( { 'class' : re.compile('^wall_reply_text') }   , OneTag  , NoneFunc, NoneFuncParam) ]
-                                  ]
+        self._cw_tg_Posts = tt ( tn( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
+        self._cw_tg_Posts.add  (    tn( fnp, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag  , 'wall texts') ) )
+        self._cw_tg_Posts.add  (    tn( fn , self._cw_fix_show_next_in_post , pr(ro('^return wall.showNextReplies') , MultiTag  , '') ) )
+        self._cw_tg_Posts.add  (    self._cw_tg_Replies)
 
+        self._cw_wall_scroll_par = {
+                    'act': 'get_wall', 
+                    'al': '1',
+                    'fixed': '',
+                    'offset': '',
+                    'onlyCache': 'false',
+                    'owner_id': '',
+                    'type': 'own',
+                    'wall_start_from': '',
+                    }  
+
+        self._cw_next_repl_scroll_par = {
+                    'act': 'get_post_replies', 
+                    'al': '1',
+                    'count': '',
+                    'item_id': '',
+                    'offset': '',
+                    'order': 'smart',
+                    'owner_id': '',
+                    'prev_id': '',
+                    'top_replies': ''
+                    }  
+        
 
     def crawl_wall(self, group_id):
 
-        self._crawl_wall_not_found_error = 0
+        self._cw_fixed_post_id = ''
+        self._cw_current_post_id = ''
+        self._cw_group_id = ''
+        self._cw_post_counter = 0
+        self._cw_post_counter2 = 0
+        self._cw_next_repl_post_hrefs = []
 
-        self._crawl_wall_session = requests_html.HTMLSession()
+        self._cw_num_repl_request = '20'  #number of replies received per request
 
-        self._crawl_wall_url = r'https://vk.com/' + 'club' + str(group_id)
+        self._cw_session = requests_html.HTMLSession()
+
+        if type(group_id) == str:
+            self._cw_url = self.url + 'wall-' + group_id
+        else:
+            self._cw_group_id = str(group_id)
+            self._cw_url = self.url + 'club' + str(group_id)
+
+        self._cw_url_scroll = self.url + 'al_wall.php'
+
         try:
-            data = self._crawl_wall_session.get(self._crawl_wall_url, headers = self.headers)
+            d = self._cw_session.get(self._cw_url, headers = self.headers)
         except Exception as e:
-            raise exceptions.CrawlVkByBrowserError(self._crawl_wall_url, 'Error when trying to load the wall !', self.msg_func)
+            raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error when trying to load the wall !', self.msg_func)
 
-        self._crawl_wall_soup = BeautifulSoup(data.text, "html.parser")
+        self._cw_soup = BeautifulSoup(d.text, "html.parser")
 
-        #Сообщество не найдено Error
-        self._crawl_wall_scraping_by_cts(self._wall_tags_NotFound)
-        if self._crawl_wall_not_found_error == 2:
+        #is group found ?
+        self._cw_signs_count = 0
+        self._cw_tg_NotFound.scan(self._cw_soup)
+        if self._cw_signs_count == 2:
             return (-1, 'Not found')
 
-        self._crawl_wall_scraping_by_cts(self._wall_tags_FixedArea)
+        #get fixed posts
+        self._cw_tg_FixedArea.scan(self._cw_soup)
 
+        _scroll_enable = True
 
-        self._crawl_wall_soup = None #clean up before exiting
+        while _scroll_enable:
+            self._cw_scroll_post_counter = 0
+
+            #get posts
+            self._cw_tg_Posts.scan(self._cw_soup)
+
+            if self._cw_scroll_post_counter >= 10:
+                time.sleep(2)
+                self._cw_scroll_wall()
+            else:
+                _scroll_enable = False
+
+        self._cw_soup = None #clean up before exiting
         
         return (0, 'Sucsess')
 
+    def _cw_scroll_wall(self):
+        self._cw_wall_scroll_par['fixed'] = self._cw_fixed_post_id
+        self._cw_wall_scroll_par['owner_id'] = '-'+self._cw_group_id
+        self._cw_wall_scroll_par['offset'] = str(self._cw_post_counter)
+        self._cw_wall_scroll_par['wall_start_from'] = str(self._cw_post_counter2)
 
-    def _crawl_wall_scraping_by_cts(self, cts_list, first_step = True):
-        """recurrently scrape self.wall_soup by gived cts_list (elements of which = CrawlTagStructure)
-        """
-
-        if len(cts_list) == 0:  return
-        
-        no_found = False
-
-        if first_step:  local_soup = self._crawl_wall_soup
-        else:           local_soup = self.wall_found_tags
-
-        for cts in cts_list.pop(0):
-            if first_step:
-                if cts.multi:   self.wall_found_tags = self._crawl_wall_soup.findAll('', cts.tag_name )
-                else:           self.wall_found_tags = self._crawl_wall_soup.find('', cts.tag_name )
-            else:
-                if cts.multi:   self.wall_found_tags = self.wall_found_tags .findAll('', cts.tag_name )
-                else:           self.wall_found_tags = self.wall_found_tags .find('', cts.tag_name )
-
-            if cts.func != None:
-                if cts.func_par == None:    cts.func()
-                else:                       cts.func(cts.func_par)
+        try:
+            d = self._cw_session.post(self._cw_url_scroll, headers = self.headers, data = self._cw_wall_scroll_par)
+        except Exception as e:
+            raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error when trying to scroll the wall !', self.msg_func)
             
-            if cts.multi:   no_found = len(self.wall_found_tags) == 0
-            else:           no_found = self.wall_found_tags == None
-
-        if no_found: return
-
-        self._crawl_wall_scraping_by_cts(cts_list, first_step = False)
+        txt = d.text.replace('\\', '')
+        txt = txt.replace('<!--{"payload":[0,["', '')
+        self._cw_soup = BeautifulSoup(txt, "html.parser")
 
 
-    def _crawl_wall_scrap_fixed_area(self, mode):
-        if mode == 'all fixed area':
-            if self.wall_found_tags == None:
-                #no fixed tags
-                pass
+    def _cw_get_post_id(self, html_class_name):
+        match = re.match( r'^post-(\d*)_(\d*)', html_class_name ) 
+
+        if match:
+            return {'group_id':match.group(1), 'post_id': match.group(2) }
+
+    def _cw_find_tags(self, soup, par, **kwargs):
+        if soup == None: return None, par
+
+        if kwargs['multi']:
+            res = soup.findAll('', kwargs['tag_key'])
+        else:
+            res = soup.find('', kwargs['tag_key'])
+
+        return res, par
+
+    def _cw_find_tags_in_post(self, soup, par, **kwargs):
+        if soup == None: return None, par
+
+        z = self._cw_get_post_id(soup.attrs['id'])
+
+        if z == None:
+            raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Post id not found !', self.msg_func)
+
+        self._cw_current_post_id = z['post_id']
+
+        return self._cw_find_tags(soup, par, **kwargs)
+
+    def _cw_scrap_fixed_area(self, result, par, **kwargs):
+        if result == None: return None
+
+        if kwargs['mode'] == 'all fixed area':
+            return result, par
 
         else: #mode == 'posts in fixed area'
-            if len(self.wall_found_tags) > 0:
-                if len(self.wall_found_tags) > 1:
-                    raise exceptions.CrawlVkByBrowserError(self._crawl_wall_url, 'Several fixes were found !', self.msg_func)
+            if len(result) > 0:
+                if len(result) > 1:
+                    raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Several fixed posts were found !', self.msg_func)
 
-                match = re.match( r'^post(-\d*)_(\d*)', self.wall_found_tags[0].attrs['id'] ) 
+                z = self._cw_get_post_id(result[0].attrs['id'])
 
-                if match:
-                    self._crawl_wall_fixed_post_num = match.group(2)
-                else:
-                    raise exceptions.CrawlVkByBrowserError(self._crawl_wall_url, 'Fixed post item_id not found !', self.msg_func)
+                if z == None:
+                    raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Fixed post item_id not found !', self.msg_func)
 
-    def _crawl_wall_check_not_found(self, mode):
-        if self.wall_found_tags == None: return
+                self._cw_fixed_post_id = z['post_id']
 
-        if mode == 'tag 1':
-            if 'Ошибка' in self.wall_found_tags.text:
-                self._crawl_wall_not_found_error += 1
-        if mode == 'tag 2':
-            if 'Сообщество не найдено' in self.wall_found_tags.text:
-                self._crawl_wall_not_found_error += 1
+                self._cw_post_counter -= 1
 
-    def _crawl_wall_post_comment(self):
+        return None, par
 
-        pass
+    def _cw_check_not_found(self, result, par, **kwargs):
 
-class CrawlTagStructure():
-    def __init__(self, tag_name, multi = False, func = None, func_par = None):
+        if result == None: return None, par
+
+        if kwargs['mode'] == 'tag 1':
+            if 'Ошибка' in result.text:
+                self._cw_signs_count += 1
+        if kwargs['mode'] == 'tag 2':
+            if 'Сообщество не найдено' in result.text:
+                self._cw_signs_count += 1
+
+    def _cw_scrap_posts(self, result, par, **kwargs):
+        if result == None: return None, par
+
+        if kwargs['mode'] == 'posts list':
+            
+            if len(result) > 0 and (self._cw_group_id == ''):
+                z = self._cw_get_post_id(result[0].attrs['id'])
+
+                if z == None:
+                    raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Group id not found !', self.msg_func)
+
+                self._cw_group_id = z['group_id']
+
+            return result, par
+        elif kwargs['mode'] == 'wall texts':
+            if len(result) > 0:
+                self._cw_post_counter += 1
+                self._cw_post_counter2 += 1
+                self._cw_scroll_post_counter += 1  
+
+                if len(result) > 1:
+                    raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Several texts in one post were found ! Post id: ' + self._cw_current_post_id, self.msg_func)
+                
+                for iTextTag in result:
+                    # вставить запись текста в БД
+                    print(iTextTag.text)
+                    print('\n____________________________________________________________\n')
+            else:
+                self.warning('Warning: Text not found ! \n '+self._cw_url)
         
-        self.tag_name = tag_name
-        self.multi = multi
-        self.func = func
+        return None, par
+    
+    def _cw_scrap_replies(self, result, par, **kwargs):
+        if result == None: return None, par
+
+        if kwargs['mode'] == 'repl list':
+            self._cw_top_replies = result[0].attrs['data-top-ids']
+            return result, par
+
+        elif kwargs['mode'] == 'repl dived':
+            return result, par
+        
+        elif kwargs['mode'] == 'repl text':
+            print(result.text)
+            print('\n       --.....----------------------------------.....-----------\n')
+
+        return None, par
+
+    def _cw_fix_show_next_in_post(self, result, par, **kwargs):
+        if result == None: return None, par
+
+        new_href = self._cw_next_repl_scroll_par
+
+        new_href['count'] = self._cw_num_repl_request
+        new_href['item_id'] = self._cw_current_post_id
+        new_href['offset'] = '0'
+        new_href['owner_id'] = '-'+self._cw_group_id
+        new_href['prev_id'] = ''  #назначить перед скроллингом!
+        new_href['top_replies'] = self._cw_top_replies
+
+        self._cw_next_repl_post_hrefs.append(new_href)
+
+        return None, par
+
+
+class TagNode():
+    def __init__(self, 
+                 process_func = None, 
+                 result_func = None, 
+                 func_par = None):
+        """ process_func - function to process 'incoming parameters' in class function Scan
+            result_func  - function to process result of process_func
+            func_par - parameters for result_func
+               required parameters:
+                    tag_key -  regular expression with tag name for search in html
+                    multi   -  True - find tag multi times, False - once
+        """
+        self.process_func = process_func
+        self.result_func = result_func
         self.func_par = func_par
 
     def __repr__(self):
         return str(self.__dict__)
 
-class TagNode():
-    def __init__(self, 
-                 tag_name, 
-                 multi = False, 
-                 process_func = None, 
-                 result_func = None, 
-                 result_func_par = None):
-        """ tag_name -  regular expression with tag name
-            multi    -  True - find tag multi times, False - once
-            process_func - function to process 'incoming parameters' in class function Scan
-            result_func  - function to process result of process_func
-            result_func_par - any parameters for result_func
-        """
-        self.tag_name = tag_name
-        self.multi = multi  
-        self.process_func = func
-        self.result_func = result_func
-        self.result_func_par = result_func_par
-
-    def __repr__(self):
-        return str(self.__dict__)
-
 class TagTree():
-    def __init__(self, node = None):
+    def __init__(self, nodes = None):
         """the type of node type must be 'list', 'TagNode' or None (default)
         """
         
-        if type(node) == list:
-            self.nodes = node
-        elif type(node) == TagNode:
-            self.nodes = [_node]
+        if type(nodes) == list:
+            self.nodes = nodes
+        elif type(nodes) == TagNode:
+            self.nodes = [nodes]
         else:
             self.nodes = list()
         
         self.childs = list()
-        self.parent = None
 
     def __repr__(self):
         return str(self.__dict__)
@@ -659,21 +793,28 @@ class TagTree():
         else:
             raise 'Incorrect type of var ''childs'' for TagTree class!'
 
-    def scan(self, income_par):
+    def scan(self, par1, par2 = {}):
         
         result_of_process_func = None 
 
         for node in self.nodes:
             if node.process_func != None:
-                result_of_process_func = node.process_func(income_par)
+                proc_par1, proc_par2 = node.process_func(par1, par2, **node.func_par)
+            
             if node.result_func != None:
-                result_of_result_func = node.result_func(result_of_process_func, node.result_func_par)
+                res_par1, res_par2 = node.result_func(proc_par1, proc_par2, **node.func_par)
             else:
-                result_of_result_func = result_of_process_func
+                res_par1, res_par2 = proc_par1, proc_par2
 
-        for child in self.childs:
-            child.scan(result_of_result_func)
-
+        #if hasattr(result_of_result_func, '__iter__'):
+        if issubclass(type(res_par1), list):
+            for i_res_par1 in res_par1:
+                for child in self.childs:
+                    child.scan(i_res_par1, res_par2)
+        else:
+            for child in self.childs:
+                child.scan(res_par1, res_par2)
+            
 
 
 
@@ -689,7 +830,9 @@ def get_psw_mtyurin():
 if __name__ == "__main__":
 
     Crawler = crawler_vk(msg_func = print)
-    res = Crawler.crawl_wall(777716758516)
+    res = Crawler.crawl_wall(16758516)
+    #res = Crawler.crawl_wall('16758516_109038')
+
     print(res)
     #try:
     #    res = Crawler.crawl_wall(777716758516)

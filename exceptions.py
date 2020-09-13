@@ -18,7 +18,7 @@ class CrawlVkByBrowserError(CrawlVkError):
         if msg_func != None:
             msg_func(self.url)
             msg_func(self.error_description)
-            msg_func(self.sys_info())
+            msg_func(self.sys_info)
 
     def __repr__(self):
         return self.__dict__
