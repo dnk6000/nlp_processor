@@ -499,7 +499,7 @@ class crawler_vk(social_net_crawler):
         fn = self._cw_find_tags
         fnpl = self._cw_find_tags_post_list
         fnrpl = self._cw_find_tags_repl_list
-        pr = lambda p1, p2, p3: { 'tag_key':p1, 'multi': p2, 'mode': p3 }
+        pr = lambda p1, p2, p3: { 'tag_key':p1, 'multi': p2, 'mode': p3, 'deep_parent': '' }
 
         nPostTag = rc('^_post post.*')
         
@@ -512,7 +512,12 @@ class crawler_vk(social_net_crawler):
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
         
         self._cw_tg_Replies = TT ( TN( fn, self._cw_scrap_replies , pr(rc('^reply reply_dived') , MultiTag, 'repl dived') ) )
-        self._cw_tg_Replies.add  (     TN( fnrpl, self._cw_scrap_replies , pr(rc('^wall_reply_text')   , OneTag  , 'repl text') ) )
+        self._cw_tg_Replies.add  (    TN( fnrpl, self._cw_scrap_replies , pr(rc('^wall_reply_text') , OneTag  , 'repl text') ) )
+        #self._cw_tg_Replies.add  (    TN( fn   , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies'), **rc('replies_next|replies_prev')} , OneTag  , '') ) )
+        #self._cw_tg_Replies.add  (    TN( fn   , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies')} , OneTag  , '') ) )
+
+        self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
+        self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
 
         self._cw_tg_Posts = TT ( TN( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
         self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag  , 'wall texts') ) )
@@ -532,17 +537,18 @@ class crawler_vk(social_net_crawler):
 
         
 
-    def crawl_wall(self, group_id):
+    def crawl_wall(self, group_id): # _cw_
 
         self._cw_debug_mode = True
         self._cw_debug_post_filter = '113608'
-        #self._cw_debug_post_filter = ''
+        self._cw_debug_post_filter = ''
 
         self._cw_fixed_post_id = ''
         self._cw_group_id = ''
         self._cw_post_counter = 0
         self._cw_post_counter2 = 0
-        self._cw_post_repl_list = []
+        self._cw_post_repl_list = []  #first level replies
+        self._cw_post_repl2_list = [] #second level replies = href 'Показать предыдущие комментарии'
 
         self._cw_num_repl_request = 20  #number of replies received per request
 
@@ -581,9 +587,10 @@ class crawler_vk(social_net_crawler):
             self._cw_tg_Posts.scan(self._cw_soup)
 
             self._cw_get_post_replies()
+            self._cw_get_post_replies2() #second level
 
             #scroll browser page
-            if self._cw_scroll_post_counter >= 910:  #задать в константе
+            if self._cw_scroll_post_counter >= 10:  #задать в константе
                 self._cw_scroll_wall()
             else:
                 _scroll_enable = False
@@ -592,6 +599,8 @@ class crawler_vk(social_net_crawler):
 
 
     def _cw_get_post_replies(self):
+        '''request replies for the posts and scrape results 
+        '''
         while len(self._cw_post_repl_list) > 0:
             _post_id = self._cw_post_repl_list.pop(0)
             _first_step = True
@@ -620,6 +629,8 @@ class crawler_vk(social_net_crawler):
                 self._cw_scroll_repl_counter = 0
                 self._cw_tg_Replies.scan(self._cw_soup)
 
+                self._cw_tg_ShowPrevRepl.scan(self._cw_soup)  #addition ShowPrev-list
+
                 _scroll_count += 1
 
                 if self._cw_debug_mode:
@@ -627,8 +638,50 @@ class crawler_vk(social_net_crawler):
                     print('REPLY SCROLL.  _post_id = '+_post_id+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
                     print('############################################################')
 
+    def _cw_get_post_replies2(self):
+        '''press to href 'Показать следующие комментарии' and scrape request results 
+        '''
+        while len(self._cw_post_repl2_list) > 0:
+            _list_elem = self._cw_post_repl2_list.pop(0)
+            _first_step = True
+            _replies_offset = int(_list_elem['offset'])
+            _scroll_count = 0
+            self._cw_scroll_repl_counter = 0
+
+            while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
+                _count = int(_list_elem['count']) if _first_step else self._cw_num_repl_request
+
+                par_data = {'act': 'get_post_replies', 
+                                'al': '1',
+                                'count': str(_count), #str(self._cw_num_repl_request),
+                                'item_id': _list_elem['item_id'],
+                                'offset': str(_replies_offset),
+                                'order': 'desc',
+                                'owner_id': '-'+self._cw_group_id#,
+                                #'prev_id': str(_replies_prev_id),
+                                #'top_replies': _replies_top_replies
+                                } 
+            
+                _first_step = False
+
+                _replies_offset += _count
+
+                self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
+
+                self._cw_scroll_repl_counter = 0
+                self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
+                self._cw_tg_Replies.scan(self._cw_soup)
+
+                _scroll_count += 1
+
+                if self._cw_debug_mode:
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                    print('REPLY to REPLY SCROLL.  _post_id = '+_list_elem['item_id']+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
     def _cw_scroll(self, par_data, err_txt = ''):
+        '''make post-request with par_data params
+        '''
         time.sleep(2)   #!!!!!!!!!! smart func needed !
         try:
             d = self._cw_session.post(self._cw_url_scroll, headers = self.headers, data = par_data)
@@ -637,6 +690,11 @@ class crawler_vk(social_net_crawler):
             
         txt = d.text.replace('\\', '')
         txt = txt.replace('<!--{"payload":[0,["', '<')
+        if txt[0] != '>':
+            txt = '>' + txt
+
+        #print(txt)
+
         self._cw_soup = BeautifulSoup(txt, "html.parser")
 
     def _cw_scroll_wall(self):
@@ -648,8 +706,11 @@ class crawler_vk(social_net_crawler):
         self._cw_scroll(self._cw_wall_scroll_par, 'Error when trying to scroll the wall !')
 
 
-    def _cw_get_post_id(self, html_class_name, error_msg = ''):
-        match = re.match( r'^(post|replies|\/wall)-(\d*)_(\d*)', html_class_name ) 
+    def _cw_get_post_id(self, html_attr, error_msg = ''):
+        if 'showNextReplies' in html_attr:
+            match = re.match( r'(.*)-(\d*)_(\d*)', html_attr ) 
+        else:
+            match = re.match( r'^(post|replies|\/wall)-(\d*)_(\d*)', html_attr ) 
 
         if match:
             return {'group_id':match.group(2), 'post_id': match.group(3) }
@@ -753,7 +814,7 @@ class crawler_vk(social_net_crawler):
                 for iTextTag in result:
                     # вставить запись текста в БД
                     print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_scroll_post_counter = '+str(self._cw_scroll_post_counter))
-                    print(iTextTag.text)
+                    print(crawler.remove_empty_symbols(iTextTag.text))
                     print('\n____________________________________________________________\n')
             else:
                 self.warning('Warning: Text not found ! \n '+self._cw_url)
@@ -763,14 +824,14 @@ class crawler_vk(social_net_crawler):
     def _cw_scrap_replies(self, result, par, **kwargs):
         if result == None: return None, par
 
-        if kwargs['mode'] == 'repl list':
-            z = self._cw_get_post_id(result.attrs['id'], 'Reply id (in tag repl list) not found !')
+        #if kwargs['mode'] == 'repl list':
+        #    z = self._cw_get_post_id(result.attrs['id'], 'Reply id (in tag repl list) not found !')
 
-            par['post_id'] = z['post_id']
+        #    par['post_id'] = z['post_id']
 
-            return result, par
+        #    return result, par
 
-        elif kwargs['mode'] == 'repl dived':
+        if kwargs['mode'] == 'repl dived':
             for r in result:
                 #z = self._cw_get_post_id(r.attrs['id'], 'Reply id (in tag repl dived) not found !')
 
@@ -783,14 +844,39 @@ class crawler_vk(social_net_crawler):
         
         elif kwargs['mode'] == 'repl text':
 
-            if par['post_id'] == par['parent_id']:
-                print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+par['parent_id'])
-            else:
-                print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+par['parent_id'])
-            print(result.text)
-            print('\n       --.....----------------------------------.....-----------\n')
+            _parent_id = par['parent_id'] if kwargs['deep_parent'] == '' else kwargs['deep_parent']
 
+            if par['post_id'] == _parent_id:
+                print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+            else:
+                print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+            print(crawler.remove_empty_symbols(result.text))
+            print('\n       --.....----------------------------------.....-----------\n')
+            
         return None, par
+
+    def _cw_scrap_repl_show_next(self, result, par, **kwargs):
+        if result == None: return None, par
+        
+        if kwargs['mode'] == 'wrap deep':
+            return result, par
+
+        elif kwargs['mode'] == 'show next':
+            if result.text != 'Показать предыдущие комментарии': 
+                return None, par
+
+            z = self._cw_get_post_id(result.attrs['onclick'], 'Reply id for show prev repl list not found !')
+
+            self._cw_post_repl2_list.append(
+                {'item_id': z['post_id'],
+                 'count': result.attrs['data-count'],
+                 'offset': result.attrs['data-offset']
+                 }
+                )
+
+            return result, par
+
+        return result, par
 
 
 
@@ -851,7 +937,7 @@ class TagTree():
 
     def scan(self, par1, par2 = {}):
         
-        result_of_process_func = None 
+        #result_of_process_func = None 
 
         for node in self.nodes:
             if node.process_func != None:
@@ -871,7 +957,16 @@ class TagTree():
             for child in self.childs:
                 child.scan(res_par1, res_par2)
             
+    
+    def set_par(self, par_id, par_value):
+        '''set parameter value in dict 'func_par' for all tree nodes
+        '''
+        
+        for node in self.nodes:
+            node.func_par[par_id] = par_value
 
+        for child in self.childs:
+            child.set_par(par_id, par_value)
 
 
 def get_psw_mtyurin():

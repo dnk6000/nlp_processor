@@ -197,6 +197,14 @@ def RemoveEmojiSymbols(text):
    return emoji_pattern.sub(r'', text)
 
 
+def remove_empty_symbols(text):
+    
+    txt = re.sub(chr(10), ' ', text)
+    txt = re.sub('\n+', ' ', txt)
+    txt = re.sub(' +', ' ', txt)
+    
+    return txt
+
 def Demo1():
 
     """

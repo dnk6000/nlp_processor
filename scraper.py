@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import crawler as CasCrawl  #for Demo
+import crawler
 
 import re
 from html.parser import HTMLParser  
@@ -82,7 +82,7 @@ class Scraper():
             if (_ResText == '') & (len(tagsArticleAnnounce) > 0):
                 _ResText = tagsArticleAnnounce[0].get_text()
             
-            return _ResText
+            return crawler.remove_empty_symbols(_ResText)
 
 
         ResList = list()
@@ -168,7 +168,7 @@ class Scraper():
             #if (_ResText == '') & (len(tagsArticleAnnounce) > 0):
             #    _ResText = tagsArticleAnnounce[0].get_text()
             
-            return _ResText
+            return crawler.remove_empty_symbols(_ResText)
 
 
         ResList = list()
@@ -325,15 +325,15 @@ def Demo1():
     #crawler = Crawler('http://techcrunch.com/', depth = 2, pause_sec = 5)
     #crawler = Crawler('http://toscrape.com/', depth = 2, pause_sec = 5)
     #crawler = Crawler('http://ria.ru/', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://ria.ru/20200220/1564972897.html', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://ria.ru/20200226/1565250161.html', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://lenta.ru/', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://www.rbc.ru/finances/28/02/2020/5e58e3a89a7947320d17337a?from=from_main', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://ria.ru/20200226/1565161566.html', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://www.rbc.ru/society/03/03/2020/5e2fe9459a79479d102bada6?from=from_main', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://www.rbc.ru/politics/04/03/2020/5e5e5d7e9a79472a06eb61ad', depth = 2, pause_sec = 1)
-    #crawler = CasCrawl.Crawler('https://www.ria.ru/20200323/1568890618.html', depth = 2, pause_sec = 1, FunIsPageProcessed = IsPageProcessedScrap)
-    crawler = CasCrawl.Crawler('https://www.rbc.ru/v10_rbcnews_static/rbcnews-10.2.30/images/rbc-logo.eps', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://ria.ru/20200220/1564972897.html', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://ria.ru/20200226/1565250161.html', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://lenta.ru/', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://www.rbc.ru/finances/28/02/2020/5e58e3a89a7947320d17337a?from=from_main', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://ria.ru/20200226/1565161566.html', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://www.rbc.ru/society/03/03/2020/5e2fe9459a79479d102bada6?from=from_main', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://www.rbc.ru/politics/04/03/2020/5e5e5d7e9a79472a06eb61ad', depth = 2, pause_sec = 1)
+    #crawler = crawler.Crawler('https://www.ria.ru/20200323/1568890618.html', depth = 2, pause_sec = 1, FunIsPageProcessed = IsPageProcessedScrap)
+    crawler = crawler.Crawler('https://www.rbc.ru/v10_rbcnews_static/rbcnews-10.2.30/images/rbc-logo.eps', depth = 2, pause_sec = 1)
 
     crawling = crawler.crawl()
 
@@ -383,9 +383,9 @@ def Demo2():
 
     #crawler = Crawler('http://techcrunch.com/', depth = 2, pause_sec = 5)
     #crawler = Crawler('http://toscrape.com/', depth = 2, pause_sec = 5)
-    #crawler = CasCrawl.Crawler('http://ria.ru/', depth = 2, pause_sec = 2)
-    #crawler = CasCrawl.Crawler('https://lenta.ru/', depth = 2, pause_sec = 1)
-    crawler = CasCrawl.Crawler('http://rbc.ru/', depth = 2, pause_sec = 2)
+    #crawler = crawler.Crawler('http://ria.ru/', depth = 2, pause_sec = 2)
+    #crawler = crawler.Crawler('https://lenta.ru/', depth = 2, pause_sec = 1)
+    crawler = crawler.Crawler('http://rbc.ru/', depth = 2, pause_sec = 2)
    
     crawling = crawler.crawl()
 
@@ -458,9 +458,9 @@ def CheckScraping(domain, depth, pause_sec):
         flog.write(msgstr)
         flog.close()
 
-    crawler = CasCrawl.Crawler(domain, depth, pause_sec, ProcessedPages = Demo_getProcessedPages())
+    _crawler = crawler.Crawler(domain, depth, pause_sec, ProcessedPages = Demo_getProcessedPages())
    
-    crawling = crawler.crawl()
+    crawling = _crawler.crawl()
 
     DetailedResult = True  
     #DetailedResult = False  
@@ -506,8 +506,8 @@ def CheckScraping(domain, depth, pause_sec):
                 ScrapText   = ScrapRes[0]
                 ScrapHeader = ScrapRes[1]
                 ScrapDate   = ScrapRes[2]
-                #print(ScrapHeader)
-                #print(ScrapText)
+                print(ScrapHeader)
+                print(ScrapText)
                 Err = (ScrapText == '') | (ScrapHeader == '') | (ScrapDate == '')
                 if Err:
                     msgstr = '### Not all tags found: %s%s \n' % (domain, url)

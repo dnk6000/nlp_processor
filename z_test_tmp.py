@@ -603,8 +603,32 @@ def ttt():
 
 if __name__ == "__main__":
 
+    #_cw_tg_Replies    = { 'class' : re.compile('^reply reply_dived') }
+    _cw_tg_Replies    = { 'class' : re.compile('^replies_wrap_deep') }
+    _cw_tg_Replies2    = { 'onclick' : re.compile('^return wall.showNextReplies') }
+    #_cw_tg_Replies2    = { 'onclick' : re.compile('^replies_list_deep') }
 
-    crawl_endless_scroll_wall()
+    with open(r"C:\Users\tel\Desktop\TextFile8.html", 'r', encoding='utf-8') as f:
+        txt = f.read()
+
+        _cw_soup = BeautifulSoup(txt, "html.parser")
+        tReplTags     = _cw_soup.findAll('', _cw_tg_Replies )
+
+        for tReplTag in tReplTags:
+            tButtTag = tReplTag.find('', _cw_tg_Replies2)
+            if tButtTag != None:
+                print(tButtTag.text)
+
+
+        #print(txt)
+
+        #txt = txt.replace(chr(10),' ')
+
+        #for s in txt:
+        #    print(s, ord(s))
+
+
+    #crawl_endless_scroll_wall()
     sys.exit(0)
 
 
