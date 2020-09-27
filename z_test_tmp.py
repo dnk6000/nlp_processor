@@ -15,6 +15,7 @@ from time import sleep
 
 import pgree
 import crawler
+import scraper
 
 import sys
 
@@ -602,6 +603,20 @@ def ttt():
     return 'ddddddd', 123
 
 if __name__ == "__main__":
+
+    stod = scraper.StrToDate()
+    dt = stod.get_date('130 ноя в 13:40')
+    dt = stod.get_date('30 ноя 2019')
+    print(dt.__str__())
+
+    #str1 = '|'.join(MONTHSHORTS)
+    #if isinstance(str1, str):
+    #    print('Да, это строка')
+    #print(type(str1))
+
+    #t = DT.datetime.strptime('20 авг в 16:58', '%d%b')
+    #print(t)
+    sys.exit(0)
 
     #_cw_tg_Replies    = { 'class' : re.compile('^reply reply_dived') }
     _cw_tg_Replies    = { 'class' : re.compile('^replies_wrap_deep') }

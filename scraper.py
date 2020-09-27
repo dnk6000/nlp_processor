@@ -1,12 +1,85 @@
 # -*- coding: utf-8 -*-
 
 import crawler
+import exceptions
 
 import re
 from html.parser import HTMLParser  
 
 from bs4 import BeautifulSoup
 
+from datetime import datetime
+
+class StrToDate:
+    '''re_patterns - 're'-patterns str or list with  str:
+        - 'dd mmm в hh:mm' ~ 20 ноя в 12:30
+        - 'dd mmm yyyy' ~ 20 ноя 2019
+        url, msg_func - for error exceptions
+        str_date_format - format str from 'datetime' library
+    '''
+    MONTHSHORTSt = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
+    MONTHSHORTSs = '|'.join(MONTHSHORTSt)
+    REPATTERNS = {
+        'dd mmm в hh:mm' : '(?P<day>\d\d) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d):(?P<minute>\d\d)', #15 янв в 10:40
+        'dd mmm yyyy'    : '(?P<day>\d\d) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)'                 #15 янв 2019
+        }
+
+    def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):
+        if str_date_format =='':
+            self.str_date_format = "%d.%m.%Y"
+        else:
+            self.str_date_format = str_date_format
+        self.allowed_re_patterns = {}
+        self.url = url 
+        self.msg_func = msg_func 
+
+        if isinstance(re_patterns, str):
+            if re_patterns == '':
+                for i in self.REPATTERNS:
+                    self.allowed_re_patterns[i] = re.compile(self.REPATTERNS[i])
+            else:
+                self.allowed_re_patterns[re_patterns] = re.compile(self.REPATTERNS[re_patterns])
+
+        elif isinstance(re_patterns, list) or isinstance(re_patterns, tuple):
+            for i in re_patterns:
+                self.allowed_re_patterns[i] = re.compile(self.REPATTERNS[i])
+
+    def get_date(self, date_in_str):
+        for re_pattern in self.allowed_re_patterns:  
+            match = self.allowed_re_patterns[re_pattern].match(date_in_str)
+            if match:
+                res = match.groupdict()
+                
+                day = 1 if not 'day' in res else int(match.group('day'))
+                
+                if 'monthshort' in res:
+                    month = int(self.MONTHSHORTSt.index(match.group('monthshort')))
+                else:
+                    month = 1
+
+                if 'year' in res:
+                    year = int(match.group('year'))
+                else:
+                    year = datetime.now().year
+
+                hour = 0 if not 'hour' in res else int(match.group('hour'))
+                minute = 0 if not 'minute' in res else int(match.group('minute'))
+
+                try:
+                    dt = datetime(year, month, day, hour, minute)
+                except:
+                    raise exceptions.ScrapeDateError(self.url, 'Error by scraping date from str "'+date_in_str+'"', self.msg_func)
+
+                return self._get_formated_date(dt)
+
+        return self._get_formated_date(datetime(1, 1, 1))
+
+    def _get_formated_date(self, dt):
+        if self.str_date_format == '':
+            return dt
+        else:
+            return dt.strftime(self.str_date_format)  
+       
 
 class Scraper():
 

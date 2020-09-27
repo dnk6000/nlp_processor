@@ -15,6 +15,7 @@ from time import sleep
 
 import pgree
 import crawler
+import scraper
 import exceptions
 
 import sys
@@ -502,6 +503,8 @@ class crawler_vk(social_net_crawler):
         pr = lambda p1, p2, p3: { 'tag_key':p1, 'multi': p2, 'mode': p3, 'deep_parent': '' }
 
         nPostTag = rc('^_post post.*')
+        nDateTag = rc('^rel_date')
+        nAuthorTag = rc('^author')
         
         self._cw_tg_NotFound = TT ( [ TN( fn, self._cw_check_not_found , pr(rc('message_page_title'), OneTag, 'tag 1') ),
                                       TN( fn, self._cw_check_not_found , pr(rc('message_page_body') , OneTag, 'tag 2') )
@@ -511,7 +514,16 @@ class crawler_vk(social_net_crawler):
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
         
+        self._cw_tg_Posts = TT ( TN( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
+        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(nAuthorTag      , OneTag   , 'author'    ) ) )
+        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(nDateTag        , OneTag   , 'date'      ) ) )
+        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag , 'wall texts') ) )
+        #self._cw_tg_Posts.add  (    self._cw_tg_Replies)
+        #self._cw_tg_Posts.add  (    TN( fn , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies'), **rc('replies_next_main')} , OneTag  , '') ) )
+
         self._cw_tg_Replies = TT ( TN( fn, self._cw_scrap_replies , pr(rc('^reply reply_dived') , MultiTag, 'repl dived') ) )
+        self._cw_tg_Replies.add  (    TN( fn   , self._cw_scrap_replies , pr(nAuthorTag             , OneTag  , 'author'   ) ) )
+        self._cw_tg_Replies.add  (    TN( fn   , self._cw_scrap_replies , pr(nDateTag               , OneTag  , 'date'     ) ) )
         self._cw_tg_Replies.add  (    TN( fnrpl, self._cw_scrap_replies , pr(rc('^wall_reply_text') , OneTag  , 'repl text') ) )
         #self._cw_tg_Replies.add  (    TN( fn   , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies'), **rc('replies_next|replies_prev')} , OneTag  , '') ) )
         #self._cw_tg_Replies.add  (    TN( fn   , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies')} , OneTag  , '') ) )
@@ -519,10 +531,6 @@ class crawler_vk(social_net_crawler):
         self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
         self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
 
-        self._cw_tg_Posts = TT ( TN( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
-        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag  , 'wall texts') ) )
-        #self._cw_tg_Posts.add  (    self._cw_tg_Replies)
-        #self._cw_tg_Posts.add  (    TN( fn , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies'), **rc('replies_next_main')} , OneTag  , '') ) )
 
         self._cw_wall_scroll_par = {
                     'act': 'get_wall', 
@@ -535,13 +543,14 @@ class crawler_vk(social_net_crawler):
                     'wall_start_from': '',
                     }  
 
-        
+        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy'], url = self.url, msg_func = self.msg_func)
 
     def crawl_wall(self, group_id): # _cw_
 
         self._cw_debug_mode = True
         self._cw_debug_post_filter = '113608'
-        self._cw_debug_post_filter = ''
+        #self._cw_debug_post_filter = ''
+        if self._cw_debug_mode: self._cw_num_posts_request = 100
 
         self._cw_fixed_post_id = ''
         self._cw_group_id = ''
@@ -550,6 +559,7 @@ class crawler_vk(social_net_crawler):
         self._cw_post_repl_list = []  #first level replies
         self._cw_post_repl2_list = [] #second level replies = href 'Показать предыдущие комментарии'
 
+        self._cw_num_posts_request = 10  #number of posts per one scroll-request
         self._cw_num_repl_request = 20  #number of replies received per request
 
         self._cw_session = requests_html.HTMLSession()
@@ -590,7 +600,7 @@ class crawler_vk(social_net_crawler):
             self._cw_get_post_replies2() #second level
 
             #scroll browser page
-            if self._cw_scroll_post_counter >= 10:  #задать в константе
+            if self._cw_scroll_post_counter >= self._cw_num_posts_request:  #задать в константе
                 self._cw_scroll_wall()
             else:
                 _scroll_enable = False
@@ -599,7 +609,7 @@ class crawler_vk(social_net_crawler):
 
 
     def _cw_get_post_replies(self):
-        '''request replies for the posts and scrape results 
+        '''request replies for the posts from '_cw_post_repl_list' and scrape results 
         '''
         while len(self._cw_post_repl_list) > 0:
             _post_id = self._cw_post_repl_list.pop(0)
@@ -802,6 +812,13 @@ class crawler_vk(social_net_crawler):
                 self._cw_group_id = z['group_id']
 
             return result, par
+
+        elif kwargs['mode'] == 'author':
+            par['author'] = result.text
+
+        elif kwargs['mode'] == 'date':
+            par['date'] = result.text
+
         elif kwargs['mode'] == 'wall texts':
             if len(result) > 0:
                 self._cw_post_counter += 1
@@ -814,6 +831,7 @@ class crawler_vk(social_net_crawler):
                 for iTextTag in result:
                     # вставить запись текста в БД
                     print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_scroll_post_counter = '+str(self._cw_scroll_post_counter))
+                    print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
                     print(crawler.remove_empty_symbols(iTextTag.text))
                     print('\n____________________________________________________________\n')
             else:
@@ -842,14 +860,23 @@ class crawler_vk(social_net_crawler):
             
             return result, par
         
+        elif kwargs['mode'] == 'author':
+            par['author'] = result.text
+            par['author_id'] = result.attrs['data-from-id']
+
+        elif kwargs['mode'] == 'date':
+            par['date'] = result.text
+
         elif kwargs['mode'] == 'repl text':
 
             _parent_id = par['parent_id'] if kwargs['deep_parent'] == '' else kwargs['deep_parent']
 
             if par['post_id'] == _parent_id:
                 print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+                print('Author: '+par['author']+'author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
             else:
                 print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+                print('Author: '+par['author']+'author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
             print(crawler.remove_empty_symbols(result.text))
             print('\n       --.....----------------------------------.....-----------\n')
             
