@@ -20,8 +20,8 @@ class StrToDate:
     MONTHSHORTSt = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
     MONTHSHORTSs = '|'.join(MONTHSHORTSt)
     REPATTERNS = {
-        'dd mmm в hh:mm' : '(?P<day>\d\d) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d):(?P<minute>\d\d)', #15 янв в 10:40
-        'dd mmm yyyy'    : '(?P<day>\d\d) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)'                 #15 янв 2019
+        'dd mmm в hh:mm' : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d?):(?P<minute>\d\d)', #15 янв в 10:40
+        'dd mmm yyyy'    : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)'                 #15 янв 2019
         }
 
     def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):

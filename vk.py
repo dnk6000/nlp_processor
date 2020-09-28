@@ -515,8 +515,8 @@ class crawler_vk(social_net_crawler):
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
         
         self._cw_tg_Posts = TT ( TN( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
-        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(nAuthorTag      , OneTag   , 'author'    ) ) )
-        self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(nDateTag        , OneTag   , 'date'      ) ) )
+        self._cw_tg_Posts.add  (    TN( fn  , self._cw_scrap_posts , pr(nAuthorTag      , OneTag   , 'author'    ) ) )
+        self._cw_tg_Posts.add  (    TN( fn  , self._cw_scrap_posts , pr(nDateTag        , OneTag   , 'date'      ) ) )
         self._cw_tg_Posts.add  (    TN( fnpl, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag , 'wall texts') ) )
         #self._cw_tg_Posts.add  (    self._cw_tg_Replies)
         #self._cw_tg_Posts.add  (    TN( fn , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies'), **rc('replies_next_main')} , OneTag  , '') ) )
@@ -617,6 +617,7 @@ class crawler_vk(social_net_crawler):
             _replies_offset = 0
             _scroll_count = 0
             self._cw_scroll_repl_counter = 0
+            self._cw_scroll_repl_counter111 = 0
 
             while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
                 _first_step = False
@@ -637,6 +638,7 @@ class crawler_vk(social_net_crawler):
                 self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
 
                 self._cw_scroll_repl_counter = 0
+                self._cw_scroll_repl_counter111 = 0
                 self._cw_tg_Replies.scan(self._cw_soup)
 
                 self._cw_tg_ShowPrevRepl.scan(self._cw_soup)  #addition ShowPrev-list
@@ -646,6 +648,7 @@ class crawler_vk(social_net_crawler):
                 if self._cw_debug_mode:
                     print('############################################################')
                     print('REPLY SCROLL.  _post_id = '+_post_id+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
+                    print(par_data)
                     print('############################################################')
 
     def _cw_get_post_replies2(self):
@@ -657,6 +660,7 @@ class crawler_vk(social_net_crawler):
             _replies_offset = int(_list_elem['offset'])
             _scroll_count = 0
             self._cw_scroll_repl_counter = 0
+            self._cw_scroll_repl_counter111 = 0
 
             while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
                 _count = int(_list_elem['count']) if _first_step else self._cw_num_repl_request
@@ -679,6 +683,7 @@ class crawler_vk(social_net_crawler):
                 self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
 
                 self._cw_scroll_repl_counter = 0
+                self._cw_scroll_repl_counter111 = 0
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
                 self._cw_tg_Replies.scan(self._cw_soup)
 
@@ -687,6 +692,7 @@ class crawler_vk(social_net_crawler):
                 if self._cw_debug_mode:
                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
                     print('REPLY to REPLY SCROLL.  _post_id = '+_list_elem['item_id']+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
+                    print(par_data)
                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
     def _cw_scroll(self, par_data, err_txt = ''):
@@ -763,6 +769,7 @@ class crawler_vk(social_net_crawler):
 
         if not 'class' in soup.parent.attrs or not ('replies_list_deep' in soup.parent.attrs['class']): 
             par['parent_id'] = par['post_id']
+            self._cw_scroll_repl_counter111 += 1
         else:
             z = self._cw_get_post_id(soup.parent.attrs['id'], 'Reply parent item_id not found !')
             par['parent_id'] = z['post_id']
@@ -830,10 +837,11 @@ class crawler_vk(social_net_crawler):
                 
                 for iTextTag in result:
                     # вставить запись текста в БД
-                    print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_scroll_post_counter = '+str(self._cw_scroll_post_counter))
-                    print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
-                    print(crawler.remove_empty_symbols(iTextTag.text))
-                    print('\n____________________________________________________________\n')
+                    if self._cw_debug_mode:
+                        print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_scroll_post_counter = '+str(self._cw_scroll_post_counter))
+                        print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
+                        print(crawler.remove_empty_symbols(iTextTag.text))
+                        print('\n____________________________________________________________\n')
             else:
                 self.warning('Warning: Text not found ! \n '+self._cw_url)
         
@@ -842,20 +850,10 @@ class crawler_vk(social_net_crawler):
     def _cw_scrap_replies(self, result, par, **kwargs):
         if result == None: return None, par
 
-        #if kwargs['mode'] == 'repl list':
-        #    z = self._cw_get_post_id(result.attrs['id'], 'Reply id (in tag repl list) not found !')
-
-        #    par['post_id'] = z['post_id']
-
-        #    return result, par
-
         if kwargs['mode'] == 'repl dived':
             for r in result:
-                #z = self._cw_get_post_id(r.attrs['id'], 'Reply id (in tag repl dived) not found !')
 
-                #self._cw_last_reply_id[par['post_id']] = z['post_id']
-
-                if not 'class' in r.parent.attrs or not ('replies_list_deep' in r.parent.attrs['class']): 
+                if not 'class' in r.parent.attrs or not ('replies_list_deep' in r.parent.attrs['class']): #перенести в др. проц !!!!!!!!
                     self._cw_scroll_repl_counter += 1  #top-level replies count
             
             return result, par
@@ -872,13 +870,16 @@ class crawler_vk(social_net_crawler):
             _parent_id = par['parent_id'] if kwargs['deep_parent'] == '' else kwargs['deep_parent']
 
             if par['post_id'] == _parent_id:
-                print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-                print('Author: '+par['author']+'author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                if self._cw_debug_mode:
+                    print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+                    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
             else:
-                print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-                print('Author: '+par['author']+'author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-            print(crawler.remove_empty_symbols(result.text))
-            print('\n       --.....----------------------------------.....-----------\n')
+                if self._cw_debug_mode:
+                    print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+                    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+            if self._cw_debug_mode:
+                print(crawler.remove_empty_symbols(result.text))
+                print('\n       --.....----------------------------------.....-----------\n')
             
         return None, par
 
