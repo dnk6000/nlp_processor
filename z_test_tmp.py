@@ -604,10 +604,10 @@ def ttt():
 
 if __name__ == "__main__":
 
-    stod = scraper.StrToDate()
-    dt = stod.get_date('130 ноя в 13:40')
-    dt = stod.get_date('30 ноя 2019')
-    print(dt.__str__())
+    #stod = scraper.StrToDate()
+    #dt = stod.get_date('130 ноя в 13:40')
+    #dt = stod.get_date('30 ноя 2019')
+    #print(dt.__str__())
 
     #str1 = '|'.join(MONTHSHORTS)
     #if isinstance(str1, str):
@@ -616,14 +616,22 @@ if __name__ == "__main__":
 
     #t = DT.datetime.strptime('20 авг в 16:58', '%d%b')
     #print(t)
+
+    _num_str = '81 888'
+    _num_str =_num_str.replace(' ', '')
+    _num = int(_num_str)
+
+    print(_num)
+
     sys.exit(0)
 
     #_cw_tg_Replies    = { 'class' : re.compile('^reply reply_dived') }
-    _cw_tg_Replies    = { 'class' : re.compile('^replies_wrap_deep') }
-    _cw_tg_Replies2    = { 'onclick' : re.compile('^return wall.showNextReplies') }
+    _cw_tg_Replies    = { 'aria-label' : 'Подписчики' }
+    _cw_tg_Replies2    = { 'class' : 'header_count fl_l' }
     #_cw_tg_Replies2    = { 'onclick' : re.compile('^replies_list_deep') }
 
-    with open(r"C:\Users\tel\Desktop\TextFile8.html", 'r', encoding='utf-8') as f:
+    #with open(r"C:\Users\tel\Desktop\TextFile9.html", 'r', encoding='utf-8') as f:
+    with open(r"C:\Users\tel\Desktop\TextFile9.html", 'r') as f:
         txt = f.read()
 
         _cw_soup = BeautifulSoup(txt, "html.parser")

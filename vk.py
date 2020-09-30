@@ -511,6 +511,9 @@ class crawler_vk(social_net_crawler):
                                     ]
                                   )
 
+        self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : 'Подписчики' }, OneTag  , '-' ) ) )
+        self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
+
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
         
@@ -552,6 +555,7 @@ class crawler_vk(social_net_crawler):
         #self._cw_debug_post_filter = ''
         if self._cw_debug_mode: self._cw_num_posts_request = 100
 
+        self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
         self._cw_group_id = ''
         self._cw_post_counter = 0
@@ -585,6 +589,9 @@ class crawler_vk(social_net_crawler):
         if self._cw_signs_count == 2:
             return (-1, 'Not found')
 
+        #get subscribers
+        self._cw_tg_Subscribers.scan(self._cw_soup)
+
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup)
 
@@ -617,7 +624,6 @@ class crawler_vk(social_net_crawler):
             _replies_offset = 0
             _scroll_count = 0
             self._cw_scroll_repl_counter = 0
-            self._cw_scroll_repl_counter111 = 0
 
             while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
                 _first_step = False
@@ -638,7 +644,6 @@ class crawler_vk(social_net_crawler):
                 self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
 
                 self._cw_scroll_repl_counter = 0
-                self._cw_scroll_repl_counter111 = 0
                 self._cw_tg_Replies.scan(self._cw_soup)
 
                 self._cw_tg_ShowPrevRepl.scan(self._cw_soup)  #addition ShowPrev-list
@@ -660,7 +665,6 @@ class crawler_vk(social_net_crawler):
             _replies_offset = int(_list_elem['offset'])
             _scroll_count = 0
             self._cw_scroll_repl_counter = 0
-            self._cw_scroll_repl_counter111 = 0
 
             while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
                 _count = int(_list_elem['count']) if _first_step else self._cw_num_repl_request
@@ -683,7 +687,6 @@ class crawler_vk(social_net_crawler):
                 self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
 
                 self._cw_scroll_repl_counter = 0
-                self._cw_scroll_repl_counter111 = 0
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
                 self._cw_tg_Replies.scan(self._cw_soup)
 
@@ -769,7 +772,7 @@ class crawler_vk(social_net_crawler):
 
         if not 'class' in soup.parent.attrs or not ('replies_list_deep' in soup.parent.attrs['class']): 
             par['parent_id'] = par['post_id']
-            self._cw_scroll_repl_counter111 += 1
+            self._cw_scroll_repl_counter += 1
         else:
             z = self._cw_get_post_id(soup.parent.attrs['id'], 'Reply parent item_id not found !')
             par['parent_id'] = z['post_id']
@@ -851,11 +854,6 @@ class crawler_vk(social_net_crawler):
         if result == None: return None, par
 
         if kwargs['mode'] == 'repl dived':
-            for r in result:
-
-                if not 'class' in r.parent.attrs or not ('replies_list_deep' in r.parent.attrs['class']): #перенести в др. проц !!!!!!!!
-                    self._cw_scroll_repl_counter += 1  #top-level replies count
-            
             return result, par
         
         elif kwargs['mode'] == 'author':
@@ -906,6 +904,22 @@ class crawler_vk(social_net_crawler):
 
         return result, par
 
+    def _cw_scrap_subscribers(self, result, par, **kwargs):
+        if result == None: return None, par
+        
+        if kwargs['mode'] == '-':
+            return result, par
+
+        elif kwargs['mode'] == 'number':
+
+            try:
+                self._cw_num_subscribers = int(result.text.replace(' ', ''))
+            except:
+                raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error by scrapping number of subscribers !', self.msg_func)
+
+            return result, par
+
+        return result, par
 
 
 class TagNode:
