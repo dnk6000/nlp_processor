@@ -37,10 +37,14 @@ class social_net_crawler():
                  msg_func = None,
                  warning_func = None,
                  add_db_func = None, 
-                 crawl_method = 'api'):
+                 id_project = 0,
+                 crawl_method = 'api'
+                 ):
         """
         crawl_method = 'api' / 'browse'
         """
+
+        self.id_project = id_project
 
         if base_search_words == None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
@@ -227,10 +231,14 @@ class crawler_vk(social_net_crawler):
                  password = '', 
                  base_search_words = None, 
                  msg_func = None, 
-                 add_db_func = None
+                 add_db_func = None,
+                 id_project = 0
                  ):
 
-        super().__init__(base_search_words, msg_func, add_db_func)
+        super().__init__(base_search_words = base_search_words, 
+                         msg_func = msg_func, 
+                         add_db_func = add_db_func, 
+                         id_project = id_project)
 
         self.msg('Инициализация')
 
@@ -471,7 +479,8 @@ class crawler_vk(social_net_crawler):
         for Gr in groups_list:
             c += 1
             self.msg('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(Gr['id']) + ' ' + Gr['name'])
-            self.add_db_func('vk',
+            self.add_db_func(self.id_project,
+                             'vk',
                              'group',
                              Gr['id'],
                              Gr['name'],
@@ -591,6 +600,7 @@ class crawler_vk(social_net_crawler):
 
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup)
+        self._cw_update_num_subscribers()
 
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup)
@@ -845,6 +855,14 @@ class crawler_vk(social_net_crawler):
                         print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
                         print(crawler.remove_empty_symbols(iTextTag.text))
                         print('\n____________________________________________________________\n')
+                        
+                        self._cw_add_to_db_data_text(
+                                content = crawler.remove_empty_symbols(iTextTag.text), 
+                                content_date = self._str_to_date.get_date(par['date']), 
+                                sn_id = int(self._cw_group_id), 
+                                sn_post_id = int(par['post_id']), 
+                                sn_post_parent_id = 0
+                                )
             else:
                 self.warning('Warning: Text not found ! \n '+self._cw_url)
         
@@ -920,6 +938,38 @@ class crawler_vk(social_net_crawler):
             return result, par
 
         return result, par
+
+    def _cw_update_num_subscribers(self):
+        if self._cw_num_subscribers == 0:
+            return
+        if not isinstance(self.add_db_func, dict):  
+            return
+        self.add_db_func['update_num_subscribers'](
+            'vk',
+            id_project = self.id_project,
+            account_id = int(self._cw_group_id),
+            number_subscribers = self._cw_num_subscribers)
+
+    def _cw_add_to_db_data_text(self, 
+                                content, 
+                                content_date, 
+                                sn_id, 
+                                sn_post_id, 
+                                sn_post_parent_id
+                                ):
+        if not isinstance(self.add_db_func, dict):  
+            return
+        self.add_db_func['add_to_db_data_text'](
+                            url = self._cw_url, 
+                            content = content, 
+                            gid_data_html = 0, #!!!!!!!!!
+                            content_header = '', 
+                            content_date = content_date, 
+                            id_project = self.id_project, 
+                            sn_network = 'vk', 
+                            sn_id = 111, 
+                            sn_post_id = 222, 
+                            sn_post_parent_id = 333)
 
 
 class TagNode:
@@ -1022,9 +1072,18 @@ def get_psw_mtyurin():
 
 if __name__ == "__main__":
 
-    Crawler = crawler_vk(msg_func = print)
+    CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
+    CassDB.Connect()
+
+    Crawler = crawler_vk(msg_func = print, 
+                         add_db_func = { 'update_num_subscribers' : CassDB.update_sn_num_subscribers,
+                                         'add_to_db_data_text'    : CassDB.add_to_db_data_text
+                                       }
+                         )
     res = Crawler.crawl_wall(16758516)
     #res = Crawler.crawl_wall('16758516_109038')
+
+    CassDB.CloseConnection()
 
     print(res)
     #try:
@@ -1033,9 +1092,6 @@ if __name__ == "__main__":
     #except:
     #    pass
     sys.exit(0)
-
-    CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
-    CassDB.Connect()
 
     #Crawler = crawler_vk(login = '89273824101', 
     #                     password = get_psw_mtyurin(), 
