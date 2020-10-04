@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>vk.py</StartupFile>
+    <StartupFile>pgree.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -26,6 +26,9 @@
   <ItemGroup>
     <Compile Include="crawler.py" />
     <Compile Include="exceptions.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="plpyemul.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="z_test_tmp.py">
