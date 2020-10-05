@@ -14,120 +14,73 @@ def get_psw_mtyurin():
 class CassandraDB():
 
     def __init__(self):
-        pass        
+        self.SD = {}
+        self.SD['plan_add_to_db_sn_accounts'] = None
+        self.SD['update_sn_num_subscribers'] = None
+        self.SD['add_to_db_data_text'] = None
 
 
     def add_to_db_sn_accounts(self, id_project, network, account_type, account_id, account_name, account_screen_name, account_closed):
-
-        successfully = False
-        i = 0
-
-        while not successfully and i < 3:
-            #try:
-
-                plan = plpy.prepare("INSERT INTO git200_crawl.sn_accounts \
-                        ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) \
-                        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) \
-                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING RETURNING id as NewID, network as nnetwork", 
+        with plpy.subtransaction():
+            if self.SD['plan_add_to_db_sn_accounts'] == None:
+                self.SD['plan_add_to_db_sn_accounts'] = plpy.prepare('''
+                        INSERT INTO git200_crawl.sn_accounts 
+                            ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) 
+                        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) 
+                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING
+                        ''', 
+                        #RETURNING id as NewID, network as nnetwork
                         ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
 
-                #plan = plpy.prepare("INSERT INTO git200_crawl.sn_accounts \
-                #        ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) \
-                #        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) \
-                #        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING", 
-                #        ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
+            res = plpy.execute(self.SD['plan_add_to_db_sn_accounts'], [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
 
-                res = plpy.execute(plan, [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
+        #plpy.commit() #commit is not necessary when using construction 'with'
 
-                #plan = plpy.execute('execute plan_add_to_db_sn_accounts (%s)' % ', '.join(
-                #                    ["'"+str(network)+"'", 
-                #                     "'"+str(account_type)+"'", 
-                #                     str(account_id), 
-                #                     "'"+str(account_name)+"'", 
-                #                     "'"+str(account_screen_name)+"'", 
-                #                     str(account_closed), 
-                #                     str(id_project)
-                #                    ]
-                #                    )
-                #                   )
+    def update_sn_num_subscribers(self, network, id_project, account_id, number_subscribers):
+        with plpy.subtransaction():
+            if self.SD['update_sn_num_subscribers'] == None:
+                self.SD['update_sn_num_subscribers'] = plpy.prepare('''
+                                                             UPDATE git200_crawl.sn_accounts 
+                                                             SET number_subscribers = $1  
+                                                             WHERE  account_id = $2 
+                                                             AND network = $3 
+                                                             AND id_project = $4
+                                                             ''', 
+                                                         ["integer", "integer", "dmn.enum_social_net", "integer"]
+                                                        )
 
-                plpy.commit()
+            res = plpy.execute(self.SD['update_sn_num_subscribers'], [number_subscribers, account_id, network, id_project])
 
-                successfully = True
 
-            #except:
-            #    i += 1
+    def add_to_db_data_text(self, 
+                            url, 
+                            content, 
+                            gid_data_html, 
+                            content_header, 
+                            content_date, 
+                            id_project, 
+                            sn_network, 
+                            sn_id, 
+                            sn_post_id, 
+                            sn_post_parent_id
+                            ):
+        with plpy.subtransaction():
+            if self.SD['add_to_db_data_text'] == None:
+                self.SD['add_to_db_data_text'] = plpy.prepare('''
+                                                       INSERT INTO git300_scrap.data_text ( 
+                                                       source, content, gid_data_html, content_header, 
+                                                       content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id 
+                                                        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 );
+                                                             ''', 
+                                                         ["text", "text", "text", "text", 
+                                                          "datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer"]
+                                                        )
 
-            #    if i >= 3:
-            #        raise DBError('Ошибка записи в БД')
-            #    else:
-            #        print('Ошибка записи в БД !!! Попытка '+str(i))
-            #        time.sleep(60)
-
-    #def update_sn_num_subscribers(self, network, id_project, account_id, number_subscribers):
-
-    #    successfully = False
-    #    i = 0
-        
-    #    while not successfully and i < 3:
-    #        try:
-    #            self.cursor.execute(
-    #                "UPDATE git200_crawl.sn_accounts \
-    #                 SET number_subscribers = %s  \
-    #                 WHERE  account_id = %s \
-    #                 AND network = %s \
-    #                 AND id_project = %s", 
-    #                (number_subscribers, account_id, network, id_project))
-
-    #            self.connection.commit()
-
-    #            successfully = True
-
-    #        except:
-    #            i += 1
-
-    #            if i >= 3:
-    #                raise DBError('Ошибка записи в БД git200_crawl.sn_accounts')
-    #            else:
-    #                print('Ошибка записи в БД !!! Попытка '+str(i))
-    #                time.sleep(60)
-
-    #def add_to_db_data_text(self, 
-    #                        url, 
-    #                        content, 
-    #                        gid_data_html, 
-    #                        content_header, 
-    #                        content_date, 
-    #                        id_project, 
-    #                        sn_network, 
-    #                        sn_id, 
-    #                        sn_post_id, 
-    #                        sn_post_parent_id
-    #                        ):
-
-    #    successfully = False
-    #    i = 0
-
-    #    while not successfully and i < 3:
-    #        try:
-    #            self.cursor.execute("INSERT INTO git300_scrap.data_text ( \
-    #                                    source, content, gid_data_html, content_header, \
-    #                                    content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id \
-    #                                    ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s );", 
-    #                    (url, content, gid_data_html, content_header, content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id))
-
-    #            self.connection.commit()
-
-    #            successfully = True
-
-    #        except:
-    #            i += 1
-
-    #            if i >= 3:
-    #                raise DBError('Ошибка записи в БД git300_scrap.data_text')
-    #            else:
-    #                print('Ошибка записи в БД git300_scrap.data_text !!! Попытка '+str(i))
-    #                time.sleep(60)
+            res = plpy.execute(self.SD['add_to_db_data_text'], 
+                               [url, content, gid_data_html, content_header, 
+                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id
+                                ]
+                               )
 
    
     def CloseConnection(self):
@@ -164,31 +117,20 @@ except:
     pass
 
 if __name__ == "__main__":
-
-    #import re
-    #re_ret = re.search(r'RETURNING (.+)', 
-    #                   'INT sn_accounts_id DO NOTHING RETuRNING id as NewID, network as nnetwork',
-    #                   re.IGNORECASE)
-    #if re_ret != None:
-    #    re_names = re.findall(r'\w+ as (\w+)', re_ret.groups()[0])
-    #    if re_names != None: 
-    #        f=1
-
-    #re.findall(r'RETURNING (.+)', 'INT sn_accounts_id DO NOTHING rETURNING id as NewID, network as nnetwork', re.IGNORECASE)
-    #sys.exit(0)
-
     #print(get_psw_mtyurin())
 
     CassDB = CassandraDB()
     #CassDB.Connect()
     print("Database opened successfully")
 
-    CassDB.add_to_db_sn_accounts(0, "vk", "group", 7212121212, "group1212121212", "Тест группа 1212121212", True)
+    #CassDB.add_to_db_sn_accounts(0, "vk", "group", 883564356, "group1212121212", "Тест группа 1212121212", True)
+    #CassDB.add_to_db_sn_accounts(0, "vk", "group", 893564356, "group1212121212", "Тест группа 1212121212", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "rferfer", "аааааааааа", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "erf", "бббббббб", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "vfvffrrrr", "ггггггггг", False)
 
-    #CassDB.update_sn_num_subscribers('vk', 0, 16758516, 333)
+    CassDB.update_sn_num_subscribers('vk', 0, 16758516, 333)
+    CassDB.update_sn_num_subscribers('vk', 0, 16758516, 444)
 
     #CassDB.add_to_db_data_text( 
     #                        url = 'test', 

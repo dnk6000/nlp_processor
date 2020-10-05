@@ -1,5 +1,6 @@
 import psycopg2
 import re
+import time
 
 class PlPy(object):
     NUM_PREP_PLAN = 0
@@ -20,13 +21,37 @@ class PlPy(object):
         self.cursor = self.connection.cursor()
         self._return_var_names = {}
 
+        self._number_of_tries = 3
+        self._tries_pause = 60 #sec
+
     @classmethod
     def __get_next_plan_num__(self):
         PlPy.NUM_PREP_PLAN += 1
         return PlPy.NUM_PREP_PLAN
 
+    def subtransaction(self):
+        return self.connection
+
     def notice(self, message):
         print(message)
+
+    def _execute(self, *args, **kwargs):
+        successfully = False
+        attempt = 0
+
+        while not successfully and attempt < self._number_of_tries:
+            try:
+                self.cursor.execute(*args, **kwargs)
+                successfully = True
+            except Exception as expt:
+                attempt += 1
+
+                if attempt >= self._number_of_tries:
+                    raise expt
+                else:
+                    print('Ошибка записи в БД !!! Попытка '+str(attempt))
+                    time.sleep(self._tries_pause)
+
 
     def execute(self, *args, **kwargs):
         if isinstance(args[0], str):
@@ -43,7 +68,8 @@ class PlPy(object):
 
                 _plan_name = args[0]
 
-                self.cursor.execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
+                #self.cursor.execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
+                self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
 
                 result = []
 
@@ -51,7 +77,8 @@ class PlPy(object):
                     #returning vars present
                     try:
                         res_list = self.cursor.fetchone()
-                        result = [dict( zip(self._return_var_names[_plan_name], res_list) )]
+                        if res_list != None:
+                            result = [dict( zip(self._return_var_names[_plan_name], res_list) )]
                     except Exception as expt:
                         if str(expt) == 'no results to fetch':
                             result = [{}]
@@ -73,7 +100,8 @@ class PlPy(object):
 
         _pgstatement = 'prepare ' + plan_name + ' as ' + pgstatement
 
-        self.cursor.execute(_pgstatement, params)
+        #self.cursor.execute(_pgstatement, params)
+        self._execute(_pgstatement, params)
 
         self._define_return_var_names(pgstatement, plan_name)
 
