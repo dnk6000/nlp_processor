@@ -24,19 +24,20 @@ class CassandraDB():
 
         while not successfully and i < 3:
             #try:
-                #plan = plpy.execute("prepare plan_add_to_db_sn_accounts as INSERT INTO git200_crawl.sn_accounts \
-                #        ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) \
-                #        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) \
-                #        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING", 
-                #        ["text", "text", "integer", "text", "text", "boolean", "integer"])
 
                 plan = plpy.prepare("INSERT INTO git200_crawl.sn_accounts \
                         ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) \
                         VALUES ( $1, $2, $3, $4, $5, $6, $7 ) \
-                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING", 
+                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING RETURNING id as NewID, network as nnetwork", 
                         ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
 
-                plpy.execute(plan, [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
+                #plan = plpy.prepare("INSERT INTO git200_crawl.sn_accounts \
+                #        ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) \
+                #        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) \
+                #        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING", 
+                #        ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
+
+                res = plpy.execute(plan, [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
 
                 #plan = plpy.execute('execute plan_add_to_db_sn_accounts (%s)' % ', '.join(
                 #                    ["'"+str(network)+"'", 
@@ -163,13 +164,26 @@ except:
     pass
 
 if __name__ == "__main__":
+
+    #import re
+    #re_ret = re.search(r'RETURNING (.+)', 
+    #                   'INT sn_accounts_id DO NOTHING RETuRNING id as NewID, network as nnetwork',
+    #                   re.IGNORECASE)
+    #if re_ret != None:
+    #    re_names = re.findall(r'\w+ as (\w+)', re_ret.groups()[0])
+    #    if re_names != None: 
+    #        f=1
+
+    #re.findall(r'RETURNING (.+)', 'INT sn_accounts_id DO NOTHING rETURNING id as NewID, network as nnetwork', re.IGNORECASE)
+    #sys.exit(0)
+
     #print(get_psw_mtyurin())
 
     CassDB = CassandraDB()
     #CassDB.Connect()
     print("Database opened successfully")
 
-    CassDB.add_to_db_sn_accounts(0, "vk", "group", 1212121212, "group1212121212", "Тест группа 1212121212", True)
+    CassDB.add_to_db_sn_accounts(0, "vk", "group", 7212121212, "group1212121212", "Тест группа 1212121212", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "rferfer", "аааааааааа", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "erf", "бббббббб", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "vfvffrrrr", "ггггггггг", False)
