@@ -5,37 +5,42 @@ import time
 class PlPy(object):
     NUM_PREP_PLAN = 0
 
-    def __init__(self,
-                 database, 
-                 host, 
-                 port,
-                 user, 
-                 password):
-        self.connection = psycopg2.connect(
-          database = database, 
-          user = user, 
-          password = password, 
-          host = host, 
-          port = port
-        )
-        self.cursor = self.connection.cursor()
+    def __init__(self, database, host, port, user, password):
+        self.connection_par = { 'database' : database, 
+                                'host'     : host, 
+                                'port'     : port, 
+                                'user'     : user, 
+                                'password' : password
+                              }
+        
+        self.connection = None        
+        self.cursor = None        
+        
         self._return_var_names = {}
 
         self._number_of_tries = 3
         self._tries_pause = 60 #sec
 
+    def _connect(self):
+        if self.connection == None:
+            self.connection = psycopg2.connect(**self.connection_par)
+            self.cursor = self.connection.cursor()
+
     @classmethod
-    def __get_next_plan_num__(self):
-        PlPy.NUM_PREP_PLAN += 1
-        return PlPy.NUM_PREP_PLAN
+    def __get_next_plan_num__(cls):
+        cls.NUM_PREP_PLAN += 1
+        return cls.NUM_PREP_PLAN
 
     def subtransaction(self):
+        self._connect()
         return self.connection
 
     def notice(self, message):
         print(message)
 
     def _execute(self, *args, **kwargs):
+        self._connect()
+        
         successfully = False
         attempt = 0
 
@@ -54,6 +59,8 @@ class PlPy(object):
 
 
     def execute(self, *args, **kwargs):
+        self._connect()
+        
         if isinstance(args[0], str):
             if args[0][:8] == 'py_plan_':
 
@@ -90,12 +97,15 @@ class PlPy(object):
         return self.cursor.execute(*args, **kwargs)
 
     def commit(self, *args, **kwargs):
+        self._connect()
         return self.connection.commit(*args, **kwargs)
 
     def prepare(self, pgstatement, params):
         ''' example params: ["text", "text", "integer", "text", "text", "boolean", "integer"]
             sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)
         '''
+        self._connect()
+
         plan_name = 'py_plan_' + str(PlPy.__get_next_plan_num__())
 
         _pgstatement = 'prepare ' + plan_name + ' as ' + pgstatement
@@ -116,3 +126,7 @@ class PlPy(object):
         else:
             self._return_var_names[plan_name] = []
 
+    def __del__(self):
+        #print('__del__')
+        if self.connection != None:
+            self.connection.close()

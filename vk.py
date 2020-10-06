@@ -30,9 +30,11 @@ import time
 #from pyppeteer import launch
 
 
-class CrawlerSocialNet():
+class CrawlerSocialNet:
 
     def __init__(self, 
+                 login = '', 
+                 password = '', 
                  base_search_words = None, 
                  msg_func = None,
                  warning_func = None,
@@ -222,11 +224,8 @@ class CrawlerSocialNet():
         self.msg('  new groups found: '+str(len(groups_list))+' / '+str(numelem))
 
         
-
-
-class crawler_vk(social_net_crawler):
-
-    def __init__(self, 
+class CrawlerVk(CrawlerSocialNet):
+    def iiiii(self, 
                  login = '', 
                  password = '', 
                  base_search_words = None, 
@@ -239,6 +238,10 @@ class crawler_vk(social_net_crawler):
                          msg_func = msg_func, 
                          add_db_func = add_db_func, 
                          id_project = id_project)
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
 
         self.msg('Инициализация')
 
@@ -282,6 +285,25 @@ class crawler_vk(social_net_crawler):
         #    print(e)
         pass
 
+    def _get_vk_session(self):
+
+        #session = requests_html.session()
+        session = requests_html.HTMLSession()
+        data = session.get(self.url, headers=self.headers)
+        page = lxml.html.fromstring(data.content)
+
+        form = page.forms[0]
+        form.fields['email'] = self.login
+        form.fields['pass'] = self.password
+
+        response = session.post(form.action, data=form.form_values())
+
+        if 'onLoginDone' in response.text:
+            return session
+        else:
+            self.msg('VK authorisation error !')
+            return None
+
     def get_vk_service_token(self):
 
         self.msg('Получение нового токена')
@@ -319,6 +341,21 @@ class crawler_vk(social_net_crawler):
 
         return False
 
+class CrawlerVkGroups(CrawlerVk):
+    def __init__(self, 
+                 login = '', 
+                 password = '', 
+                 base_search_words = None, 
+                 msg_func = None, 
+                 add_db_func = None,
+                 id_project = 0
+                 ):
+
+        super().__init__(base_search_words = base_search_words, 
+                         msg_func = msg_func, 
+                         add_db_func = add_db_func, 
+                         id_project = id_project)
+
     def _crawl_groups_api(self, search_elem):
 
         sleep(self.api_request_pause_sec)
@@ -337,25 +374,6 @@ class crawler_vk(social_net_crawler):
         groups = self.api.groups.search(**params)
         
         return { 'count': groups['count'], 'groups_list': groups['items'] }
-
-    def _get_vk_session(self):
-
-        #session = requests_html.session()
-        session = requests_html.HTMLSession()
-        data = session.get(self.url, headers=self.headers)
-        page = lxml.html.fromstring(data.content)
-
-        form = page.forms[0]
-        form.fields['email'] = self.login
-        form.fields['pass'] = self.password
-
-        response = session.post(form.action, data=form.form_values())
-
-        if 'onLoginDone' in response.text:
-            return session
-        else:
-            self.msg('VK authorisation error !')
-            return None
 
     def _scrape_first_page_searching_groups(self, htmltxt):
         
@@ -381,7 +399,7 @@ class crawler_vk(social_net_crawler):
 
         self._add_groups_to_db(groups_list)
 
-    def _scrape_scroll_page_searching_groups(self, htmltxt):
+    def _scrape_fetch_page_searching_groups(self, htmltxt):
         
         groups_list = list()
 
@@ -466,7 +484,7 @@ class crawler_vk(social_net_crawler):
             if match:
                 _htmltxt = _htmltxt[match.regs[0][1]-len(first_search_tag):]
             
-            self._scrape_scroll_page_searching_groups(_htmltxt)
+            self._scrape_fetch_page_searching_groups(_htmltxt)
 
             _search_group_offset += 20
 
@@ -489,9 +507,22 @@ class crawler_vk(social_net_crawler):
             )
 
 
-    ##########################
-    # wall crawling procedures
-    ##########################
+class CrawlerVkWall(CrawlerVk):
+    def __init__(self, 
+                 login = '', 
+                 password = '', 
+                 base_search_words = None, 
+                 msg_func = None, 
+                 add_db_func = None,
+                 id_project = 0
+                 ):
+
+        super().__init__(base_search_words = base_search_words, 
+                         msg_func = msg_func, 
+                         add_db_func = add_db_func, 
+                         id_project = id_project)
+
+    
     def _cw_define_tags(self):
 
         TN = scraper.TagNode
@@ -544,7 +575,7 @@ class crawler_vk(social_net_crawler):
         self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
 
 
-        self._cw_wall_scroll_par = {
+        self._cw_wall_fetch_par = {
                     'act': 'get_wall', 
                     'al': '1',
                     'fixed': '',
@@ -572,7 +603,7 @@ class crawler_vk(social_net_crawler):
         self._cw_post_repl_list = []  #first level replies
         self._cw_post_repl2_list = [] #second level replies = href 'Показать предыдущие комментарии'
 
-        self._cw_num_posts_request = 10  #number of posts per one scroll-request
+        self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
 
         self._cw_session = requests_html.HTMLSession()
@@ -583,7 +614,7 @@ class crawler_vk(social_net_crawler):
             self._cw_group_id = str(group_id)
             self._cw_url = self.url + 'club' + str(group_id)
 
-        self._cw_url_scroll = self.url + 'al_wall.php'
+        self._cw_url_fetch = self.url + 'al_wall.php'
 
         try:
             d = self._cw_session.get(self._cw_url, headers = self.headers)
@@ -605,10 +636,10 @@ class crawler_vk(social_net_crawler):
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup)
 
-        _scroll_enable = True
+        _fetch_enable = True
 
-        while _scroll_enable:
-            self._cw_scroll_post_counter = 0
+        while _fetch_enable:
+            self._cw_fetch_post_counter = 0
 
             #get posts
             self._cw_tg_Posts.scan(self._cw_soup)
@@ -616,11 +647,11 @@ class crawler_vk(social_net_crawler):
             self._cw_get_post_replies()
             self._cw_get_post_replies2() #second level
 
-            #scroll browser page
-            if self._cw_scroll_post_counter >= self._cw_num_posts_request:  #задать в константе
-                self._cw_scroll_wall()
+            #fetch browser page
+            if self._cw_fetch_post_counter >= self._cw_num_posts_request:  #задать в константе
+                self._cw_fetch_wall()
             else:
-                _scroll_enable = False
+                _fetch_enable = False
 
         return (0, 'Sucsess')
 
@@ -632,10 +663,10 @@ class crawler_vk(social_net_crawler):
             _post_id = self._cw_post_repl_list.pop(0)
             _first_step = True
             _replies_offset = 0
-            _scroll_count = 0
-            self._cw_scroll_repl_counter = 0
+            _fetch_count = 0
+            self._cw_fetch_repl_counter = 0
 
-            while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
+            while self._cw_fetch_repl_counter >= self._cw_num_repl_request or _first_step:
                 _first_step = False
 
                 par_data = {'act': 'get_post_replies', 
@@ -651,18 +682,18 @@ class crawler_vk(social_net_crawler):
             
                 _replies_offset += self._cw_num_repl_request
 
-                self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
+                self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data))
 
-                self._cw_scroll_repl_counter = 0
+                self._cw_fetch_repl_counter = 0
                 self._cw_tg_Replies.scan(self._cw_soup)
 
                 self._cw_tg_ShowPrevRepl.scan(self._cw_soup)  #addition ShowPrev-list
 
-                _scroll_count += 1
+                _fetch_count += 1
 
                 if self._cw_debug_mode:
                     print('############################################################')
-                    print('REPLY SCROLL.  _post_id = '+_post_id+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
+                    print('REPLY SCROLL.  _post_id = '+_post_id+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
                     print(par_data)
                     print('############################################################')
 
@@ -673,10 +704,10 @@ class crawler_vk(social_net_crawler):
             _list_elem = self._cw_post_repl2_list.pop(0)
             _first_step = True
             _replies_offset = int(_list_elem['offset'])
-            _scroll_count = 0
-            self._cw_scroll_repl_counter = 0
+            _fetch_count = 0
+            self._cw_fetch_repl_counter = 0
 
-            while self._cw_scroll_repl_counter >= self._cw_num_repl_request or _first_step:
+            while self._cw_fetch_repl_counter >= self._cw_num_repl_request or _first_step:
                 _count = int(_list_elem['count']) if _first_step else self._cw_num_repl_request
 
                 par_data = {'act': 'get_post_replies', 
@@ -694,26 +725,26 @@ class crawler_vk(social_net_crawler):
 
                 _replies_offset += _count
 
-                self._cw_scroll(par_data, 'Error when trying to scroll post replies ! '+str(par_data))
+                self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data))
 
-                self._cw_scroll_repl_counter = 0
+                self._cw_fetch_repl_counter = 0
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
                 self._cw_tg_Replies.scan(self._cw_soup)
 
-                _scroll_count += 1
+                _fetch_count += 1
 
                 if self._cw_debug_mode:
                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                    print('REPLY to REPLY SCROLL.  _post_id = '+_list_elem['item_id']+' _cw_scroll_repl_counter = '+str(self._cw_scroll_repl_counter)+' _scroll_count = '+str(_scroll_count))
+                    print('REPLY to REPLY SCROLL.  _post_id = '+_list_elem['item_id']+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
                     print(par_data)
                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
-    def _cw_scroll(self, par_data, err_txt = ''):
+    def _cw_fetch(self, par_data, err_txt = ''):  #fetch !!!!!!!!!!!!
         '''make post-request with par_data params
         '''
         time.sleep(2)   #!!!!!!!!!! smart func needed !
         try:
-            d = self._cw_session.post(self._cw_url_scroll, headers = self.headers, data = par_data)
+            d = self._cw_session.post(self._cw_url_fetch, headers = self.headers, data = par_data)
         except Exception as e:
             raise exceptions.CrawlVkByBrowserError(self._cw_url, err_txt, self.msg_func)
             
@@ -726,13 +757,13 @@ class crawler_vk(social_net_crawler):
 
         self._cw_soup = BeautifulSoup(txt, "html.parser")
 
-    def _cw_scroll_wall(self):
-        self._cw_wall_scroll_par['fixed'] = self._cw_fixed_post_id
-        self._cw_wall_scroll_par['owner_id'] = '-'+self._cw_group_id
-        self._cw_wall_scroll_par['offset'] = str(self._cw_post_counter)
-        self._cw_wall_scroll_par['wall_start_from'] = str(self._cw_post_counter2)
+    def _cw_fetch_wall(self):
+        self._cw_wall_fetch_par['fixed'] = self._cw_fixed_post_id
+        self._cw_wall_fetch_par['owner_id'] = '-'+self._cw_group_id
+        self._cw_wall_fetch_par['offset'] = str(self._cw_post_counter)
+        self._cw_wall_fetch_par['wall_start_from'] = str(self._cw_post_counter2)
 
-        self._cw_scroll(self._cw_wall_scroll_par, 'Error when trying to scroll the wall !')
+        self._cw_fetch(self._cw_wall_fetch_par, 'Error when trying to fetch the wall !')
 
 
     def _cw_get_post_id(self, html_attr, error_msg = ''):
@@ -782,7 +813,7 @@ class crawler_vk(social_net_crawler):
 
         if not 'class' in soup.parent.attrs or not ('replies_list_deep' in soup.parent.attrs['class']): 
             par['parent_id'] = par['post_id']
-            self._cw_scroll_repl_counter += 1
+            self._cw_fetch_repl_counter += 1
         else:
             z = self._cw_get_post_id(soup.parent.attrs['id'], 'Reply parent item_id not found !')
             par['parent_id'] = z['post_id']
@@ -843,7 +874,7 @@ class crawler_vk(social_net_crawler):
             if len(result) > 0:
                 self._cw_post_counter += 1
                 self._cw_post_counter2 += 1
-                self._cw_scroll_post_counter += 1
+                self._cw_fetch_post_counter += 1
 
                 if len(result) > 1:
                     raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Several texts in one post were found !', self.msg_func)
@@ -851,7 +882,7 @@ class crawler_vk(social_net_crawler):
                 for iTextTag in result:
                     # вставить запись текста в БД
                     if self._cw_debug_mode:
-                        print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_scroll_post_counter = '+str(self._cw_scroll_post_counter))
+                        print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_fetch_post_counter = '+str(self._cw_fetch_post_counter))
                         print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
                         print(crawler.remove_empty_symbols(iTextTag.text))
                         print('\n____________________________________________________________\n')
@@ -984,20 +1015,25 @@ def get_psw_mtyurin():
 
 if __name__ == "__main__":
 
-    CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
-    CassDB.Connect()
-
-    Crawler = crawler_vk(msg_func = print, 
-                         add_db_func = { 'update_num_subscribers' : CassDB.update_sn_num_subscribers,
-                                         'add_to_db_data_text'    : CassDB.add_to_db_data_text
-                                       }
+    cass_db = pgree.CassandraDB()
+    crawler_vk = CrawlerVk(login = '89273824101', 
+                         password = get_psw_mtyurin(), 
+                         base_search_words = ['Фурсов'], 
+                         msg_func = print, 
+                         add_db_func = cass_db.add_to_db_sn_accounts
                          )
-    res = Crawler.crawl_wall(16758516)
+            #CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
+            #CassDB.Connect()
+
+            #Crawler = crawler_vk(msg_func = print, 
+            #                     add_db_func = { 'update_num_subscribers' : CassDB.update_sn_num_subscribers,
+            #                                     'add_to_db_data_text'    : CassDB.add_to_db_data_text
+            #                                   }
+            #                     )
+            #res = Crawler.crawl_wall(16758516)
     #res = Crawler.crawl_wall('16758516_109038')
 
-    CassDB.CloseConnection()
-
-    print(res)
+    #print(res)
     #try:
     #    res = Crawler.crawl_wall(777716758516)
     #    print(res)

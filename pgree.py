@@ -149,5 +149,6 @@ if __name__ == "__main__":
 
     #CassDB.Select()
 
-    CassDB.CloseConnection()
+    #CassDB.CloseConnection()
+    f=1
 
