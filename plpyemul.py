@@ -17,6 +17,7 @@ class PlPy(object):
         self.cursor = None        
         
         self._return_var_names = {}
+        self._return_select_result = {}
 
         self._number_of_tries = 3
         self._tries_pause = 60 #sec
@@ -41,12 +42,14 @@ class PlPy(object):
     def _execute(self, *args, **kwargs):
         self._connect()
         
+        result = None
+
         successfully = False
         attempt = 0
 
         while not successfully and attempt < self._number_of_tries:
             try:
-                self.cursor.execute(*args, **kwargs)
+                result = self.cursor.execute(*args, **kwargs)
                 successfully = True
             except Exception as expt:
                 attempt += 1
@@ -57,6 +60,11 @@ class PlPy(object):
                     print('Ошибка записи в БД !!! Попытка '+str(attempt))
                     time.sleep(self._tries_pause)
 
+        return result
+
+    def cursor(self, *args, **kwargs):
+        #https://postgrespro.ru/docs/postgrespro/9.5/plpython-database
+        pass
 
     def execute(self, *args, **kwargs):
         self._connect()
@@ -76,12 +84,11 @@ class PlPy(object):
                 _plan_name = args[0]
 
                 #self.cursor.execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
-                self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
-
-                result = []
+                result = self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
 
                 if len(self._return_var_names[_plan_name]) != 0:
                     #returning vars present
+                    result = []
                     try:
                         res_list = self.cursor.fetchone()
                         if res_list != None:
@@ -91,10 +98,22 @@ class PlPy(object):
                             result = [{}]
                         else:
                             raise expt
+                elif self._return_select_result:
+                    result = self._convert_select_result(self.cursor.fetchall())
 
                 return result
 
-        return self.cursor.execute(*args, **kwargs)
+        if self._return_select_result:
+            self.cursor.execute(*args, **kwargs)
+            result = self.cursor.fetchall()
+            return self._convert_select_result(result)
+        else:
+            return self.cursor.execute(*args, **kwargs)
+
+    def _convert_select_result(self, res):
+        #!!now returning the list of tuple, but plpy returning the list of dict !!
+        #!!need refactoring later
+        return res
 
     def commit(self, *args, **kwargs):
         self._connect()
@@ -120,11 +139,17 @@ class PlPy(object):
     def _define_return_var_names(self, pgstatement, plan_name):
         '''sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)
         '''
+        self._return_select_result[plan_name] = False
+
         re_vars = re.search(r'RETURNING (.+)', pgstatement, re.IGNORECASE)
         if re_vars != None:
             self._return_var_names[plan_name] = re.findall(r'\w+ as (\w+)', re_vars.groups()[0])
         else:
             self._return_var_names[plan_name] = []
+
+            re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
+            if re_vars != None:
+                self._return_select_result[plan_name] = True
 
     def __del__(self):
         #print('__del__')

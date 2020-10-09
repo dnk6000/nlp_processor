@@ -13,7 +13,7 @@ from itertools import combinations
 from itertools import product
 from time import sleep
 
-import pgree
+import pg_interface
 import crawler
 import scraper
 import exceptions
@@ -29,6 +29,13 @@ import time
 #import asyncio
 #from pyppeteer import launch
 
+""" 
+class hierarchy:
+    CrawlerSocialNet
+	    CrawlerVk
+		    CrawlerVkGroups
+		    CrawlerVkWall
+"""
 
 class CrawlerSocialNet:
 
@@ -47,6 +54,9 @@ class CrawlerSocialNet:
         """
 
         self.id_project = id_project
+
+        self.login = login
+        self.password = password
 
         if base_search_words == None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
@@ -223,22 +233,7 @@ class CrawlerSocialNet:
         
         self.msg('  new groups found: '+str(len(groups_list))+' / '+str(numelem))
 
-        
 class CrawlerVk(CrawlerSocialNet):
-    def iiiii(self, 
-                 login = '', 
-                 password = '', 
-                 base_search_words = None, 
-                 msg_func = None, 
-                 add_db_func = None,
-                 id_project = 0
-                 ):
-
-        super().__init__(base_search_words = base_search_words, 
-                         msg_func = msg_func, 
-                         add_db_func = add_db_func, 
-                         id_project = id_project)
-
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -256,17 +251,11 @@ class CrawlerVk(CrawlerSocialNet):
             'DNT':'1'
         }
 
-
         self.api_request_pause_sec = 2
-
-        self.login = login
-        self.password = password
         
         self.service_token = ''
 
         self.api_available = self.login != ''
-
-        self._cw_define_tags()
 
         if self.api_available:
             with open(self.local_service_folder + 'vktoken.txt', 'r') as f:
@@ -342,19 +331,8 @@ class CrawlerVk(CrawlerSocialNet):
         return False
 
 class CrawlerVkGroups(CrawlerVk):
-    def __init__(self, 
-                 login = '', 
-                 password = '', 
-                 base_search_words = None, 
-                 msg_func = None, 
-                 add_db_func = None,
-                 id_project = 0
-                 ):
-
-        super().__init__(base_search_words = base_search_words, 
-                         msg_func = msg_func, 
-                         add_db_func = add_db_func, 
-                         id_project = id_project)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def _crawl_groups_api(self, search_elem):
 
@@ -508,20 +486,24 @@ class CrawlerVkGroups(CrawlerVk):
 
 
 class CrawlerVkWall(CrawlerVk):
-    def __init__(self, 
-                 login = '', 
-                 password = '', 
-                 base_search_words = None, 
-                 msg_func = None, 
-                 add_db_func = None,
-                 id_project = 0
-                 ):
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+        
+        self._cw_define_tags()
 
-        super().__init__(base_search_words = base_search_words, 
-                         msg_func = msg_func, 
-                         add_db_func = add_db_func, 
-                         id_project = id_project)
+        self._cw_wall_fetch_par = {
+                    'act': 'get_wall', 
+                    'al': '1',
+                    'fixed': '',
+                    'offset': '',
+                    'onlyCache': 'false',
+                    'owner_id': '',
+                    'type': 'own',
+                    'wall_start_from': '',
+                    }  
 
+        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy'], url = self.url, msg_func = self.msg_func)
     
     def _cw_define_tags(self):
 
@@ -574,19 +556,6 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
         self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
 
-
-        self._cw_wall_fetch_par = {
-                    'act': 'get_wall', 
-                    'al': '1',
-                    'fixed': '',
-                    'offset': '',
-                    'onlyCache': 'false',
-                    'owner_id': '',
-                    'type': 'own',
-                    'wall_start_from': '',
-                    }  
-
-        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy'], url = self.url, msg_func = self.msg_func)
 
     def crawl_wall(self, group_id): # _cw_
 
@@ -1015,7 +984,7 @@ def get_psw_mtyurin():
 
 if __name__ == "__main__":
 
-    cass_db = pgree.CassandraDB()
+    cass_db = pg_interface.MainDB()
     crawler_vk = CrawlerVk(login = '89273824101', 
                          password = get_psw_mtyurin(), 
                          base_search_words = ['Фурсов'], 
