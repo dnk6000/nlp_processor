@@ -21,6 +21,13 @@ class MainDB():
 
 
     def add_to_db_sn_accounts(self, id_project, network, account_type, account_id, account_name, account_screen_name, account_closed):
+        #res = plpy.execute('''
+        #                INSERT INTO git200_crawl.sn_accounts 
+        #                    ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) 
+        #                VALUES ( $1, $2, $3, $4, $5, $6, $7 ) 
+        #                ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING
+        #                ''', ['vk', 'group', 12568423, 'O\'Reyly', account_screen_name, account_closed, id_project])
+
         with plpy.subtransaction():
             if SD['plan_add_to_db_sn_accounts'] == None:
                 SD['plan_add_to_db_sn_accounts'] = plpy.prepare('''
@@ -36,7 +43,7 @@ class MainDB():
 
         #plpy.commit() #commit is not necessary when using construction 'with'
 
-    def update_sn_num_subscribers(self, network, id_project, account_id, number_subscribers):
+    def update_sn_num_subscribers(self, sn_network, id_project, sn_id, number_subscribers, **kwargs):
         with plpy.subtransaction():
             if SD['update_sn_num_subscribers'] == None:
                 SD['update_sn_num_subscribers'] = plpy.prepare('''
@@ -49,21 +56,11 @@ class MainDB():
                                                          ["integer", "integer", "dmn.enum_social_net", "integer"]
                                                         )
 
-            res = plpy.execute(SD['update_sn_num_subscribers'], [number_subscribers, account_id, network, id_project])
+            res = plpy.execute(SD['update_sn_num_subscribers'], [number_subscribers, sn_id, sn_network, id_project])
 
 
-    def add_to_db_data_text(self, 
-                            url, 
-                            content, 
-                            gid_data_html, 
-                            content_header, 
-                            content_date, 
-                            id_project, 
-                            sn_network, 
-                            sn_id, 
-                            sn_post_id, 
-                            sn_post_parent_id
-                            ):
+    def add_to_db_data_text(self, url, content, gid_data_html, content_header, content_date, 
+                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, **kwargs):
         with plpy.subtransaction():
             if SD['add_to_db_data_text'] == None:
                 SD['add_to_db_data_text'] = plpy.prepare('''
@@ -82,6 +79,17 @@ class MainDB():
                                 ]
                                )
 
+    def add_to_db_data_html(self, url, content, domain, id_project, **kwargs):
+        with plpy.subtransaction():
+          plan=plpy.prepare('''
+                INSERT INTO git200_crawl.data_html 
+                       (URL, CONTENT, DOMAIN, id_project) 
+                VALUES ($1, $2, $3, $4) 
+                ON CONFLICT ON CONSTRAINT data_html_hash_key DO NOTHING
+                ''', 
+                ["text","text","text","integer"])
+          res = plpy.execute(plan,[url, content, domain, id_project])
+          return res
    
     def select_groups_id(self, id_project):
 
@@ -113,7 +121,9 @@ def convert_select_result(res, num_fields = 1):
     '''in pgree environment need another processing!
     '''
     if num_fields == 1:
-        return [row[0] for row in res]
+        #return [row[0] for row in res]
+        return res
+        
 
 # plpy object creating, this code cannot be executed in the PGree environment  
 try:
@@ -133,13 +143,14 @@ SD = {}
 if __name__ == "__main__":
     #print(get_psw_mtyurin())
 
-    CassDB = MainDB()
+    cass_db = MainDB()
     #CassDB.Connect()
     print("Database opened successfully")
-
+    #res = cass_db.select_groups_id(id_project = 5)
+    #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
     a = 1
-    #CassDB.add_to_db_sn_accounts(0, "vk", "group", 65246456, "group1212121212", "Тест группа 1212121212", True)
+    cass_db.add_to_db_sn_accounts(0, "vk", "group", 62786756, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
     #CassDB.add_to_db_sn_accounts(0, "vk", "group", 893564356, "group1212121212", "Тест группа 1212121212", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "rferfer", "аааааааааа", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "erf", "бббббббб", True)
@@ -160,7 +171,7 @@ if __name__ == "__main__":
     #                        sn_post_id = 222, 
     #                        sn_post_parent_id = 333)
 
-    print(CassDB.select_groups_id(0))
+    #print(CassDB.select_groups_id(0))
 
     print("Record added")
 

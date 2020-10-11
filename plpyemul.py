@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import re
 import time
 
@@ -20,12 +21,12 @@ class PlPy(object):
         self._return_select_result = {}
 
         self._number_of_tries = 3
-        self._tries_pause = 60 #sec
+        self._tries_pause = 6 #sec
 
     def _connect(self):
         if self.connection == None:
             self.connection = psycopg2.connect(**self.connection_par)
-            self.cursor = self.connection.cursor()
+            self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
 
     @classmethod
     def __get_next_plan_num__(cls):
@@ -33,10 +34,12 @@ class PlPy(object):
         return cls.NUM_PREP_PLAN
 
     def subtransaction(self):
+        #https://stackoverflow.com/questions/29773002/creating-transactions-with-with-statements-in-psycopg2
         self._connect()
         return self.connection
 
-    def notice(self, message):
+    @staticmethod
+    def notice(message):
         print(message)
 
     def _execute(self, *args, **kwargs):
@@ -72,38 +75,40 @@ class PlPy(object):
         if isinstance(args[0], str):
             if args[0][:8] == 'py_plan_':
 
-                _params = []
-                for i in args[1]:
-                    if isinstance(i, str):
-                        _params.append("'" + i + "'")
-                    else:
-                        _params.append(str(i))
-
-                _params_str = ', '.join(_params)
-
                 _plan_name = args[0]
 
-                #self.cursor.execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
-                result = self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
+                #_params = []
+                #for i in args[1]:
+                #    if isinstance(i, str):
+                #        _params.append("'" + i + "'")
+                #    else:
+                #        _params.append(str(i))
+                #_params_str = ', '.join(_params)
+                #result = self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
+                
+                _params_str = ', '.join('%s' for i in range(len(args[1])))
+                
+                result = self._execute('execute '+_plan_name+' ('+_params_str+')', tuple(args[1]))
 
                 if len(self._return_var_names[_plan_name]) != 0:
                     #returning vars present
                     result = []
                     try:
-                        res_list = self.cursor.fetchone()
-                        if res_list != None:
-                            result = [dict( zip(self._return_var_names[_plan_name], res_list) )]
+                        result = self.cursor.fetchone()
+                        #res_list = self.cursor.fetchone()
+                        #if res_list != None:
+                            #result = [dict( zip(self._return_var_names[_plan_name], res_list) )]
                     except Exception as expt:
                         if str(expt) == 'no results to fetch':
                             result = [{}]
                         else:
                             raise expt
-                elif self._return_select_result:
+                elif self._return_select_result[_plan_name]:
                     result = self._convert_select_result(self.cursor.fetchall())
 
                 return result
 
-        if self._return_select_result:
+        if self._return_select_result[_plan_name]:
             self.cursor.execute(*args, **kwargs)
             result = self.cursor.fetchall()
             return self._convert_select_result(result)
@@ -148,7 +153,7 @@ class PlPy(object):
             self._return_var_names[plan_name] = []
 
             re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
-            if re_vars != None:
+            if re_select != None:
                 self._return_select_result[plan_name] = True
 
     def __del__(self):

@@ -10,6 +10,8 @@ from bs4 import BeautifulSoup
 
 from datetime import datetime
 
+import json
+
 class StrToDate:
     '''re_patterns - 're'-patterns str or list with  str:
         - 'dd mmm в hh:mm' ~ 20 ноя в 12:30
@@ -364,6 +366,105 @@ def isRusProposal(Proposal):
     return count >= 3
 
 
+class TagNode:
+    def __init__(self, 
+                 process_func = None, 
+                 result_func = None, 
+                 func_par = None):
+        """ process_func - function to process 'incoming parameters' in class function Scan
+            result_func  - function to process result of process_func
+            func_par - parameters for result_func
+               required parameters:
+                    tag_key -  regular expression with tag name for search in html
+                    multi   -  True - find tag multi times, False - once
+        """
+        self.process_func = process_func
+        self.result_func = result_func
+        self.func_par = func_par
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+class TagTree():
+    def __init__(self, nodes = None):
+        """the type of node type must be 'list', 'TagNode' or None (default)
+        """
+        
+        if type(nodes) == list:
+            self.nodes = nodes
+        elif type(nodes) == TagNode:
+            self.nodes = [nodes]
+        else:
+            self.nodes = list()
+        
+        self.childs = list()
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+    def add(self, childs):
+        """childs type must be 'list', 'TagNode' or 'TagTree'
+        """
+
+        if type(childs) == list:
+            for child in childs:
+                if type(child) == TagTree:
+                    self.childs.append(child)
+                if type(child) == TagNode:
+                    self.childs.append(TagTree(child))
+                else:
+                    raise 'Incorrect type of child in child-list for TagTree class!'
+        elif type(childs) == TagTree:
+            self.childs.append(childs)
+        elif type(childs) == TagNode:
+            self.childs.append(TagTree(childs))
+        else:
+            raise 'Incorrect type of var ''childs'' for TagTree class!'
+
+    def scan(self, par1, par2 = {}):
+        
+        #result_of_process_func = None 
+
+        for node in self.nodes:
+            if node.process_func != None:
+                proc_par1, proc_par2 = node.process_func(par1, par2, **node.func_par)
+            
+            if node.result_func != None:
+                res_par1, res_par2 = node.result_func(proc_par1, proc_par2, **node.func_par)
+            else:
+                res_par1, res_par2 = proc_par1, proc_par2
+
+        #if hasattr(result_of_result_func, '__iter__'):
+        if issubclass(type(res_par1), list):
+            for i_res_par1 in res_par1:
+                for child in self.childs:
+                    child.scan(i_res_par1, res_par2)
+        else:
+            for child in self.childs:
+                child.scan(res_par1, res_par2)
+            
+    
+    def set_par(self, par_id, par_value):
+        '''set parameter value in dict 'func_par' for all tree nodes
+        '''
+        
+        for node in self.nodes:
+            node.func_par[par_id] = par_value
+
+        for child in self.childs:
+            child.set_par(par_id, par_value)
+
+
+class ScrapeResult:
+    def __init__(self, clear_result = True):
+        self.clear_result = clear_result
+
+    def get_json_result(self, result):
+        json_result = json.dumps(result)
+        if self.clear_result:
+            result.clear()
+        return json_result
+
 def Demo_getProcessedPages():
     listProcessedPages = []
 
@@ -597,94 +698,6 @@ def CheckScraping(domain, depth, pause_sec):
     
     AddToLogFile('Success counter: %s'.format(SuccessCount))
 
-
-class TagNode:
-    def __init__(self, 
-                 process_func = None, 
-                 result_func = None, 
-                 func_par = None):
-        """ process_func - function to process 'incoming parameters' in class function Scan
-            result_func  - function to process result of process_func
-            func_par - parameters for result_func
-               required parameters:
-                    tag_key -  regular expression with tag name for search in html
-                    multi   -  True - find tag multi times, False - once
-        """
-        self.process_func = process_func
-        self.result_func = result_func
-        self.func_par = func_par
-
-    def __repr__(self):
-        return str(self.__dict__)
-
-class TagTree():
-    def __init__(self, nodes = None):
-        """the type of node type must be 'list', 'TagNode' or None (default)
-        """
-        
-        if type(nodes) == list:
-            self.nodes = nodes
-        elif type(nodes) == TagNode:
-            self.nodes = [nodes]
-        else:
-            self.nodes = list()
-        
-        self.childs = list()
-
-    def __repr__(self):
-        return str(self.__dict__)
-
-    def add(self, childs):
-        """childs type must be 'list', 'TagNode' or 'TagTree'
-        """
-
-        if type(childs) == list:
-            for child in childs:
-                if type(child) == TagTree:
-                    self.childs.append(child)
-                if type(child) == TagNode:
-                    self.childs.append(TagTree(child))
-                else:
-                    raise 'Incorrect type of child in child-list for TagTree class!'
-        elif type(childs) == TagTree:
-            self.childs.append(childs)
-        elif type(childs) == TagNode:
-            self.childs.append(TagTree(childs))
-        else:
-            raise 'Incorrect type of var ''childs'' for TagTree class!'
-
-    def scan(self, par1, par2 = {}):
-        
-        #result_of_process_func = None 
-
-        for node in self.nodes:
-            if node.process_func != None:
-                proc_par1, proc_par2 = node.process_func(par1, par2, **node.func_par)
-            
-            if node.result_func != None:
-                res_par1, res_par2 = node.result_func(proc_par1, proc_par2, **node.func_par)
-            else:
-                res_par1, res_par2 = proc_par1, proc_par2
-
-        #if hasattr(result_of_result_func, '__iter__'):
-        if issubclass(type(res_par1), list):
-            for i_res_par1 in res_par1:
-                for child in self.childs:
-                    child.scan(i_res_par1, res_par2)
-        else:
-            for child in self.childs:
-                child.scan(res_par1, res_par2)
-            
-    
-    def set_par(self, par_id, par_value):
-        '''set parameter value in dict 'func_par' for all tree nodes
-        '''
-        
-        for node in self.nodes:
-            node.func_par[par_id] = par_value
-
-        for child in self.childs:
-            child.set_par(par_id, par_value)
 
 
 if __name__ == "__main__":

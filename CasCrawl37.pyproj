@@ -28,13 +28,17 @@
     <Compile Include="exceptions.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="plpyemul.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="z_test_tmp.py">
+    <Compile Include="Temp\модуль1временно.py" />
+    <Compile Include="Test\z_test_tmp.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="z_ParserAddressByNatasha.py" />
+    <Compile Include="Test\z_ParserAddressByNatasha.py" />
     <Compile Include="pg_interface.py" />
     <Compile Include="scraper.py" />
     <Compile Include="vk.py" />
@@ -49,6 +53,13 @@
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
       <Architecture>X64</Architecture>
     </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Temp\" />
+    <Folder Include="Test\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Temp\CheckScraping_Log.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

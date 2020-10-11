@@ -1,3 +1,0 @@
-invalid input value for enum dmn.enum_social_net: "text"
-LINE 1: ...ed, id_project )                         VALUES ( 'text', 't...
-                                                             ^
