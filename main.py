@@ -15,7 +15,6 @@ def get_psw_mtyurin():
 
 def vk_crawl_groups():
 
-
     id_project = 5
 
     crawler = vk.CrawlerVkGroups(login = '89273824101', 
@@ -64,15 +63,15 @@ def vk_crawl_wall():
                 cass_db.update_sn_num_subscribers(id_project = id_project, sn_network = 'vk', **res_unit)
             elif res_unit['result_type'] == 'HTML':
                 #print('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-                res = cass_db.add_to_db_data_html(id_project = id_project, domain = 'vk', **res_unit)
-                gid_data_html = 0
+                res = cass_db.add_to_db_data_html(id_project = id_project, domain = 'vk', sid = 1, **res_unit)   #sid ???
+                gid_data_html = res['gid']
             elif res_unit['result_type'] == 'FINISH Not found':
                 pass #!!!!!!!!!!!! запись ошибки в лог
             elif res_unit['result_type'] == 'FINISH Sucsess':
                 pass #!!!!!!!!!!!! удалить страницу из очереди
             else: #POST | REPLY | REPLY to REPLY
                 #print('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-                cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, **res_unit)
+                cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, sid = 1, **res_unit)
 
     #res = Crawler.crawl_wall('16758516_109038')
     pass
@@ -81,6 +80,6 @@ def vk_crawl_wall():
 
 #########################################
 cass_db = pg_interface.MainDB()
-vk_crawl_groups()
-#vk_crawl_wall()
+#vk_crawl_groups()
+vk_crawl_wall()
 

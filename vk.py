@@ -25,7 +25,6 @@ from html.parser import HTMLParser
 from bs4 import BeautifulSoup
 
 import time
-import codecs
 
 #import asyncio
 #from pyppeteer import launch
@@ -573,12 +572,15 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
         self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
 
-    def crawl_wall(self, group_id): # _cw_
-
+    def _cw_set_debug_mode(self):
         self._cw_debug_mode = True
         self._cw_debug_post_filter = '113608'
-        #self._cw_debug_post_filter = ''
-        if self._cw_debug_mode: self._cw_num_posts_request = 100
+        self._cw_debug_post_filter = ''
+        if self._cw_debug_mode: 
+            self._cw_num_posts_request = 100
+            print('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_num_posts_request = '+str(self._cw_num_posts_request))
+
+    def crawl_wall(self, group_id): # _cw_
 
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
@@ -594,6 +596,8 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
 
+        self._cw_set_debug_mode()
+
         self._cw_session = requests_html.HTMLSession()
 
         if type(group_id) == str:
@@ -604,15 +608,13 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_url_fetch = self.url + 'al_wall.php'
 
-        #decoder = codecs.getincrementaldecoder('utf-8')() #!!!!!!!!!
-
         try:
             d = self._cw_session.get(self._cw_url, headers = self.headers)
         except Exception as e:
             raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error when trying to load the wall !', self.msg_func)
 
         self._cw_soup = BeautifulSoup(d.text, "html.parser")
-        self._cw_scrape_result.append( {'result_type': 'HTML', 'url': self._cw_url, 'content': codecs.decode(d.text) } ) #!!!!!!!!!!!!
+        self._cw_scrape_result.append( {'result_type': 'HTML', 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!!
             
         #is group found ?
         self._cw_signs_count = 0
@@ -890,13 +892,14 @@ class CrawlerVkWall(CrawlerVk):
                         'sn_post_parent_id': 0,
                         'author': par['author'],
                         'content_date': self._str_to_date.get_date(par['date']),
+                        'content_header': '',
                         'content': crawler.remove_empty_symbols(res.text)
                         }
                     )
                     if self._cw_debug_mode:
                         print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_fetch_post_counter = '+str(self._cw_fetch_post_counter))
                         print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
-                        print(crawler.remove_empty_symbols(iTextTag.text))
+                        print(crawler.remove_empty_symbols(res.text))
                         print('\n____________________________________________________________\n')
                         
             else:
@@ -929,7 +932,8 @@ class CrawlerVkWall(CrawlerVk):
                 'sn_post_parent_id': 0,
                 'author': par['author'],
                 'content_date': self._str_to_date.get_date(par['date']),
-                'content': crawler.remove_empty_symbols(res.text)
+                'content_header': '',
+                'content': crawler.remove_empty_symbols(result.text)
                 }
             if par['post_id'] == _parent_id:
                 res_unit['result_type'] = 'REPLY'

@@ -90,14 +90,11 @@ class PlPy(object):
                 
                 result = self._execute('execute '+_plan_name+' ('+_params_str+')', tuple(args[1]))
 
-                if len(self._return_var_names[_plan_name]) != 0:
+                if self._return_var_names[_plan_name]:
                     #returning vars present
                     result = []
                     try:
                         result = self.cursor.fetchone()
-                        #res_list = self.cursor.fetchone()
-                        #if res_list != None:
-                            #result = [dict( zip(self._return_var_names[_plan_name], res_list) )]
                     except Exception as expt:
                         if str(expt) == 'no results to fetch':
                             result = [{}]
@@ -137,20 +134,18 @@ class PlPy(object):
         #self.cursor.execute(_pgstatement, params)
         self._execute(_pgstatement, params)
 
-        self._define_return_var_names(pgstatement, plan_name)
+        self._define_return_result(pgstatement, plan_name)
 
         return plan_name
 
-    def _define_return_var_names(self, pgstatement, plan_name):
-        '''sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)
-        '''
+    def _define_return_result(self, pgstatement, plan_name):
         self._return_select_result[plan_name] = False
 
-        re_vars = re.search(r'RETURNING (.+)', pgstatement, re.IGNORECASE)
+        re_vars = re.search(r'RETURNING', pgstatement, re.IGNORECASE)
         if re_vars != None:
-            self._return_var_names[plan_name] = re.findall(r'\w+ as (\w+)', re_vars.groups()[0])
+            self._return_var_names[plan_name] = True
         else:
-            self._return_var_names[plan_name] = []
+            self._return_var_names[plan_name] = False
 
             re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
             if re_select != None:

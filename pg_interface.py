@@ -1,5 +1,9 @@
 import psycopg2
-import plpyemul
+
+try:
+    import plpyemul
+except:
+    pass
 
 import time
 from datetime import datetime
@@ -14,87 +18,84 @@ def get_psw_mtyurin():
 class MainDB():
 
     def __init__(self):
-        SD['plan_add_to_db_sn_accounts'] = None
-        SD['update_sn_num_subscribers'] = None
-        SD['add_to_db_data_text'] = None
-        SD['select_groups_id'] = None
-
+        pass
 
     def add_to_db_sn_accounts(self, id_project, network, account_type, account_id, account_name, account_screen_name, account_closed):
-        #res = plpy.execute('''
-        #                INSERT INTO git200_crawl.sn_accounts 
-        #                    ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) 
-        #                VALUES ( $1, $2, $3, $4, $5, $6, $7 ) 
-        #                ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING
-        #                ''', ['vk', 'group', 12568423, 'O\'Reyly', account_screen_name, account_closed, id_project])
-
+        plan_id = 'plan_add_to_db_sn_accounts'
         with plpy.subtransaction():
-            if SD['plan_add_to_db_sn_accounts'] == None:
-                SD['plan_add_to_db_sn_accounts'] = plpy.prepare('''
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''
                         INSERT INTO git200_crawl.sn_accounts 
                             ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) 
                         VALUES ( $1, $2, $3, $4, $5, $6, $7 ) 
-                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING RETURNING id as NewID, network as nnetwork
+                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING
                         ''', 
                         #RETURNING id as NewID, network as nnetwork
                         ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
 
-            res = plpy.execute(SD['plan_add_to_db_sn_accounts'], [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
-
+            res = plpy.execute(SD[plan_id], [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
         #plpy.commit() #commit is not necessary when using construction 'with'
+        pass
 
     def update_sn_num_subscribers(self, sn_network, id_project, sn_id, number_subscribers, **kwargs):
+        plan_id = 'plan_update_sn_num_subscribers'
         with plpy.subtransaction():
-            if SD['update_sn_num_subscribers'] == None:
-                SD['update_sn_num_subscribers'] = plpy.prepare('''
-                                                             UPDATE git200_crawl.sn_accounts 
-                                                             SET number_subscribers = $1  
-                                                             WHERE  account_id = $2 
-                                                             AND network = $3 
-                                                             AND id_project = $4
-                                                             ''', 
-                                                         ["integer", "integer", "dmn.enum_social_net", "integer"]
-                                                        )
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''
+                                    UPDATE git200_crawl.sn_accounts 
+                                    SET number_subscribers = $1  
+                                    WHERE  account_id = $2 
+                                    AND network = $3 
+                                    AND id_project = $4
+                                    ''', 
+                                ["integer", "integer", "dmn.enum_social_net", "integer"]
+                              )
 
-            res = plpy.execute(SD['update_sn_num_subscribers'], [number_subscribers, sn_id, sn_network, id_project])
+            res = plpy.execute(SD[plan_id], [number_subscribers, sn_id, sn_network, id_project])
 
 
     def add_to_db_data_text(self, url, content, gid_data_html, content_header, content_date, 
-                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, **kwargs):
+                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid, **kwargs):
+        plan_id = 'plan_add_to_db_data_text'
         with plpy.subtransaction():
-            if SD['add_to_db_data_text'] == None:
-                SD['add_to_db_data_text'] = plpy.prepare('''
-                                                       INSERT INTO git300_scrap.data_text ( 
-                                                       source, content, gid_data_html, content_header, 
-                                                       content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id 
-                                                        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 );
-                                                             ''', 
-                                                         ["text", "text", "text", "text", 
-                                                          "datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer"]
-                                                        )
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''
+                                INSERT INTO git300_scrap.data_text ( 
+                                source, content, gid_data_html, content_header, 
+                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid 
+                                ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 );
+                                        ''', 
+                                    ["text", "text", "text", "text", 
+                                    "datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer", "integer"]
+                              )
 
-            res = plpy.execute(SD['add_to_db_data_text'], 
+            res = plpy.execute(SD[plan_id], 
                                [url, content, gid_data_html, content_header, 
-                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id
-                                ]
-                               )
+                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid
+                               ]
+                              )
 
-    def add_to_db_data_html(self, url, content, domain, id_project, **kwargs):
+    def add_to_db_data_html(self, url, content, domain, id_project, sid, **kwargs):
+        plan_id = 'plan_add_to_db_data_html'
         with plpy.subtransaction():
-          plan=plpy.prepare('''
-                INSERT INTO git200_crawl.data_html 
-                       (URL, CONTENT, DOMAIN, id_project) 
-                VALUES ($1, $2, $3, $4) 
-                ON CONFLICT ON CONSTRAINT data_html_hash_key DO NOTHING
-                ''', 
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''
+                        INSERT INTO git200_crawl.data_html 
+                                (URL, CONTENT, DOMAIN, id_project, sid) 
+                        VALUES ($1, $2, $3, $4, $5) 
+                        ON CONFLICT ON CONSTRAINT data_html_hash_key DO NOTHING
+                        RETURNING gid AS gid
+                        ''', 
                 ["text","text","text","integer"])
-          res = plpy.execute(plan,[url, content, domain, id_project])
-          return res
+          
+            res = plpy.execute(SD[plan_id],[url, content, domain, id_project, sid])
+
+            return res
    
     def select_groups_id(self, id_project):
-
-        if SD['select_groups_id'] == None:
-            SD['select_groups_id'] = plpy.prepare(
+        plan_id = 'plan_select_groups_id'
+        if not plan_id in SD or SD[plan_id] == None:
+            SD[plan_id] = plpy.prepare(
                 '''
                 SELECT account_id 
                    FROM git200_crawl.sn_accounts
@@ -102,7 +103,7 @@ class MainDB():
                 ''', 
                 ["integer"])
 
-        res = plpy.execute(SD['select_groups_id'], [id_project])
+        res = plpy.execute(SD[plan_id], [id_project])
         return convert_select_result(res)
 
     #def Select(self):
@@ -149,8 +150,18 @@ if __name__ == "__main__":
     #res = cass_db.select_groups_id(id_project = 5)
     #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
+
+    res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
+    #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 'test123', domain = 'vk', id_project = 5)
+    #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 
+    #                          '''
+    #                          '<!DOCTYPE html>\n<html prefix="og: http://ogp.me/ns#" lang=\'ru\' dir=\'ltr\'>\n<head>\n<meta http-equiv="X-UA-Compatible" 
+    #                          content="IE=edge" />\n<link rel="shortcut icon" href="/images/icons/favicons/fav_logo.ico?6"
+    #                          '''
+    #                          , domain = 'vk', id_project = 5)
     a = 1
-    cass_db.add_to_db_sn_accounts(0, "vk", "group", 62786756, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
+
+    #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
     #CassDB.add_to_db_sn_accounts(0, "vk", "group", 893564356, "group1212121212", "Тест группа 1212121212", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "rferfer", "аааааааааа", True)
     #CassDB.AddToBD_SocialNet("vk", "group", 123456, "erf", "бббббббб", True)

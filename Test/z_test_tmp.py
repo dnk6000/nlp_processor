@@ -13,7 +13,7 @@ from itertools import combinations
 from itertools import product
 from time import sleep
 
-import pgree
+import pg_interface
 import crawler
 import scraper
 
@@ -695,7 +695,7 @@ if __name__ == "__main__":
 
     # ''.join([chr(i) for i in range(a,a+6)] + [chr(a+33)] + [chr(i) for i in range(a+6,a+32)])
   
-    CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
+    CassDB = pg_interface.MainDB(password=pg_interface.get_psw_mtyurin())
     CassDB.Connect()
 
     Crawler = crawler_vk(login = '89273824101', 
