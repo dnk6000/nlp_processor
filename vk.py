@@ -536,7 +536,7 @@ class CrawlerVkWall(CrawlerVk):
         rsum = lambda z1, z2: z1.update(z2)
 
         fn = self._cw_find_tags
-        fnpl = self._cw_find_tags_post_list
+        fnpl = self._cw_find_tags_in_post_list
         fnrpl = self._cw_find_tags_repl_list
         pr = lambda p1, p2, p3: { 'tag_key':p1, 'multi': p2, 'mode': p3, 'deep_parent': '' }
 
@@ -554,6 +554,9 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
+        #self._cw_tg_FixedArea.childs[0].add  (    TN( fn  , self._cw_scrap_posts , pr(nAuthorTag      , OneTag   , 'author'    ) ) )
+        #self._cw_tg_FixedArea.childs[0].add  (    TN( fn  , self._cw_scrap_posts , pr(nDateTag        , OneTag   , 'date'      ) ) )
+        #self._cw_tg_FixedArea.childs[0].add  (    TN( fnpl, self._cw_scrap_posts , pr(rc('wall_text') , MultiTag , 'wall texts') ) )
         
         self._cw_tg_Posts = TT ( TN( fn, self._cw_scrap_posts , pr(nPostTag        , MultiTag  , 'posts list') ) )
         self._cw_tg_Posts.add  (    TN( fn  , self._cw_scrap_posts , pr(nAuthorTag      , OneTag   , 'author'    ) ) )
@@ -574,11 +577,14 @@ class CrawlerVkWall(CrawlerVk):
 
     def _cw_set_debug_mode(self):
         self._cw_debug_mode = True
+        #self._cw_debug_post_filter = '113850'
         self._cw_debug_post_filter = '113608'
         self._cw_debug_post_filter = ''
         if self._cw_debug_mode: 
-            self._cw_num_posts_request = 100
-            print('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_num_posts_request = '+str(self._cw_num_posts_request))
+            self._cw_debug_num_fetching_post = 9999999
+            print('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
+        else:
+            self._cw_debug_num_fetching_post = 9999999
 
     def crawl_wall(self, group_id): # _cw_
 
@@ -591,6 +597,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_post_repl2_list = [] #second level replies = href 'Показать предыдущие комментарии'
         self._cw_scrape_result = []
         self._cw_res_for_pg = scraper.ScrapeResult()
+        self._cw_fetch_post_counter = 0
 
 
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
@@ -618,17 +625,17 @@ class CrawlerVkWall(CrawlerVk):
             
         #is group found ?
         self._cw_signs_count = 0
-        self._cw_tg_NotFound.scan(self._cw_soup)
+        self._cw_tg_NotFound.scan(self._cw_soup, {})
         if self._cw_signs_count == 2: #two signs that the group was not found
             self._cw_scrape_result.clear()
             self._cw_scrape_result.append( {'result_type': 'FINISH Not found' } )
             return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
         #get subscribers
-        self._cw_tg_Subscribers.scan(self._cw_soup)
+        self._cw_tg_Subscribers.scan(self._cw_soup, {})
 
         #get fixed posts
-        self._cw_tg_FixedArea.scan(self._cw_soup)
+        self._cw_tg_FixedArea.scan(self._cw_soup, {})
 
         _fetch_enable = True
 
@@ -636,7 +643,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_fetch_post_counter = 0
 
             #get posts
-            self._cw_tg_Posts.scan(self._cw_soup)
+            self._cw_tg_Posts.scan(self._cw_soup, {})
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
             for step in self._cw_get_post_replies():
@@ -645,12 +652,13 @@ class CrawlerVkWall(CrawlerVk):
                 yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
             #fetch browser page
-            if self._cw_fetch_post_counter >= self._cw_num_posts_request:  #задать в константе
+            self._cw_debug_num_fetching_post -= 1
+            if (self._cw_fetch_post_counter >= self._cw_num_posts_request) and (self._cw_debug_num_fetching_post > 0): 
                 self._cw_fetch_wall()
             else:
                 _fetch_enable = False
 
-        self._cw_scrape_result.append( {'result_type': 'FINISH Sucsess' } )
+        self._cw_scrape_result.append( {'result_type': 'FINISH Success' } )
         return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
 
@@ -683,9 +691,9 @@ class CrawlerVkWall(CrawlerVk):
                 self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data))
 
                 self._cw_fetch_repl_counter = 0
-                self._cw_tg_Replies.scan(self._cw_soup)
+                self._cw_tg_Replies.scan(self._cw_soup, {'post_id': _post_id})
 
-                self._cw_tg_ShowPrevRepl.scan(self._cw_soup)  #addition ShowPrev-list
+                self._cw_tg_ShowPrevRepl.scan(self._cw_soup, {'post_id': _post_id})  #addition ShowPrev-list
 
                 _fetch_count += 1
 
@@ -729,7 +737,7 @@ class CrawlerVkWall(CrawlerVk):
 
                 self._cw_fetch_repl_counter = 0
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
-                self._cw_tg_Replies.scan(self._cw_soup)
+                self._cw_tg_Replies.scan(self._cw_soup, {'post_id': _list_elem['post_id']})
 
                 _fetch_count += 1
 
@@ -754,7 +762,7 @@ class CrawlerVkWall(CrawlerVk):
         txt = txt.replace('<!--{"payload":[0,["', '<')
         if txt[0] != '>':
             txt = '>' + txt
-        self._cw_scrape_result.append( {'result_type': 'HTML', 'content': d.text } )
+        self._cw_scrape_result.append( {'result_type': 'HTML', 'url': self._cw_url, 'content': d.text } )
 
         #print(txt)
 
@@ -792,7 +800,9 @@ class CrawlerVkWall(CrawlerVk):
 
         return res, par
 
-    def _cw_find_tags_post_list(self, soup, par, **kwargs):
+    def _cw_find_tags_in_post_list(self, soup, par, **kwargs):
+        '''finds tags inside tag ~'post list'
+        '''
         if soup == None: return None, par
 
         z = self._cw_get_post_id(soup.attrs['id'], 'Post item_id not found !')
@@ -801,7 +811,11 @@ class CrawlerVkWall(CrawlerVk):
 
         #Debug
         if self._cw_debug_mode and self._cw_debug_post_filter != '':
-            if par['post_id'] != self._cw_debug_post_filter: return None, par
+            if par['post_id'] != self._cw_debug_post_filter: 
+                self._cw_post_counter += 1
+                self._cw_post_counter2 += 1
+                self._cw_fetch_post_counter += 1
+                return None, par
 
         self._cw_post_repl_list.append(par['post_id'])
 
@@ -841,6 +855,8 @@ class CrawlerVkWall(CrawlerVk):
                 self._cw_fixed_post_id = z['post_id']
 
                 self._cw_post_counter -= 1
+
+                return result, par
 
         return None, par
 
@@ -929,7 +945,7 @@ class CrawlerVkWall(CrawlerVk):
                 'url': self._cw_url,
                 'sn_id': int(self._cw_group_id),
                 'sn_post_id': int(par['post_id']),
-                'sn_post_parent_id': 0,
+                'sn_post_parent_id': _parent_id,
                 'author': par['author'],
                 'content_date': self._str_to_date.get_date(par['date']),
                 'content_header': '',
@@ -937,7 +953,7 @@ class CrawlerVkWall(CrawlerVk):
                 }
             if par['post_id'] == _parent_id:
                 res_unit['result_type'] = 'REPLY'
-                if self._cw_debug_mode:
+                if self._cw_debug_mode:  #!!!!!!!!!!!!! par['post_id'] - incorrect
                     print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
             else:
@@ -966,9 +982,10 @@ class CrawlerVkWall(CrawlerVk):
             z = self._cw_get_post_id(result.attrs['onclick'], 'Reply id for show prev repl list not found !')
 
             self._cw_post_repl2_list.append(
-                {'item_id': z['post_id'],
+                {'item_id': z['post_id'], #id parent reply
                  'count': result.attrs['data-count'],
-                 'offset': result.attrs['data-offset']
+                 'offset': result.attrs['data-offset'],
+                 'post_id': par['post_id'] #id post
                  }
                 )
 

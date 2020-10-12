@@ -46,7 +46,7 @@ def vk_crawl_groups():
             )
 
 def vk_crawl_wall():
-    id_project = 4
+    id_project = 7
 
     crawler = vk.CrawlerVkWall(msg_func = PlPy.notice)
 
@@ -67,11 +67,12 @@ def vk_crawl_wall():
                 gid_data_html = res['gid']
             elif res_unit['result_type'] == 'FINISH Not found':
                 pass #!!!!!!!!!!!! запись ошибки в лог
-            elif res_unit['result_type'] == 'FINISH Sucsess':
+            elif res_unit['result_type'] == 'FINISH Success':
+                print('FINISH success')
                 pass #!!!!!!!!!!!! удалить страницу из очереди
             else: #POST | REPLY | REPLY to REPLY
                 #print('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-                cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, sid = 1, **res_unit)
+                cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, **res_unit)
 
     #res = Crawler.crawl_wall('16758516_109038')
     pass

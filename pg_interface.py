@@ -55,23 +55,25 @@ class MainDB():
 
 
     def add_to_db_data_text(self, url, content, gid_data_html, content_header, content_date, 
-                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid, **kwargs):
+                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, **kwargs):
         plan_id = 'plan_add_to_db_data_text'
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''
+                SD[plan_id] = plpy.prepare(
+                                '''
                                 INSERT INTO git300_scrap.data_text ( 
                                 source, content, gid_data_html, content_header, 
-                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid 
-                                ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 );
-                                        ''', 
-                                    ["text", "text", "text", "text", 
-                                    "datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer", "integer"]
+                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id 
+                                ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
+                                ON CONFLICT ON CONSTRAINT data_text_hash_key DO NOTHING;
+                               ''', 
+                                ["text", "text", "dmn.git_pk", "text", 
+                                "dmn.git_datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer"]
                               )
 
             res = plpy.execute(SD[plan_id], 
                                [url, content, gid_data_html, content_header, 
-                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, sid
+                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id
                                ]
                               )
 
