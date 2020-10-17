@@ -31,6 +31,9 @@
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="const.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="plpyemul.py">
       <SubType>Code</SubType>
     </Compile>

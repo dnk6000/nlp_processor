@@ -1,9 +1,10 @@
-import vk
-import pg_interface
+import json
+
+#import vk
 
 from plpyemul import PlPy
-
-import json
+import pg_interface
+import const
 
 def get_psw_mtyurin():
     
@@ -46,7 +47,7 @@ def vk_crawl_groups():
             )
 
 def vk_crawl_wall():
-    id_project = 7
+    id_project = 8
 
     crawler = vk.CrawlerVkWall(msg_func = PlPy.notice)
 
@@ -59,18 +60,24 @@ def vk_crawl_wall():
 
         for res_unit in _res_list:
             c += 1
-            if res_unit['result_type'] == 'NUM_SUBSCRIBERS':
+            if res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS:
                 cass_db.update_sn_num_subscribers(id_project = id_project, sn_network = 'vk', **res_unit)
-            elif res_unit['result_type'] == 'HTML':
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #print('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 res = cass_db.add_to_db_data_html(id_project = id_project, domain = 'vk', sid = 1, **res_unit)   #sid ???
                 gid_data_html = res['gid']
-            elif res_unit['result_type'] == 'FINISH Not found':
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
                 pass #!!!!!!!!!!!! запись ошибки в лог
-            elif res_unit['result_type'] == 'FINISH Success':
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
                 print('FINISH success')
                 pass #!!!!!!!!!!!! удалить страницу из очереди
-            else: #POST | REPLY | REPLY to REPLY
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
+                print('ERROR')
+                pass #!!!!!!!!!!!! обработка ошибки в зависимости от ее типа - критичная/некритичная
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
+                print('ERROR')
+                pass #!!!!!!!!!!!! обработка ошибки в зависимости от ее типа - критичная/некритичная
+            elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
                 #print('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, **res_unit)
 

@@ -1,30 +1,27 @@
-import vk_requests
-import vk_requests.exceptions
-
-import requests
-import requests_html
-import lxml.html
-
 import re
-
-from datetime import datetime
+import sys
+import datetime
+import time
 from itertools import combinations_with_replacement
 from itertools import combinations
 from itertools import product
-from time import sleep
 
+import requests
+import requests_html
+import requests.exceptions
+import lxml.html
+
+import vk_requests
+import vk_requests.exceptions
+
+from bs4 import BeautifulSoup
+
+#internal modules
 import pg_interface
 import crawler
 import scraper
 import exceptions
-
-import sys
-
-from html.parser import HTMLParser  
-
-from bs4 import BeautifulSoup
-
-import time
+import const
 
 #import asyncio
 #from pyppeteer import launch
@@ -57,6 +54,8 @@ class CrawlerSocialNet:
 
         self.login = login
         self.password = password
+
+        self.request_tries = 3 #number of repeats requests in case of an error
 
         if base_search_words == None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
@@ -502,6 +501,7 @@ class CrawlerVkGroups(CrawlerVk):
 
 
 class CrawlerVkWall(CrawlerVk):
+
     def __init__(self, *args, **kwargs):
         
         super().__init__(*args, **kwargs)
@@ -577,9 +577,10 @@ class CrawlerVkWall(CrawlerVk):
 
     def _cw_set_debug_mode(self):
         self._cw_debug_mode = True
-        #self._cw_debug_post_filter = '113850'
-        self._cw_debug_post_filter = '113608'
-        self._cw_debug_post_filter = ''
+        #self._cw_debug_post_filter = '113850'  #фикс
+        #self._cw_debug_post_filter = '113608'  #много комментов
+        self._cw_debug_post_filter = '113978'  #возникает ошибка
+        #self._cw_debug_post_filter = ''
         if self._cw_debug_mode: 
             self._cw_debug_num_fetching_post = 9999999
             print('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
@@ -587,17 +588,31 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_debug_num_fetching_post = 9999999
 
     def crawl_wall(self, group_id): # _cw_
+        
+        try:
+            for step_result in self._crawl_wall():
+                yield step_result
+        except requests.exceptions.RequestException as e:
+            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + sys.exc_info())
+            return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+        except Exception as e:
+            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + sys.exc_info())
+            return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            
 
+    def _crawl_wall(self):
+        self._request_tries = 3
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
         self._cw_group_id = ''
         self._cw_post_counter = 0
-        self._cw_post_counter2 = 0
-        self._cw_post_repl_list = []  #first level replies
-        self._cw_post_repl2_list = [] #second level replies = href 'Показать предыдущие комментарии'
+        self._cw_post_counter2 = 0    # equal to _cw_post_counter except for fixed posts
+        self._cw_post_repl_list = []  # first level replies
+        self._cw_post_repl2_list = [] # second level replies = href 'Показать предыдущие комментарии'
         self._cw_scrape_result = []
         self._cw_res_for_pg = scraper.ScrapeResult()
         self._cw_fetch_post_counter = 0
+        self._cw_noncritical_error_counter = {}
 
 
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
@@ -615,20 +630,27 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_url_fetch = self.url + 'al_wall.php'
 
-        try:
-            d = self._cw_session.get(self._cw_url, headers = self.headers)
-        except Exception as e:
-            raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error when trying to load the wall !', self.msg_func)
+        _request_attempt = self.request_tries
+        while True:
+            try:
+                d = self._cw_session.get(self._cw_url, headers = self.headers)
+            except Exception as e:
+                _request_attempt -= 1
+                if _request_attempt == 0:
+                    raise
+                else:
+                    self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_GET, self._cw_get_post_repr())
+                    yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
         self._cw_soup = BeautifulSoup(d.text, "html.parser")
-        self._cw_scrape_result.append( {'result_type': 'HTML', 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!!
+        self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!! d.content ??
             
         #is group found ?
         self._cw_signs_count = 0
         self._cw_tg_NotFound.scan(self._cw_soup, {})
         if self._cw_signs_count == 2: #two signs that the group was not found
             self._cw_scrape_result.clear()
-            self._cw_scrape_result.append( {'result_type': 'FINISH Not found' } )
+            self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND } )
             return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
         #get subscribers
@@ -654,11 +676,12 @@ class CrawlerVkWall(CrawlerVk):
             #fetch browser page
             self._cw_debug_num_fetching_post -= 1
             if (self._cw_fetch_post_counter >= self._cw_num_posts_request) and (self._cw_debug_num_fetching_post > 0): 
-                self._cw_fetch_wall()
+                for attempt in self._cw_fetch_wall():
+                    yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             else:
                 _fetch_enable = False
 
-        self._cw_scrape_result.append( {'result_type': 'FINISH Success' } )
+        self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS } )
         return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
 
@@ -688,7 +711,9 @@ class CrawlerVkWall(CrawlerVk):
             
                 _replies_offset += self._cw_num_repl_request
 
-                self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data))
+                for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data)):
+                    if attempt_res != 200:
+                        yield _fetch_count
 
                 self._cw_fetch_repl_counter = 0
                 self._cw_tg_Replies.scan(self._cw_soup, {'post_id': _post_id})
@@ -733,7 +758,9 @@ class CrawlerVkWall(CrawlerVk):
 
                 _replies_offset += _count
 
-                self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data))
+                for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch 2nd-level post replies ! '+str(par_data)):
+                    if attempt_res != 200:
+                        yield _fetch_count
 
                 self._cw_fetch_repl_counter = 0
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
@@ -750,23 +777,36 @@ class CrawlerVkWall(CrawlerVk):
                 yield _fetch_count
 
     def _cw_fetch(self, par_data, err_txt = ''):  
-        '''make post-request with par_data params
+        '''make post-request with par_data params.
+           either gets data or raise an exception 
         '''
         time.sleep(2)   #!!!!!!!!!! smart func needed !
-        try:
-            d = self._cw_session.post(self._cw_url_fetch, headers = self.headers, data = par_data)
-        except Exception as e:
-            raise exceptions.CrawlVkByBrowserError(self._cw_url, err_txt, self.msg_func)
-            
+        
+        _request_attempt = self.request_tries
+        while True:
+            try:
+                #self._cw_session.encoding = 'UTF-8'
+                d = self._cw_session.post(self._cw_url_fetch, headers = self.headers, data = par_data)
+            except Exception as e:
+                _request_attempt -= 1
+                if _request_attempt == 0:
+                    raise
+                else:
+                    self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_POST, self._cw_get_post_repr()+err_txt)
+                    yield _request_attempt
+        
+        #d.encoding = 'UTF-8'
         txt = d.text.replace('\\', '')
-        txt = txt.replace('<!--{"payload":[0,["', '<')
-        if txt[0] != '>':
-            txt = '>' + txt
-        self._cw_scrape_result.append( {'result_type': 'HTML', 'url': self._cw_url, 'content': d.text } )
+        #txt = txt.replace("'", "")
+        txt = txt.replace('<!--{"payload":[0,["', '')
+        if txt[0] != '<':
+            txt = '<' + txt
+        self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } )
 
         #print(txt)
 
         self._cw_soup = BeautifulSoup(txt, "html.parser")
+        return 200
 
     def _cw_fetch_wall(self):
         self._cw_wall_fetch_par['fixed'] = self._cw_fixed_post_id
@@ -774,7 +814,8 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_wall_fetch_par['offset'] = str(self._cw_post_counter)
         self._cw_wall_fetch_par['wall_start_from'] = str(self._cw_post_counter2)
 
-        self._cw_fetch(self._cw_wall_fetch_par, 'Error when trying to fetch the wall !')
+        for attempt in self._cw_fetch(self._cw_wall_fetch_par, 'Error when trying to fetch the wall !'):
+            yield attempt
 
 
     def _cw_get_post_id(self, html_attr, error_msg = ''):
@@ -871,6 +912,7 @@ class CrawlerVkWall(CrawlerVk):
             if 'Сообщество не найдено' in result.text:
                 self._cw_signs_count += 1
 
+
     def _cw_scrap_posts(self, result, par, **kwargs):
         if result == None: return None, par
 
@@ -898,6 +940,17 @@ class CrawlerVkWall(CrawlerVk):
                 if len(result) > 1:
                     raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Several texts in one post were found !', self.msg_func)
                 
+                if not 'author' in par:
+                    self._cw_add_to_result_noncritical_error(const.ERROR_POST_AUTHOR_NOT_FOUND, self._cw_get_post_repr(post_id = par['post_id']))
+                    par['author'] = ''
+                elif par['author'] == '':
+                    self._cw_add_to_result_noncritical_error(const.ERROR_POST_AUTHOR_EMPTY, self._cw_get_post_repr(post_id = par['post_id']))
+                if not 'date' in par:
+                    self._cw_add_to_result_noncritical_error(const.ERROR_POST_DATE_NOT_FOUND, self._cw_get_post_repr(post_id = par['post_id']))
+                    par['date'] = ''
+                elif par['date'] == '':
+                    self._cw_add_to_result_noncritical_error(const.ERROR_POST_DATE_EMPTY, self._cw_get_post_repr(post_id = par['post_id']))
+
                 for res in result:
                     self._cw_scrape_result.append(
                         {
@@ -940,11 +993,22 @@ class CrawlerVkWall(CrawlerVk):
 
             _parent_id = par['parent_id'] if kwargs['deep_parent'] == '' else kwargs['deep_parent']
 
-            res_unit = {
+            if not 'author' in par:
+                self._cw_add_to_result_noncritical_error(const.ERROR_REPLY_AUTHOR_NOT_FOUND, self._cw_get_post_repr(post_id = par['post_id'], repl_id = par['reply_id'], parent_id =_parent_id ))
+                par['author'] = ''
+            elif par['author'] == '':
+                self._cw_add_to_result_noncritical_error(const.ERROR_REPLY_AUTHOR_EMPTY, self._cw_get_post_repr(post_id = par['post_id'], repl_id = par['reply_id'], parent_id =_parent_id ))
+            if not 'date' in par:
+                self._cw_add_to_result_noncritical_error(const.ERROR_REPLY_DATE_NOT_FOUND, self._cw_get_post_repr(post_id = par['post_id'], repl_id = par['reply_id'], parent_id =_parent_id ))
+                par['date'] = ''
+            elif par['date'] == '':
+                self._cw_add_to_result_noncritical_error(const.ERROR_REPLY_DATE_EMPTY, self._cw_get_post_repr(post_id = par['post_id'], repl_id = par['reply_id'], parent_id =_parent_id ))
+
+            res_unit = { 
                 'result_type': 'POST',
                 'url': self._cw_url,
                 'sn_id': int(self._cw_group_id),
-                'sn_post_id': int(par['post_id']),
+                'sn_post_id': int(par['reply_id']), #!!!!!!!!!!!!!!!!!! reply_id ???? проверить !!
                 'sn_post_parent_id': _parent_id,
                 'author': par['author'],
                 'content_date': self._str_to_date.get_date(par['date']),
@@ -1003,13 +1067,45 @@ class CrawlerVkWall(CrawlerVk):
 
             try:
                 self._cw_num_subscribers = int(result.text.replace(' ', ''))
-                self._cw_scrape_result.append( {'result_type': 'NUM_SUBSCRIBERS', 'sn_id': int(self._cw_group_id),  'number_subscribers': self._cw_num_subscribers } )  
+                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': int(self._cw_group_id),  'number_subscribers': self._cw_num_subscribers } )  
             except:
-                raise exceptions.CrawlVkByBrowserError(self._cw_url, 'Error by scrapping number of subscribers !', self.msg_func)
+                self._cw_add_to_result_noncritical_error(const.ERROR_SCRAP_NUMBER_SUBSCRIBERS, self._cw_get_post_repr())
 
             return result, par
 
         return result, par
+
+    def _cw_add_to_result_noncritical_error(self, err_type, description):
+        self._cw_scrape_result.append({
+            'result_type': const.CW_RESULT_TYPE_ERROR,
+            'err_type': err_type,
+            'err_description': description,
+            'datetime': datetime.now()
+            })
+        
+        if not err_type in self._cw_noncritical_error_counter:
+           self._cw_noncritical_error_counter[err_type] = 0
+        
+        self._cw_noncritical_error_counter[err_type] += 1
+
+    def _cw_add_to_result_critical_error(self, err_type, description):
+        self._cw_scrape_result.append({
+            'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
+            'err_type': err_type,
+            'err_description': description,
+            'datetime': datetime.now()
+            })
+
+    def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):
+        _repr = ''
+        _repr = _repr + 'url: '+self._cw_url + '\n'
+        _repr = _repr + 'group_id: '+self._cw_group_id + '\n'
+        if post_id != '': 
+            _repr = _repr + 'post_id: '+post_id + '\n'
+        if repl_id != '': 
+            _repr = _repr + 'repl_id: '+repl_id + '\n'
+        if parent_id != '': 
+            _repr = _repr + 'parent_id: '+parent_id + '\n'
 
 
 

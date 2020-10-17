@@ -617,6 +617,17 @@ if __name__ == "__main__":
     #t = DT.datetime.strptime('20 авг в 16:58', '%d%b')
     #print(t)
 
+    #with open(r'C:\Work\Python\CasCrawl37\Test\txttmp.txt', 'r', encoding='utf-8') as f:
+    with open(r'C:\Work\Python\CasCrawl37\Test\HTMLPage1.html', 'r', encoding='utf-8') as f:
+        txt = f.read()
+        _cw_soup = BeautifulSoup(txt, "html.parser")
+        with open(r'C:\Users\tel\Desktop\111.html', 'w', encoding='utf-8') as f2:
+            f2.write(_cw_soup.__repr__())
+
+
+    sys.exit(0)
+
+
     _num_str = '81 888'
     _num_str =_num_str.replace(' ', '')
     _num = int(_num_str)
