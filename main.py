@@ -1,6 +1,6 @@
 import json
 
-#import vk
+import vk
 
 from plpyemul import PlPy
 import pg_interface
@@ -60,6 +60,7 @@ def vk_crawl_wall():
 
         for res_unit in _res_list:
             c += 1
+            print(res_unit['result_type'])
             if res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS:
                 cass_db.update_sn_num_subscribers(id_project = id_project, sn_network = 'vk', **res_unit)
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
@@ -68,15 +69,18 @@ def vk_crawl_wall():
                 gid_data_html = res['gid']
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
                 pass #!!!!!!!!!!!! запись ошибки в лог
+                break
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
-                print('FINISH success')
+                #print('FINISH success')
                 pass #!!!!!!!!!!!! удалить страницу из очереди
+                break
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
-                print('ERROR')
+                print(res_unit['err_type'])
                 pass #!!!!!!!!!!!! обработка ошибки в зависимости от ее типа - критичная/некритичная
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
-                print('ERROR')
+                print(res_unit['err_type'])
                 pass #!!!!!!!!!!!! обработка ошибки в зависимости от ее типа - критичная/некритичная
+                break
             elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
                 #print('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, **res_unit)

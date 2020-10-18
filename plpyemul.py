@@ -3,6 +3,9 @@ from psycopg2.extras import RealDictCursor
 import re
 import time
 
+#Хранимые процедуры на Python в PostgreSQL https://tproger.ru/articles/stored-procedures-on-python-in-postgresql/
+#Миллион строк в секунду из Postgres с помощью Python https://habr.com/ru/post/317394/
+
 class PlPy(object):
     NUM_PREP_PLAN = 0
 

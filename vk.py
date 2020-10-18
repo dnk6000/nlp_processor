@@ -2,6 +2,7 @@ import re
 import sys
 import datetime
 import time
+import traceback
 from itertools import combinations_with_replacement
 from itertools import combinations
 from itertools import product
@@ -579,28 +580,32 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_debug_mode = True
         #self._cw_debug_post_filter = '113850'  #фикс
         #self._cw_debug_post_filter = '113608'  #много комментов
-        self._cw_debug_post_filter = '113978'  #возникает ошибка
+        self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
         #self._cw_debug_post_filter = ''
         if self._cw_debug_mode: 
             self._cw_debug_num_fetching_post = 9999999
-            print('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
+            self.msg('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
         else:
             self._cw_debug_num_fetching_post = 9999999
 
     def crawl_wall(self, group_id): # _cw_
-        
         try:
-            for step_result in self._crawl_wall():
+            for step_result in self._crawl_wall(group_id):
                 yield step_result
         except requests.exceptions.RequestException as e:
-            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + sys.exc_info())
-            return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + str(sys.exc_info()))
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
         except Exception as e:
-            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + sys.exc_info())
-            return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            self._cw_add_to_result_critical_error(
+                    str(e), 
+                    self._cw_url + '\n' + str(sys.exc_info()) + '\n' + '\n'.join(traceback.format_stack())
+                    )
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
             
 
-    def _crawl_wall(self):
+    def _crawl_wall(self, group_id):
         self._request_tries = 3
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
@@ -634,6 +639,7 @@ class CrawlerVkWall(CrawlerVk):
         while True:
             try:
                 d = self._cw_session.get(self._cw_url, headers = self.headers)
+                break
             except Exception as e:
                 _request_attempt -= 1
                 if _request_attempt == 0:
@@ -787,6 +793,7 @@ class CrawlerVkWall(CrawlerVk):
             try:
                 #self._cw_session.encoding = 'UTF-8'
                 d = self._cw_session.post(self._cw_url_fetch, headers = self.headers, data = par_data)
+                break
             except Exception as e:
                 _request_attempt -= 1
                 if _request_attempt == 0:
@@ -1080,7 +1087,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': datetime.now()
+            'datetime': str(datetime.datetime.now())
             })
         
         if not err_type in self._cw_noncritical_error_counter:
@@ -1093,7 +1100,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': datetime.now()
+            'datetime': str(datetime.datetime.now())
             })
 
     def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):
@@ -1106,7 +1113,8 @@ class CrawlerVkWall(CrawlerVk):
             _repr = _repr + 'repl_id: '+repl_id + '\n'
         if parent_id != '': 
             _repr = _repr + 'parent_id: '+parent_id + '\n'
-
+        
+        return _repr
 
 
 
