@@ -108,6 +108,19 @@ class MainDB():
         res = plpy.execute(SD[plan_id], [id_project])
         return convert_select_result(res)
 
+    def add_to_db_log_crawling(self, id_project, record_class, record_type, date_in, description):
+        plan_id = 'plan_add_to_db_log_crawling'
+        with plpy.subtransaction():
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''
+                        INSERT INTO git999_log.crawling
+                            ( id_project, record_class, record_type, date_in, description)
+                        VALUES ( $1, $2, $3, $4, $5 )
+                        ''', 
+                        ["dmn.git_pk", "dmn.git_string", "dmn.git_string", "dmn.git_datetime", "dmn.git_text"])
+
+            res = plpy.execute(SD[plan_id], [id_project, record_class, record_type, date_in, description])
+
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
     #                        FROM git200_crawl.sn_accounts")

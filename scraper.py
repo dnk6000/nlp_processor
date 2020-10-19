@@ -28,7 +28,7 @@ class StrToDate:
 
     def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):
         if str_date_format =='':
-            self.str_date_format = "%d.%m.%Y"
+            self.str_date_format = "%d.%m.%Y %H:%M:00"
         else:
             self.str_date_format = str_date_format
         self.allowed_re_patterns = {}
@@ -55,7 +55,7 @@ class StrToDate:
                 day = 1 if not 'day' in res else int(match.group('day'))
                 
                 if 'monthshort' in res:
-                    month = int(self.MONTHSHORTSt.index(match.group('monthshort')))
+                    month = int(self.MONTHSHORTSt.index(match.group('monthshort'))) + 1
                 else:
                     month = 1
 
@@ -81,7 +81,9 @@ class StrToDate:
             return dt
         else:
             return dt.strftime(self.str_date_format)  
-       
+
+def date_to_str(dt):
+    return dt.strftime("%d.%m.%Y %H:%M:%S")
 
 class Scraper():
 
@@ -705,5 +707,10 @@ if __name__ == "__main__":
     #Demo1()
     #Demo2()
     #CheckScraping('https://ria.ru', depth = 20, pause_sec = 2)
-    CheckScraping('https://rbc.ru', depth = 5, pause_sec = 2)
+    #CheckScraping('https://rbc.ru', depth = 5, pause_sec = 2)
+
+    s = StrToDate()
+
+    ss = s.get_date("31 июл в 21:47")
+    f=1
    

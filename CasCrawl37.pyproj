@@ -58,10 +58,12 @@
     </Interpreter>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Documentation\" />
     <Folder Include="Temp\" />
     <Folder Include="Test\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
     <Content Include="Temp\CheckScraping_Log.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

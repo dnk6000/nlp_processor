@@ -9,7 +9,7 @@ import time
 class PlPy(object):
     NUM_PREP_PLAN = 0
 
-    def __init__(self, database, host, port, user, password):
+    def __init__(self, database = '', host = '', port = '', user = '', password = ''):
         self.connection_par = { 'database' : database, 
                                 'host'     : host, 
                                 'port'     : port, 

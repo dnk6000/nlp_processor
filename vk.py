@@ -580,10 +580,11 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_debug_mode = True
         #self._cw_debug_post_filter = '113850'  #фикс
         #self._cw_debug_post_filter = '113608'  #много комментов
-        self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
-        #self._cw_debug_post_filter = ''
+        #self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
+        #self._cw_debug_post_filter = '112463'  #возникает ошибка получения даты комментария
+        self._cw_debug_post_filter = ''
         if self._cw_debug_mode: 
-            self._cw_debug_num_fetching_post = 9999999
+            self._cw_debug_num_fetching_post = 9999999  #number of fetching wall page
             self.msg('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
         else:
             self._cw_debug_num_fetching_post = 9999999
@@ -593,20 +594,22 @@ class CrawlerVkWall(CrawlerVk):
             for step_result in self._crawl_wall(group_id):
                 yield step_result
         except requests.exceptions.RequestException as e:
-            self._cw_add_to_result_critical_error(str(e), self._cw_url+ '\n' + str(sys.exc_info()))
-            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            _descr = self._cw_url + '\n'
+            _descr += '\n'.join(map(str, sys.exc_info()))
+            _descr += '\n'.join(traceback.format_stack())
+            self._cw_add_to_result_critical_error(str(e), _descr)
             #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
         except Exception as e:
-            self._cw_add_to_result_critical_error(
-                    str(e), 
-                    self._cw_url + '\n' + str(sys.exc_info()) + '\n' + '\n'.join(traceback.format_stack())
-                    )
-            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            _descr = self._cw_url + '\n'
+            _descr += '\n'.join(map(str, sys.exc_info()))
+            _descr += '\n'.join(traceback.format_stack())
+            self._cw_add_to_result_critical_error(str(e), _descr)
             #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             
 
     def _crawl_wall(self, group_id):
-        self._request_tries = 3
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
         self._cw_group_id = ''
@@ -1087,7 +1090,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': str(datetime.datetime.now())
+            'datetime': scraper.date_to_str(datetime.datetime.now())
             })
         
         if not err_type in self._cw_noncritical_error_counter:
@@ -1100,7 +1103,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': str(datetime.datetime.now())
+            'datetime': scraper.date_to_str(datetime.datetime.now())
             })
 
     def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):
