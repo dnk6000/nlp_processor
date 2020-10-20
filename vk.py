@@ -503,10 +503,12 @@ class CrawlerVkGroups(CrawlerVk):
 
 class CrawlerVkWall(CrawlerVk):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, subscribers_only = False, **kwargs):
         
         super().__init__(*args, **kwargs)
         
+        self._cw_subscribers_only = subscribers_only
+
         self._cw_define_tags()
 
         self._cw_wall_fetch_par = {
@@ -550,7 +552,7 @@ class CrawlerVkWall(CrawlerVk):
                                     ]
                                   )
 
-        self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : 'Подписчики' }, OneTag  , '-' ) ) )
+        self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : re.compile('(1Подписчики)|(1Участники)') }, OneTag  , '-' ) ) )
         self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
 
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
@@ -598,15 +600,15 @@ class CrawlerVkWall(CrawlerVk):
             _descr += '\n'.join(map(str, sys.exc_info()))
             _descr += '\n'.join(traceback.format_stack())
             self._cw_add_to_result_critical_error(str(e), _descr)
-            #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            return
         except Exception as e:
             _descr = self._cw_url + '\n'
             _descr += '\n'.join(map(str, sys.exc_info()))
             _descr += '\n'.join(traceback.format_stack())
             self._cw_add_to_result_critical_error(str(e), _descr)
-            #using 'yield' because 'return' incorrectly processed by the calling loop (immediately exits the loop)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            return
             
 
     def _crawl_wall(self, group_id):
@@ -652,18 +654,33 @@ class CrawlerVkWall(CrawlerVk):
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
         self._cw_soup = BeautifulSoup(d.text, "html.parser")
-        self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!! d.content ??
+        if not self._cw_subscribers_only:
+            self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!! d.content ??
             
         #is group found ?
         self._cw_signs_count = 0
         self._cw_tg_NotFound.scan(self._cw_soup, {})
         if self._cw_signs_count == 2: #two signs that the group was not found
             self._cw_scrape_result.clear()
-            self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND } )
-            return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            self._cw_scrape_result.append( {
+                'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND, 
+                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'event_description': self._cw_get_post_repr()
+                } )
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            return
 
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup, {})
+
+        if self._cw_subscribers_only:
+            self._cw_scrape_result.append( {
+                'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS if self._cw_num_subscribers > 0 else const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND, 
+                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'event_description': self._cw_get_post_repr()
+                } )
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            return
 
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup, {})
@@ -690,8 +707,13 @@ class CrawlerVkWall(CrawlerVk):
             else:
                 _fetch_enable = False
 
-        self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS } )
-        return self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+        self._cw_scrape_result.append( {
+            'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS, 
+            'datetime': scraper.date_to_str(datetime.datetime.now()),
+            'event_description': self._cw_get_post_repr()
+            } )
+        yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+        return
 
 
     def _cw_get_post_replies(self):
