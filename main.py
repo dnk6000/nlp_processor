@@ -47,8 +47,7 @@ def vk_crawl_groups():
                              gr['is_closed'] == 1
             )
 
-def vk_crawl_wall(id_group, subscribers_only = False):
-    id_project = 12
+def vk_crawl_wall(id_project, id_group, subscribers_only = False):
 
     crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only)
 
@@ -93,10 +92,30 @@ def vk_crawl_wall(id_group, subscribers_only = False):
     #res = Crawler.crawl_wall('16758516_109038')
     pass
 
+def vk_crawl_wall_subscribers(id_project):
+    select_result = cass_db.select_groups_id(id_project = id_project)
+
+    number_of_groups = len(select_result)
+
+    plpy.notice('Number groups for select subscribers: {}'.format(number_of_groups))
+
+    c = 0
+
+    for i in select_result:
+        c += 1
+        sn_id = i['account_id']
+        plpy.notice('Select subscribers for group: {}    Progress: {} / {}'.format(sn_id, c, number_of_groups))
+        vk_crawl_wall(id_project, sn_id, subscribers_only = True)
+        time.sleep(1)
+
+
+
 #########################################
 cass_db = pg_interface.MainDB()
 #vk_crawl_groups()
 #vk_crawl_wall(16758516)
 #vk_crawl_wall(16758516,subscribers_only = True)
-vk_crawl_wall(130782889,subscribers_only = True)
+#vk_crawl_wall(130782889,subscribers_only = True)
+#vk_crawl_wall(0, 222333444,subscribers_only = True)
+vk_crawl_wall_subscribers(0)
 

@@ -99,7 +99,7 @@ class MainDB():
         if not plan_id in SD or SD[plan_id] == None:
             SD[plan_id] = plpy.prepare(
                 '''
-                SELECT account_id 
+                SELECT id, account_id 
                    FROM git200_crawl.sn_accounts
                    WHERE id_project = $1
                 ''', 

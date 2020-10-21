@@ -552,7 +552,7 @@ class CrawlerVkWall(CrawlerVk):
                                     ]
                                   )
 
-        self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : re.compile('(1Подписчики)|(1Участники)') }, OneTag  , '-' ) ) )
+        self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : re.compile('(Подписчики)|(Участники)') }, OneTag  , '-' ) ) )
         self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
 
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
@@ -660,7 +660,7 @@ class CrawlerVkWall(CrawlerVk):
         #is group found ?
         self._cw_signs_count = 0
         self._cw_tg_NotFound.scan(self._cw_soup, {})
-        if self._cw_signs_count == 2: #two signs that the group was not found
+        if self._cw_signs_count >= 1: #== 2: #two signs that the group was not found
             self._cw_scrape_result.clear()
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND, 
@@ -943,7 +943,7 @@ class CrawlerVkWall(CrawlerVk):
         if kwargs['mode'] == 'tag 2':
             if 'Сообщество не найдено' in result.text:
                 self._cw_signs_count += 1
-
+        return result, par
 
     def _cw_scrap_posts(self, result, par, **kwargs):
         if result == None: return None, par
