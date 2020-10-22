@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import const
 import crawler
 import exceptions
 
@@ -23,7 +24,8 @@ class StrToDate:
     MONTHSHORTSs = '|'.join(MONTHSHORTSt)
     REPATTERNS = {
         'dd mmm в hh:mm' : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d?):(?P<minute>\d\d)', #15 янв в 10:40
-        'dd mmm yyyy'    : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)'                 #15 янв 2019
+        'dd mmm yyyy'    : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)',                 #15 янв 2019
+        'сегодня в hh:mm': '(?P<day>сегодня) в (?P<hour>\d\d?):(?P<minute>\d\d)'                                 #сегодня в 10:40
         }
 
     def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):
@@ -46,19 +48,29 @@ class StrToDate:
             for i in re_patterns:
                 self.allowed_re_patterns[i] = re.compile(self.REPATTERNS[i])
 
-    def get_date(self, date_in_str):
+    def get_date(self, date_in_str, type_res = 'S'):
+        _res_date_in_datetime = const.EMPTY_DATE 
+
         for re_pattern in self.allowed_re_patterns:  
             match = self.allowed_re_patterns[re_pattern].match(date_in_str)
             if match:
                 res = match.groupdict()
-                
-                day = 1 if not 'day' in res else int(match.group('day'))
                 
                 if 'monthshort' in res:
                     month = int(self.MONTHSHORTSt.index(match.group('monthshort'))) + 1
                 else:
                     month = 1
 
+                if 'day' in res:
+                    if match.group('day') == 'сегодня':
+                        _dt = datetime.now()
+                        day = _dt.day
+                        month = _dt.month
+                    else:
+                        day = int(match.group('day'))
+                else:
+                    day = 1
+                
                 if 'year' in res:
                     year = int(match.group('year'))
                 else:
@@ -68,13 +80,18 @@ class StrToDate:
                 minute = 0 if not 'minute' in res else int(match.group('minute'))
 
                 try:
-                    dt = datetime(year, month, day, hour, minute)
+                    _res_date_in_datetime = datetime(year, month, day, hour, minute)
                 except:
                     raise exceptions.ScrapeDateError(self.url, 'Error by scraping date from str "'+date_in_str+'"', self.msg_func)
 
-                return self._get_formated_date(dt)
+                break
 
-        return self._get_formated_date(datetime(1, 1, 1))
+        _res_date_in_str = self._get_formated_date(_res_date_in_datetime)
+
+        if type_res == 'S,D':
+            return _res_date_in_str, _res_date_in_datetime
+        else:
+            return _res_date_in_str
 
     def _get_formated_date(self, dt):
         if self.str_date_format == '':
@@ -712,5 +729,6 @@ if __name__ == "__main__":
     s = StrToDate()
 
     ss = s.get_date("31 июл в 21:47")
+    ss = s.get_date("сегодня в 10:42")
     f=1
    

@@ -522,7 +522,7 @@ class CrawlerVkWall(CrawlerVk):
                     'wall_start_from': '',
                     }  
 
-        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy'], url = self.url, msg_func = self.msg_func)
+        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm'], url = self.url, msg_func = self.msg_func)
     
     def _cw_define_tags(self):
 
@@ -623,7 +623,9 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_res_for_pg = scraper.ScrapeResult()
         self._cw_fetch_post_counter = 0
         self._cw_noncritical_error_counter = {}
-
+        self._cw_last_dates_activity = {}
+        self._cw_group_last_date_activity = const.EMPTY_DATE
+        self._cw_group_prev_last_date_activity = const.EMPTY_DATE
 
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
@@ -698,6 +700,8 @@ class CrawlerVkWall(CrawlerVk):
                 yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             for step in self._cw_get_post_replies2(): #second level
                 yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+
+            self._cw_trans_last_dates_to_scrape_result()
 
             #fetch browser page
             self._cw_debug_num_fetching_post -= 1
@@ -983,6 +987,8 @@ class CrawlerVkWall(CrawlerVk):
                 elif par['date'] == '':
                     self._cw_add_to_result_noncritical_error(const.ERROR_POST_DATE_EMPTY, self._cw_get_post_repr(post_id = par['post_id']))
 
+                _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
+
                 for res in result:
                     self._cw_scrape_result.append(
                         {
@@ -992,7 +998,7 @@ class CrawlerVkWall(CrawlerVk):
                         'sn_post_id': int(par['post_id']),
                         'sn_post_parent_id': 0,
                         'author': par['author'],
-                        'content_date': self._str_to_date.get_date(par['date']),
+                        'content_date': _dt_in_str,
                         'content_header': '',
                         'content': crawler.remove_empty_symbols(res.text)
                         }
@@ -1002,6 +1008,8 @@ class CrawlerVkWall(CrawlerVk):
                         print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
                         print(crawler.remove_empty_symbols(res.text))
                         print('\n____________________________________________________________\n')
+                    
+                    self._cw_fix_last_date(par['post_id'], _dt_in_dt)
                         
             else:
                 self.warning('Warning: Text not found ! \n '+self._cw_url)
@@ -1036,6 +1044,8 @@ class CrawlerVkWall(CrawlerVk):
             elif par['date'] == '':
                 self._cw_add_to_result_noncritical_error(const.ERROR_REPLY_DATE_EMPTY, self._cw_get_post_repr(post_id = par['post_id'], repl_id = par['reply_id'], parent_id =_parent_id ))
 
+            _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
+
             res_unit = { 
                 'result_type': 'POST',
                 'url': self._cw_url,
@@ -1043,7 +1053,7 @@ class CrawlerVkWall(CrawlerVk):
                 'sn_post_id': int(par['reply_id']), #!!!!!!!!!!!!!!!!!! reply_id ???? проверить !!
                 'sn_post_parent_id': _parent_id,
                 'author': par['author'],
-                'content_date': self._str_to_date.get_date(par['date']),
+                'content_date': _dt_in_str,
                 'content_header': '',
                 'content': crawler.remove_empty_symbols(result.text)
                 }
@@ -1061,7 +1071,8 @@ class CrawlerVkWall(CrawlerVk):
                 print(crawler.remove_empty_symbols(result.text))
                 print('\n       --.....----------------------------------.....-----------\n')
             
-            self._cw_scrape_result.append(res_unit) 
+            self._cw_scrape_result.append(res_unit)
+            self._cw_fix_last_date(par['post_id'], _dt_in_dt)
             
         return None, par
 
@@ -1141,6 +1152,34 @@ class CrawlerVkWall(CrawlerVk):
         
         return _repr
 
+    def _cw_fix_last_date(self, post_id, dt):
+        if dt == None or dt == const.EMPTY_DATE: return
+
+        if not post_id in self._cw_last_dates_activity:     #first
+            self._cw_last_dates_activity[post_id] = dt
+        elif self._cw_last_dates_activity[post_id] < dt:    #fix the latest datetime
+            self._cw_last_dates_activity[post_id] = dt
+
+        if self._cw_group_last_date_activity < dt:
+            self._cw_group_last_date_activity = dt
+
+    def _cw_trans_last_dates_to_scrape_result(self):
+        for post_id in self._cw_last_dates_activity:
+            self._cw_scrape_result.append({
+                'result_type': const.CW_RESULT_TYPE_DT_POST_ACTIVITY,
+                'post_id': int(post_id),
+                'dt': scraper.date_to_str(self._cw_last_dates_activity[post_id])
+                })
+        
+        self._cw_last_dates_activity = {} #after transfer to result clear dict
+
+        #fix last dt activity for group
+        if self._cw_group_prev_last_date_activity < self._cw_group_last_date_activity:
+            self._cw_group_prev_last_date_activity = self._cw_group_last_date_activity
+            self._cw_scrape_result.append({
+                'result_type': const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY,
+                'dt': scraper.date_to_str(self._cw_group_last_date_activity)
+                })
 
 
 

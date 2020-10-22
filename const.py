@@ -1,3 +1,5 @@
+from datetime import datetime
+
 ERROR_POST_AUTHOR_NOT_FOUND  = 'Post author not found'
 ERROR_POST_AUTHOR_EMPTY      = 'Post author empty'
 ERROR_POST_DATE_NOT_FOUND    = 'Post date not found'
@@ -20,3 +22,7 @@ CW_RESULT_TYPE_HTML             = 'HTML'
 CW_RESULT_TYPE_POST             = 'POST'
 CW_RESULT_TYPE_REPLY            = 'REPLY'
 CW_RESULT_TYPE_REPLY_TO_REPLY   = 'REPLY to REPLY'
+CW_RESULT_TYPE_DT_POST_ACTIVITY  = 'POST Last dt activity'
+CW_RESULT_TYPE_DT_GROUP_ACTIVITY = 'GROUP Last dt activity'
+
+EMPTY_DATE = datetime(1,1,1)

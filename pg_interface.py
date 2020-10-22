@@ -94,6 +94,19 @@ class MainDB():
 
             return res
    
+    def get_www_source_id(self, www_source_name):
+        ''' result syntax: res[0]['get_www_sources_id'] '''
+        plan_id = 'plan_get_www_source_id'
+        if not plan_id in SD or SD[plan_id] == None:
+            SD[plan_id] = plpy.prepare(
+                '''
+                SELECT git010_dict.get_www_sources_id($1) 
+                ''', 
+                ["text"])
+
+        res = plpy.execute(SD[plan_id], [www_source_name])
+        return convert_select_result(res)
+
     def select_groups_id(self, id_project):
         plan_id = 'plan_select_groups_id'
         if not plan_id in SD or SD[plan_id] == None:
@@ -166,7 +179,9 @@ if __name__ == "__main__":
     #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
 
-    res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
+    res = cass_db.get_www_source_id('vk')
+
+    #res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
     #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 'test123', domain = 'vk', id_project = 5)
     #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 
     #                          '''
