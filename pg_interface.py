@@ -1,4 +1,5 @@
 import psycopg2
+import const
 
 try:
     import plpyemul
@@ -121,18 +122,44 @@ class MainDB():
         res = plpy.execute(SD[plan_id], [id_project])
         return convert_select_result(res)
 
-    def add_to_db_log_crawling(self, id_project, record_class, record_type, date_in, description):
-        plan_id = 'plan_add_to_db_log_crawling'
+    def log_trace(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_TRACE, record_type, id_project, description)
+
+    def log_debug(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_DEBUG, record_type, id_project, description)
+
+    def log_info(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_INFOcord_type, id_project, description)
+
+    def log_warn(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_WARN, record_type, id_project, description)
+
+    def log_error(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_ERROR, record_type, id_project, description)
+
+    def log_fatal(self, record_type, id_project, description):
+        self._log_write(const.CW_LOG_LEVEL_FATAL, record_type, id_project, description)
+
+    def _log_write(self, log_level, record_type, id_project, description):
+        plan_id = 'plan_log_write_'+const.CW_LOG_LEVEL_FUNC[log_level]
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''
-                        INSERT INTO git999_log.crawling
-                            ( id_project, record_class, record_type, date_in, description)
-                        VALUES ( $1, $2, $3, $4, $5 )
-                        ''', 
-                        ["dmn.git_pk", "dmn.git_string", "dmn.git_string", "dmn.git_datetime", "dmn.git_text"])
+                pg_func = 'select git999_log.write($1, $2, $3, $4, $5);'
+                pg_func = pg_func.replace('write', const.CW_LOG_LEVEL_FUNC[log_level])
 
-            res = plpy.execute(SD[plan_id], [id_project, record_class, record_type, date_in, description])
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"])
+
+            res = plpy.execute(SD[plan_id], [record_type, id_project, None, None, description])
+
+    def upsert_sn_activity(self, id_source, sn_id, last_date):
+        plan_id = 'plan_upsert_sn_activity'
+        with plpy.subtransaction():
+            if not plan_id in SD or SD[plan_id] == None:
+                pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3);'
+
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_bigint","dmn.git_datetime"])
+
+            res = plpy.execute(SD[plan_id], [id_source, sn_id, last_date])
 
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
@@ -141,9 +168,6 @@ class MainDB():
     #    for row in rows:  
     #       print(row)
     #       print("\n")
-
-class DBError(Exception):
-    pass
 
 
 def convert_select_result(res, num_fields = 1):
@@ -180,6 +204,8 @@ if __name__ == "__main__":
     #res = CassDB.select_groups_id(0)
 
     res = cass_db.get_www_source_id('vk')
+
+    res = cass_db.log_debug('Ошибка 555', 1, '555 Длинное описание')
 
     #res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
     #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 'test123', domain = 'vk', id_project = 5)

@@ -1,4 +1,13 @@
+'''Constants'''
+
 from datetime import datetime
+
+try:
+    plpy.execute('SELECT 1')
+except:
+    PG_ENVIRONMENT = False
+else:
+    PG_ENVIRONMENT = True
 
 ERROR_POST_AUTHOR_NOT_FOUND  = 'Post author not found'
 ERROR_POST_AUTHOR_EMPTY      = 'Post author empty'
@@ -24,5 +33,13 @@ CW_RESULT_TYPE_REPLY            = 'REPLY'
 CW_RESULT_TYPE_REPLY_TO_REPLY   = 'REPLY to REPLY'
 CW_RESULT_TYPE_DT_POST_ACTIVITY  = 'POST Last dt activity'
 CW_RESULT_TYPE_DT_GROUP_ACTIVITY = 'GROUP Last dt activity'
+
+CW_LOG_LEVEL_FUNC = ['trace', 'debug', 'info', 'warn', 'error', 'fatal']
+CW_LOG_LEVEL_TRACE = 0
+CW_LOG_LEVEL_DEBUG = 1
+CW_LOG_LEVEL_INFO  = 2
+CW_LOG_LEVEL_WARN  = 3
+CW_LOG_LEVEL_ERROR = 4
+CW_LOG_LEVEL_FATAL = 5
 
 EMPTY_DATE = datetime(1,1,1)

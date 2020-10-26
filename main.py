@@ -6,6 +6,7 @@ import vk
 from plpyemul import PlPy as plpy
 import pg_interface
 import const
+import gvars
 
 def get_psw_mtyurin():
     
@@ -49,6 +50,8 @@ def vk_crawl_groups():
 
 def vk_crawl_wall(id_project, id_group, subscribers_only = False):
 
+    id_group_str = str(id_group)
+
     crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only)
 
     for res_list in crawler.crawl_wall(id_group):
@@ -67,15 +70,15 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
                 cass_db.update_sn_num_subscribers(id_project = id_project, sn_network = 'vk', **res_unit)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
-                cass_db.add_to_db_log_crawling(id_project, "ERROR", res_unit['result_type'], res_unit['datetime'], res_unit['event_description'])
+                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
                 plpy.notice('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))
-                pass #fix into sn_activity
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), res_unit['post_id'], res_unit['dt'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY:
                 plpy.notice('dt = {}'.format(res_unit['dt']))
-                pass #fix into sn_accounts ??
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['dt'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
@@ -83,21 +86,21 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
                 gid_data_html = res['gid']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
-                cass_db.add_to_db_log_crawling(id_project, "ERROR", res_unit['result_type'], res_unit['datetime'], res_unit['event_description'])
+                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
-                cass_db.add_to_db_log_crawling(id_project, "INFO", res_unit['result_type'], res_unit['datetime'], res_unit['event_description'])
+                cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
                 pass #!!!!!!!!!!!! удалить страницу из очереди
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
-                cass_db.add_to_db_log_crawling(id_project, "ERROR", res_unit['err_type'], res_unit['datetime'], res_unit['err_description'])
+                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
                 plpy.notice(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST):
                     plpy.notice('Request error: pause before repeating...')
                     time.sleep(2) #через параметр
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.add_to_db_log_crawling(id_project, "CRITICAL ERROR", res_unit['err_type'], res_unit['datetime'], res_unit['err_description'])
+                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
                 plpy.notice(res_unit['err_type'])
                 plpy.notice(res_unit['err_description'])
                 break

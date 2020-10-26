@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>pg_interface.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -32,6 +32,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="const.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="gvars.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="plpyemul.py">
