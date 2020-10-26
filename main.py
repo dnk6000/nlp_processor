@@ -82,8 +82,8 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-                res = cass_db.add_to_db_data_html(id_project = id_project, domain = 'vk', sid = 1, **res_unit)   #sid ???
-                gid_data_html = res['gid']
+                res = cass_db.upsert_data_html(url = res_unit['url'], content = res_unit['content'], id_project = id_project, id_www_sources = gvars.get('VK_SOURCE_ID'))
+                id_data_html = res['upsert_data_html']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
                 cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
@@ -107,7 +107,7 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
             
             elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
                 #plpy.notice('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-                cass_db.add_to_db_data_text(id_project = id_project, sn_network = 'vk', gid_data_html = gid_data_html, **res_unit)
+                cass_db.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
 
     #res = Crawler.crawl_wall('16758516_109038')
     pass
