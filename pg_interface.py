@@ -21,39 +21,15 @@ class MainDB():
     def __init__(self):
         pass
 
-    def add_to_db_sn_accounts(self, id_project, network, account_type, account_id, account_name, account_screen_name, account_closed):
-        plan_id = 'plan_add_to_db_sn_accounts'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''
-                        INSERT INTO git200_crawl.sn_accounts 
-                            ( network, account_type, account_id, account_name, account_screen_name, account_closed, id_project ) 
-                        VALUES ( $1, $2, $3, $4, $5, $6, $7 ) 
-                        ON CONFLICT ON CONSTRAINT sn_accounts_id DO NOTHING
-                        ''', 
-                        #RETURNING id as NewID, network as nnetwork
-                        ["dmn.enum_social_net", "dmn.enum_social_account_type", "integer", "text", "text", "boolean", "integer"])
 
-            res = plpy.execute(SD[plan_id], [network, account_type, account_id, account_name, account_screen_name, account_closed, id_project])
-        #plpy.commit() #commit is not necessary when using construction 'with'
-        pass
-
-    def update_sn_num_subscribers(self, sn_network, id_project, sn_id, number_subscribers, **kwargs):
+    def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, **kwargs):
         plan_id = 'plan_update_sn_num_subscribers'
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''
-                                    UPDATE git200_crawl.sn_accounts 
-                                    SET number_subscribers = $1  
-                                    WHERE  account_id = $2 
-                                    AND network = $3 
-                                    AND id_project = $4
-                                    ''', 
-                                ["integer", "integer", "dmn.enum_social_net", "integer"]
-                              )
+                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3)''', 
+                                ["dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
 
-            res = plpy.execute(SD[plan_id], [number_subscribers, sn_id, sn_network, id_project])
-
+            res = plpy.execute(SD[plan_id], [sn_network, sn_id, num_subscribers])
 
     def upsert_data_text(self, id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
                                 sn_id = None, sn_post_id = None, sn_post_parent_id = None, **kwargs):
@@ -72,11 +48,23 @@ class MainDB():
         plan_id = 'plan_upsert_data_html'
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''select git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
+                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
                                             ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
             res = plpy.execute(SD[plan_id],[url, content, id_project, id_www_sources])
 
+            return res[0]
+
+    def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
+                                 account_screen_name, account_closed, num_subscribers = None):
+        plan_id = 'plan_upsert_sn_accounts'
+        with plpy.subtransaction():
+            if not plan_id in SD or SD[plan_id] == None:
+                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8)''', 
+                        ["dmn.git_pk", "dmn.git_pk", "dmn.git_string", "dmn.git_bigint", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_integer"])
+
+            res = plpy.execute(SD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
+                                 account_screen_name, account_closed, num_subscribers])
             return res[0]
 
     def upsert_sn_activity(self, id_source, sn_id, last_date):
@@ -145,46 +133,6 @@ class MainDB():
 
             res = plpy.execute(SD[plan_id], [record_type, id_project, None, None, description])
 
-    def DELadd_to_db_data_text(self, url, content, gid_data_html, content_header, content_date, 
-                                  id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id, **kwargs):
-        plan_id = 'plan_add_to_db_data_text'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare(
-                                '''
-                                INSERT INTO git300_scrap.data_text ( 
-                                source, content, gid_data_html, content_header, 
-                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id 
-                                ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
-                                ON CONFLICT ON CONSTRAINT data_text_hash_key DO NOTHING;
-                               ''', 
-                                ["text", "text", "dmn.git_pk", "text", 
-                                "dmn.git_datetime", "integer", "dmn.enum_social_net", "integer", "integer", "integer"]
-                              )
-
-            res = plpy.execute(SD[plan_id], 
-                               [url, content, gid_data_html, content_header, 
-                                content_date, id_project, sn_network, sn_id, sn_post_id, sn_post_parent_id
-                               ]
-                              )
-
-    def DEL_add_to_db_data_html(self, url, content, domain, id_project, sid, **kwargs):
-        plan_id = 'plan_add_to_db_data_html'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''
-                        INSERT INTO git200_crawl.data_html 
-                                (URL, CONTENT, DOMAIN, id_project, sid) 
-                        VALUES ($1, $2, $3, $4, $5) 
-                        ON CONFLICT ON CONSTRAINT data_html_hash_key DO NOTHING
-                        RETURNING gid AS gid
-                        ''', 
-                ["text","text","text","integer"])
-          
-            res = plpy.execute(SD[plan_id],[url, content, domain, id_project, sid])
-
-            return res
-   
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
     #                        FROM git200_crawl.sn_accounts")
@@ -192,7 +140,7 @@ class MainDB():
     #    for row in rows:  
     #       print(row)
     #       print("\n")
-
+    pass
 
 def convert_select_result(res, num_fields = 1):
     '''in pgree environment need another processing!
@@ -227,9 +175,11 @@ if __name__ == "__main__":
     #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
 
-    res = cass_db.get_www_source_id('vk')
+    res = cass_db.upsert_sn_accounts(3, 10, 'G', 112774, 'test TEST', 'test33', False, 112)
 
-    res = cass_db.log_debug('Ошибка 555', 1, '555 Длинное описание')
+    #res = cass_db.get_www_source_id('vk')
+
+    #res = cass_db.log_debug('Ошибка 555', 1, '555 Длинное описание')
 
     #res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
     #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 'test123', domain = 'vk', id_project = 5)

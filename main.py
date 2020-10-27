@@ -23,7 +23,7 @@ def vk_crawl_groups():
     crawler = vk.CrawlerVkGroups(login = '89273824101', 
                          password = get_psw_mtyurin(), 
                          base_search_words = ['Фурсов'], 
-                         msg_func = PlPy.notice, 
+                         msg_func = plpy.notice, 
                          id_project = id_project
                          )
     select_result = cass_db.select_groups_id(id_project = 5)
@@ -39,14 +39,8 @@ def vk_crawl_groups():
         for gr in _groups_list:
             c += 1
             print('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
-            cass_db.add_to_db_sn_accounts(id_project,
-                             'vk',
-                             'group',
-                             gr['id'],
-                             gr['name'],
-                             gr['screen_name'],
-                             gr['is_closed'] == 1
-            )
+            cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
+                             gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
 
 def vk_crawl_wall(id_project, id_group, subscribers_only = False):
 
@@ -66,8 +60,8 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
             plpy.notice(res_unit['result_type'])
             
             if res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS:
-                plpy.notice(res_unit['number_subscribers'])
-                cass_db.update_sn_num_subscribers(id_project = id_project, sn_network = 'vk', **res_unit)
+                plpy.notice(res_unit['num_subscribers'])
+                cass_db.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), **res_unit)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
                 cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
@@ -83,7 +77,7 @@ def vk_crawl_wall(id_project, id_group, subscribers_only = False):
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 res = cass_db.upsert_data_html(url = res_unit['url'], content = res_unit['content'], id_project = id_project, id_www_sources = gvars.get('VK_SOURCE_ID'))
-                id_data_html = res['upsert_data_html']
+                id_data_html = res['id_modified']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
                 cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
@@ -132,9 +126,11 @@ def vk_crawl_wall_subscribers(id_project):
 
 #########################################
 cass_db = pg_interface.MainDB()
+
 #vk_crawl_groups()
-vk_crawl_wall(17, 16758516)
-#vk_crawl_wall(16758516,subscribers_only = True)
+#vk_crawl_wall(5, 16758516, subscribers_only = True)
+vk_crawl_wall(5, 16758516, subscribers_only = False)
+
 #vk_crawl_wall(130782889,subscribers_only = True)
 #vk_crawl_wall(0, 222333444,subscribers_only = True)
 #vk_crawl_wall_subscribers(0)

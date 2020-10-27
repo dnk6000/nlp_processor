@@ -349,7 +349,7 @@ class CrawlerVkGroups(CrawlerVk):
 
     def _crawl_groups_api(self, search_elem):
 
-        sleep(self.api_request_pause_sec)
+        time.sleep(self.api_request_pause_sec)
 
         params = { 'q'     : search_elem['search_str'],
                    'count' : self.api_limit_res
@@ -1110,7 +1110,7 @@ class CrawlerVkWall(CrawlerVk):
 
             try:
                 self._cw_num_subscribers = int(result.text.replace(' ', ''))
-                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': int(self._cw_group_id),  'number_subscribers': self._cw_num_subscribers } )  
+                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': int(self._cw_group_id),  'num_subscribers': self._cw_num_subscribers } )  
             except:
                 self._cw_add_to_result_noncritical_error(const.ERROR_SCRAP_NUMBER_SUBSCRIBERS, self._cw_get_post_repr())
 
