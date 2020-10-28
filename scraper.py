@@ -102,6 +102,9 @@ class StrToDate:
 def date_to_str(dt):
     return dt.strftime("%d.%m.%Y %H:%M:%S")
 
+def date_now_str():
+    date_to_str(datetime.now())
+
 class Scraper():
 
     def __init__(self, DetailedResult = False):

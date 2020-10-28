@@ -6,9 +6,6 @@ try:
 except:
     pass
 
-import time
-from datetime import datetime
-
 def get_psw_mtyurin():
     
     with open('C:\Temp\mypsw.txt', 'r') as f:
@@ -133,6 +130,40 @@ class MainDB():
 
             res = plpy.execute(SD[plan_id], [record_type, id_project, None, None, description])
 
+    def queue_generate(self, id_www_source, id_project):
+        plan_id = 'plan_queue_generate'
+        with plpy.subtransaction():
+            if not plan_id in SD or SD[plan_id] == None:
+                pg_func = 'select * from git200_crawl.queue_generate($1, $2);'
+
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk"])
+
+            res = plpy.execute(SD[plan_id], [id_www_source, id_project])
+        return res
+
+    def queue_update(self, id_queue, is_process = None, date_start_process = None, date_end_process = None, 
+                           date_deferred = None, attempts_counter = None):
+        plan_id = 'plan_queue_update'
+        with plpy.subtransaction():
+            if not plan_id in SD or SD[plan_id] == None:
+                pg_func = 'select * from git200_crawl.queue_update($1, $2, $3, $4, $5, $6);'
+
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
+
+            res = plpy.execute(SD[plan_id], [id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter])
+        return res
+    
+    def queue_select(self, id_www_source, id_project, number_records = 10):
+        plan_id = 'plan_queue_select'
+        if not plan_id in SD or SD[plan_id] == None:
+            pg_func = 'select * from git200_crawl.queue_select($1, $2, $3);'
+            SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
+
+        res = plpy.execute(SD[plan_id], [id_www_source, id_project, number_records])
+
+        return res
+
+
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
     #                        FROM git200_crawl.sn_accounts")
@@ -175,29 +206,24 @@ if __name__ == "__main__":
     #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
 
-    res = cass_db.upsert_sn_accounts(3, 10, 'G', 112774, 'test TEST', 'test33', False, 112)
+    #res = cass_db.upsert_sn_accounts(3, 10, 'G', 112774, 'test TEST', 'test33', False, 112)
 
     #res = cass_db.get_www_source_id('vk')
 
     #res = cass_db.log_debug('Ошибка 555', 1, '555 Длинное описание')
 
-    #res = cass_db.add_to_db_data_html(url = 'testurl', content = 'test131123', domain = 'vk', id_project = 5, sid = 1)
-    #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 'test123', domain = 'vk', id_project = 5)
-    #res = cass_db.add_to_db_data_html(url = 'https://vk.com/andrey_fursov', content = 
-    #                          '''
-    #                          '<!DOCTYPE html>\n<html prefix="og: http://ogp.me/ns#" lang=\'ru\' dir=\'ltr\'>\n<head>\n<meta http-equiv="X-UA-Compatible" 
-    #                          content="IE=edge" />\n<link rel="shortcut icon" href="/images/icons/favicons/fav_logo.ico?6"
-    #                          '''
-    #                          , domain = 'vk', id_project = 5)
+    #res = cass_db.queue_generate(3, 5)  #res[0]['Success']
+    #res = cass_db.queue_update(1, is_process = True)  #res[0]['Success']
+    #import scraper
+    #import datetime
+
+    #res = cass_db.queue_update(1, date_deferred = scraper.date_to_str(datetime.datetime.now()))  #res[0]['Success']
+    #res = cass_db.queue_update(1, attempts_counter = 11)  #res[0]['Success']
+    #
     a = 1
 
     #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
-    #CassDB.add_to_db_sn_accounts(0, "vk", "group", 893564356, "group1212121212", "Тест группа 1212121212", True)
-    #CassDB.AddToBD_SocialNet("vk", "group", 123456, "rferfer", "аааааааааа", True)
-    #CassDB.AddToBD_SocialNet("vk", "group", 123456, "erf", "бббббббб", True)
-    #CassDB.AddToBD_SocialNet("vk", "group", 123456, "vfvffrrrr", "ггггггггг", False)
 
-    #CassDB.update_sn_num_subscribers('vk', 0, 24328516, 333)
     #CassDB.update_sn_num_subscribers('vk', 0, 16758516, 444)
 
     #CassDB.add_to_db_data_text( 
