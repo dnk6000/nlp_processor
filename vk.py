@@ -580,10 +580,10 @@ class CrawlerVkWall(CrawlerVk):
 
     def _cw_set_debug_mode(self):
         self._cw_debug_mode = True
-        #self._cw_debug_post_filter = '113850'  #фикс
         #self._cw_debug_post_filter = '113608'  #много комментов
         #self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
         #self._cw_debug_post_filter = '112463'  #возникает ошибка получения даты комментария
+        #self._cw_debug_post_filter = '35'  #фикс
         self._cw_debug_post_filter = ''
         if self._cw_debug_mode: 
             self._cw_debug_num_fetching_post = 9999999  #number of fetching wall page
@@ -641,6 +641,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_url = self.url + 'club' + str(group_id)
 
         self._cw_url_fetch = self.url + 'al_wall.php'
+        #self._cw_url_fetch = 'https:\\test.ru'
 
         _request_attempt = self.request_tries
         while True:
@@ -666,7 +667,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_scrape_result.clear()
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -678,7 +679,7 @@ class CrawlerVkWall(CrawlerVk):
         if self._cw_subscribers_only:
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS if self._cw_num_subscribers > 0 else const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -713,7 +714,7 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_scrape_result.append( {
             'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS, 
-            'datetime': scraper.date_to_str(datetime.datetime.now()),
+            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
             'event_description': self._cw_get_post_repr()
             } )
         yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -962,10 +963,10 @@ class CrawlerVkWall(CrawlerVk):
             return result, par
 
         elif kwargs['mode'] == 'author':
-            par['author'] = result.text
+            par['author'] = crawler.remove_empty_symbols(result.text)
 
         elif kwargs['mode'] == 'date':
-            par['date'] = result.text
+            par['date'] = crawler.remove_empty_symbols(result.text)
 
         elif kwargs['mode'] == 'wall texts':
             if len(result) > 0:
@@ -1023,11 +1024,11 @@ class CrawlerVkWall(CrawlerVk):
             return result, par
         
         elif kwargs['mode'] == 'author':
-            par['author'] = result.text
+            par['author'] = crawler.remove_empty_symbols(result.text)
             par['author_id'] = result.attrs['data-from-id']
 
         elif kwargs['mode'] == 'date':
-            par['date'] = result.text
+            par['date'] = crawler.remove_empty_symbols(result.text)
 
         elif kwargs['mode'] == 'repl text':
 
@@ -1123,7 +1124,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now())
+            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc))
             })
         
         if not err_type in self._cw_noncritical_error_counter:
@@ -1136,7 +1137,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now())
+            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc))
             })
 
     def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):

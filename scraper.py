@@ -9,7 +9,7 @@ from html.parser import HTMLParser
 
 from bs4 import BeautifulSoup
 
-from datetime import datetime
+import datetime
 
 import json
 
@@ -63,7 +63,7 @@ class StrToDate:
 
                 if 'day' in res:
                     if match.group('day') == 'сегодня':
-                        _dt = datetime.now()
+                        _dt = datetime.datetime.now(datetime.timezone.utc)
                         day = _dt.day
                         month = _dt.month
                     else:
@@ -74,13 +74,13 @@ class StrToDate:
                 if 'year' in res:
                     year = int(match.group('year'))
                 else:
-                    year = datetime.now().year
+                    year = datetime.datetime.now(datetime.timezone.utc).year
 
                 hour = 0 if not 'hour' in res else int(match.group('hour'))
                 minute = 0 if not 'minute' in res else int(match.group('minute'))
 
                 try:
-                    _res_date_in_datetime = datetime(year, month, day, hour, minute)
+                    _res_date_in_datetime = datetime.datetime(year, month, day, hour, minute)
                 except:
                     raise exceptions.ScrapeDateError(self.url, 'Error by scraping date from str "'+date_in_str+'"', self.msg_func)
 
@@ -103,7 +103,7 @@ def date_to_str(dt):
     return dt.strftime("%d.%m.%Y %H:%M:%S")
 
 def date_now_str():
-    date_to_str(datetime.now())
+    return date_to_str(datetime.datetime.now(datetime.timezone.utc).astimezone())
 
 class Scraper():
 

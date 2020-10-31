@@ -107,10 +107,10 @@ def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscrib
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
                 plpy.notice(res_unit['err_type'])
                 plpy.notice(res_unit['err_description'])
-                wall_processed = True
+                wall_processed = False
 
                 attempts_counter += 1
-                date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
+                date_deferred = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
                 res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = scraper.date_to_str(date_deferred))
                 if not res[0]['Success']:
                     cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
@@ -167,7 +167,7 @@ cass_db = pg_interface.MainDB()
 vk_crawling(ID_TEST_PROJECT)
 
 #vk_crawl_groups()
-#vk_crawl_wall(5, 16758516, subscribers_only = True)
+vk_crawl_wall(5, 52233236, subscribers_only = True)
 #vk_crawl_wall(5, 16758516, subscribers_only = False)
 
 #vk_crawl_wall(130782889,subscribers_only = True)

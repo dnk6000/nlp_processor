@@ -8,6 +8,8 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse
 import urllib.request
 
+import unicodedata
+
 import requests
 
 import re
@@ -199,7 +201,8 @@ def RemoveEmojiSymbols(text):
 
 def remove_empty_symbols(text):
     
-    txt = re.sub(chr(10), ' ', text)
+    txt = unicodedata.normalize("NFKD",text)   #solves the problem with simbol \xa0
+    txt = re.sub(chr(10), ' ', txt)
     txt = re.sub('\n+', ' ', txt)
     txt = re.sub(' +', ' ', txt)
     
