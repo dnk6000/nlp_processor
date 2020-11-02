@@ -75,6 +75,8 @@ class PlPy(object):
     def execute(self, *args, **kwargs):
         self._connect()
         
+        _plan_name = ''
+        
         if isinstance(args[0], str):
             if args[0][:8] == 'py_plan_':
 
@@ -108,7 +110,7 @@ class PlPy(object):
 
                 return result
 
-        if self._return_select_result[_plan_name]:
+        if _plan_name != '' and self._return_select_result[_plan_name]:
             self.cursor.execute(*args, **kwargs)
             result = self.cursor.fetchall()
             return self._convert_select_result(result)

@@ -46,7 +46,7 @@ def vk_crawl_groups():
             cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
                              gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
 
-def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscribers_only = False):
+def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscribers_only = False, date_deep = const.EMPTY_DATE):
 
     res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
     if not res[0]['Success']:
@@ -56,7 +56,7 @@ def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscrib
 
     id_group_str = str(id_group)
 
-    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only)
+    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep)
 
     for res_list in crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
@@ -143,6 +143,7 @@ def vk_crawl_wall_subscribers(id_project):
 def vk_crawling(id_project):
 
     portion_counter = 0
+    date_deep = datetime.datetime(2020, 10, 10)
 
     while True:
         queue_portion = cass_db.queue_select(VK_SOURCE_ID, id_project)
@@ -154,9 +155,19 @@ def vk_crawling(id_project):
             break
 
         for elem in queue_portion:
-            vk_crawl_wall(id_project, elem['sn_id'], elem['id'], elem['attempts_counter'])
+            vk_crawl_wall(id_project, elem['sn_id'], elem['id'], elem['attempts_counter'], date_deep = date_deep)
             
 
+def clear_tables_by_project(id_project):
+    tables = [
+        'git200_crawl.data_html',
+        'git200_crawl.queue',
+        'git200_crawl.sn_accounts',
+        'git300_scrap.data_text'
+        ]
+    for t in tables:
+        plpy.notice('Delete table {} by project {}'.format(t,id_project))
+        cass_db.clear_table_by_project(t, id_project)
 
 #########################################
 
@@ -164,13 +175,17 @@ ID_TEST_PROJECT = 5
 
 cass_db = pg_interface.MainDB()
 
+#for i in range(1,20):
+#    clear_tables_by_project(i)
+
 vk_crawling(ID_TEST_PROJECT)
 
 #vk_crawl_groups()
-vk_crawl_wall(5, 52233236, subscribers_only = True)
-#vk_crawl_wall(5, 16758516, subscribers_only = False)
+#vk_crawl_wall(5, 52233236, subscribers_only = True)
+#vk_crawl_wall(ID_TEST_PROJECT, 16758516, subscribers_only = False)
 
 #vk_crawl_wall(130782889,subscribers_only = True)
 #vk_crawl_wall(0, 222333444,subscribers_only = True)
 #vk_crawl_wall_subscribers(0)
+pass
 

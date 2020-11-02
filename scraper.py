@@ -25,7 +25,8 @@ class StrToDate:
     REPATTERNS = {
         'dd mmm в hh:mm' : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d?):(?P<minute>\d\d)', #15 янв в 10:40
         'dd mmm yyyy'    : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)',                 #15 янв 2019
-        'сегодня в hh:mm': '(?P<day>сегодня) в (?P<hour>\d\d?):(?P<minute>\d\d)'                                 #сегодня в 10:40
+        'сегодня в hh:mm': '(?P<day>сегодня) в (?P<hour>\d\d?):(?P<minute>\d\d)',                                #сегодня в 10:40
+        'вчера в hh:mm'  : '(?P<day>вчера) в (?P<hour>\d\d?):(?P<minute>\d\d)'                                   #вчера в 10:40
         }
 
     def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):
@@ -50,6 +51,7 @@ class StrToDate:
 
     def get_date(self, date_in_str, type_res = 'S'):
         _res_date_in_datetime = const.EMPTY_DATE 
+        _td = datetime.timedelta(days = 0)
 
         for re_pattern in self.allowed_re_patterns:  
             match = self.allowed_re_patterns[re_pattern].match(date_in_str)
@@ -62,10 +64,12 @@ class StrToDate:
                     month = 1
 
                 if 'day' in res:
-                    if match.group('day') == 'сегодня':
+                    if match.group('day') == 'сегодня' or match.group('day') == 'вчера':
                         _dt = datetime.datetime.now(datetime.timezone.utc)
                         day = _dt.day
                         month = _dt.month
+                        if match.group('day') == 'вчера':
+                            _td = datetime.timedelta(days = -1)
                     else:
                         day = int(match.group('day'))
                 else:
@@ -80,7 +84,7 @@ class StrToDate:
                 minute = 0 if not 'minute' in res else int(match.group('minute'))
 
                 try:
-                    _res_date_in_datetime = datetime.datetime(year, month, day, hour, minute)
+                    _res_date_in_datetime = datetime.datetime(year, month, day, hour, minute) + _td
                 except:
                     raise exceptions.ScrapeDateError(self.url, 'Error by scraping date from str "'+date_in_str+'"', self.msg_func)
 
@@ -733,5 +737,8 @@ if __name__ == "__main__":
 
     ss = s.get_date("31 июл в 21:47")
     ss = s.get_date("сегодня в 10:42")
+    print(ss)
+    ss = s.get_date("вчера в 10:42")
+    print(ss)
     f=1
    

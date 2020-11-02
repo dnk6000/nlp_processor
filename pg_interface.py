@@ -34,7 +34,7 @@ class MainDB():
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
                 SD[plan_id] = plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
-                ["git_pk","git_pk","git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_bigint","dmn.git_bigint","dmn.git_bigint"])
+                ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_bigint","dmn.git_bigint","dmn.git_bigint"])
 
             res = plpy.execute(SD[plan_id],[id_data_html, id_project, id_www_sources, content, content_header, content_date,
                                             sn_id, sn_post_id, sn_post_parent_id])
@@ -163,7 +163,11 @@ class MainDB():
 
         return res
 
-
+    def clear_table_by_project(self, table_name, id_project):
+        with plpy.subtransaction():
+            pg_func = 'delete from {} where id_project = {};'.format(table_name, id_project)
+            plpy.execute(pg_func)
+        
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
     #                        FROM git200_crawl.sn_accounts")
@@ -202,6 +206,8 @@ if __name__ == "__main__":
     cass_db = MainDB()
     #CassDB.Connect()
     print("Database opened successfully")
+
+    #cass_db.clear_table_by_project('git200_crawl.data_html', 6)
     #res = cass_db.select_groups_id(id_project = 5)
     #res2 = list(i['account_id'] for i in res)
     #res = CassDB.select_groups_id(0)
@@ -226,7 +232,7 @@ if __name__ == "__main__":
 
     #CassDB.update_sn_num_subscribers('vk', 0, 16758516, 444)
 
-    #CassDB.add_to_db_data_text( 
+    #CassDB.upsert_data_text( 
     #                        url = 'test', 
     #                        content = 'test text', 
     #                        gid_data_html = 0, 
