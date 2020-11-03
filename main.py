@@ -78,11 +78,11 @@ def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscrib
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
                 plpy.notice('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), res_unit['post_id'], res_unit['dt'])
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['post_id'], res_unit['dt'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY:
                 plpy.notice('dt = {}'.format(res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['dt'])
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, 0, res_unit['dt'])
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
@@ -168,6 +168,7 @@ def clear_tables_by_project(id_project):
     for t in tables:
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
         cass_db.clear_table_by_project(t, id_project)
+
 
 #########################################
 
