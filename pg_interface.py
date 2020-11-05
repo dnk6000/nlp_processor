@@ -173,7 +173,7 @@ class MainDB():
         if not plan_id in SD or SD[plan_id] == None:
             SD[plan_id] = plpy.prepare(
                 '''
-                SELECT git200_crawl.get_sn_activity($1, $2, $3)
+                SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3)
                 ''', 
                 ["dmn.git_pk", "dmn.git_bigint", "dmn.git_date"])
 
@@ -238,6 +238,7 @@ if __name__ == "__main__":
     #res = cass_db.queue_update(1, date_deferred = scraper.date_to_str(datetime.datetime.now()))  #res[0]['Success']
     #res = cass_db.queue_update(1, attempts_counter = 11)  #res[0]['Success']
     #
+    res = cass_db.get_sn_activity(3, 16758516, '01.01.2020')
     a = 1
 
     #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)

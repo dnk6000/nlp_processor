@@ -503,7 +503,13 @@ class CrawlerVkGroups(CrawlerVk):
 
 class CrawlerVkWall(CrawlerVk):
 
-    def __init__(self, *args, subscribers_only = False, date_deep = const.EMPTY_DATE, last_dates_posts_activity = list(), **kwargs):
+    def __init__(self, *args, 
+                 subscribers_only = False, 
+                 date_deep = const.EMPTY_DATE, 
+                 last_dates_posts_activity = list(), 
+                 sn_activity = CrawlerVkWall.get_sn_activity_empty_dict(), 
+                 **kwargs
+                 ):
         
         super().__init__(*args, **kwargs)
         
@@ -511,6 +517,8 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_date_deep = date_deep
         self._cw_last_dates_posts_activity = last_dates_posts_activity
+
+        self._cw_activity = sn_activity
 
         self._cw_define_tags()
 
@@ -527,6 +535,10 @@ class CrawlerVkWall(CrawlerVk):
 
         self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm', 'вчера в hh:mm'], url = self.url, msg_func = self.msg_func)
     
+    @staticmethod
+    def get_sn_activity_empty_dict():
+        return {'post_dates': dict, 'post_list': list}
+
     def _cw_define_tags(self):
 
         TN = scraper.TagNode
@@ -701,6 +713,9 @@ class CrawlerVkWall(CrawlerVk):
             #get posts
             self._cw_tg_Posts.scan(self._cw_soup, {})
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+
+            if self._stop_post_scraping:
+                self._cw_post_repl_list.extend(self._cw_activity['post_list'])
 
             for step in self._cw_get_post_replies():
                 yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -995,7 +1010,7 @@ class CrawlerVkWall(CrawlerVk):
 
                 _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
                 
-                if self._cw_check_date_deep(_dt_in_dt):
+                if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
                     self._stop_post_scraping = True
                     return None, par
 
@@ -1059,6 +1074,9 @@ class CrawlerVkWall(CrawlerVk):
             _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
 
             if self._cw_check_date_deep(_dt_in_dt):
+                self._stop_repl_scraping = True
+                return None, par
+            if par['post_id'] in self._cw_activity['post_list'] and self._cw_check_date_deep(self._cw_activity['post_dates'][par['post_id']]):
                 self._stop_repl_scraping = True
                 return None, par
 

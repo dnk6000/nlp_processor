@@ -19,6 +19,15 @@ def get_psw_mtyurin():
 
     return 'Bey'+psw+'00'
 
+def get_sn_activity_dict(id_www_sources, sn_id, deep_date, re_reply_deep):
+    res = cass_db.get_sn_activity(id_www_sources, sn_id, deep_date)
+    
+    sn_activity = vk.CrawlerVkWall.get_sn_activity_empty_dict()
+    
+    sn_activity['post_dates'] = { str(i['sn_post_id']):i['last_date']-re_reply_deep for i in res }
+    sn_activity['post_list'] = [ str(i['sn_post_id']) for i in res ]
+    
+    return sn_activity
 
 def vk_crawl_groups():
 
@@ -46,17 +55,25 @@ def vk_crawl_groups():
             cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
                              gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
 
-def vk_crawl_wall(id_project, id_group, id_queue, attempts_counter = 0, subscribers_only = False, date_deep = const.EMPTY_DATE):
+def vk_crawl_wall(id_project, id_group, id_queue, 
+                  attempts_counter = 0, 
+                  subscribers_only = False, 
+                  date_deep = const.EMPTY_DATE, 
+                  re_date_deep = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90),
+                  re_reply_deep = datetime.timedelta(days=30)
+                  ):
 
     res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
     if not res[0]['Success']:
         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
+    sn_activity = get_sn_activity_dict(VK_SOURCE_ID, id_group, scraper.date_to_str(re_date_deep), re_reply_deep)
+
     wall_processed = False
 
     id_group_str = str(id_group)
 
-    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep)
+    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep, sn_activity = sn_activity)
 
     for res_list in crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
