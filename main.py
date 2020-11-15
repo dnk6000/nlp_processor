@@ -24,7 +24,11 @@ def get_sn_activity_dict(id_www_sources, sn_id, deep_date, re_reply_deep):
     
     sn_activity = vk.CrawlerVkWall.get_sn_activity_empty_dict()
     
-    sn_activity['post_dates'] = { str(i['sn_post_id']):i['last_date']-re_reply_deep for i in res }
+    for i in res:
+        _dt = i['last_date']
+        dt = datetime.datetime(_dt.year, _dt.month, _dt.day, _dt.hour, _dt.minute, _dt.second) #conversing datetime to datetime because date in i['last_date'] with tzinfo
+        sn_activity['post_dates'][str(i['sn_post_id'])] = dt - re_reply_deep
+    #sn_activity['post_dates'] = { str(i['sn_post_id']):i['last_date']-re_reply_deep for i in res }
     sn_activity['post_list'] = [ str(i['sn_post_id']) for i in res ]
     
     return sn_activity
@@ -60,7 +64,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   subscribers_only = False, 
                   date_deep = const.EMPTY_DATE, 
                   re_date_deep = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90),
-                  re_reply_deep = datetime.timedelta(days=30)
+                  re_reply_deep = datetime.timedelta(days=3)
                   ):
 
     res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())

@@ -506,8 +506,9 @@ class CrawlerVkWall(CrawlerVk):
     def __init__(self, *args, 
                  subscribers_only = False, 
                  date_deep = const.EMPTY_DATE, 
-                 last_dates_posts_activity = list(), 
-                 sn_activity = CrawlerVkWall.get_sn_activity_empty_dict(), 
+                 #last_dates_posts_activity = list(), 
+                 #sn_activity = CrawlerVkWall.get_sn_activity_empty_dict(), 
+                 sn_activity = dict(), 
                  **kwargs
                  ):
         
@@ -516,7 +517,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_subscribers_only = subscribers_only
 
         self._cw_date_deep = date_deep
-        self._cw_last_dates_posts_activity = last_dates_posts_activity
+        #self._cw_last_dates_posts_activity = last_dates_posts_activity
 
         self._cw_activity = sn_activity
 
@@ -537,7 +538,7 @@ class CrawlerVkWall(CrawlerVk):
     
     @staticmethod
     def get_sn_activity_empty_dict():
-        return {'post_dates': dict, 'post_list': list}
+        return {'post_dates': dict(), 'post_list': list()}
 
     def _cw_define_tags(self):
 
@@ -613,14 +614,14 @@ class CrawlerVkWall(CrawlerVk):
         except requests.exceptions.RequestException as e:
             _descr = self._cw_url + '\n'
             _descr += '\n'.join(map(str, sys.exc_info()))
-            _descr += '\n'.join(traceback.format_stack())
+            _descr += traceback.format_exc()
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
         except Exception as e:
             _descr = self._cw_url + '\n'
             _descr += '\n'.join(map(str, sys.exc_info()))
-            _descr += '\n'.join(traceback.format_stack())
+            _descr += traceback.format_exc()
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
@@ -712,15 +713,18 @@ class CrawlerVkWall(CrawlerVk):
 
             #get posts
             self._cw_tg_Posts.scan(self._cw_soup, {})
-            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            if not self._scrape_result_empty():
+                yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
             if self._stop_post_scraping:
                 self._cw_post_repl_list.extend(self._cw_activity['post_list'])
 
             for step in self._cw_get_post_replies():
-                yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+                if not self._scrape_result_empty():
+                    yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             for step in self._cw_get_post_replies2(): #second level
-                yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+                if not self._scrape_result_empty():
+                    yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
             self._cw_trans_last_dates_to_scrape_result()
 
@@ -728,7 +732,8 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_debug_num_fetching_post -= 1
             if (self._cw_fetch_post_counter >= self._cw_num_posts_request) and (self._cw_debug_num_fetching_post > 0) and not self._stop_post_scraping: 
                 for attempt in self._cw_fetch_wall():
-                    yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+                    if not self._scrape_result_empty():
+                        yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             else:
                 _fetch_enable = False
 
@@ -767,6 +772,12 @@ class CrawlerVkWall(CrawlerVk):
                                 } 
             
                 _replies_offset += self._cw_num_repl_request
+                
+                if self._cw_debug_mode:
+                    print('############################################################')
+                    print('REPLY FETCH.  _post_id = '+_post_id+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
+                    print(par_data)
+                    print('############################################################')
 
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data)):
                     if attempt_res != 200:
@@ -777,13 +788,11 @@ class CrawlerVkWall(CrawlerVk):
 
                 self._cw_tg_ShowPrevRepl.scan(self._cw_soup, {'post_id': _post_id})  #addition ShowPrev-list
 
-                _fetch_count += 1
-
                 if self._cw_debug_mode:
-                    print('############################################################')
-                    print('REPLY SCROLL.  _post_id = '+_post_id+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
-                    print(par_data)
-                    print('############################################################')
+                    if self._stop_repl_scraping:
+                        print(' --- set Repl STOP SCRAPING ---')
+
+                _fetch_count += 1
 
                 yield _fetch_count
 
@@ -816,6 +825,12 @@ class CrawlerVkWall(CrawlerVk):
 
                 _replies_offset += _count
 
+                if self._cw_debug_mode:
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                    print('REPLY to REPLY FETCH.  _post_id = '+_list_elem['item_id']+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
+                    print(par_data)
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch 2nd-level post replies ! '+str(par_data)):
                     if attempt_res != 200:
                         yield _fetch_count
@@ -824,14 +839,12 @@ class CrawlerVkWall(CrawlerVk):
                 self._cw_tg_Replies.set_par('deep_parent', _list_elem['item_id'])
                 self._cw_tg_Replies.scan(self._cw_soup, {'post_id': _list_elem['post_id']})
 
+                if self._cw_debug_mode:
+                    if self._stop_repl_scraping:
+                        print(' --- set Repl to Repl STOP SCRAPING ---')
+
                 _fetch_count += 1
 
-                if self._cw_debug_mode:
-                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                    print('REPLY to REPLY SCROLL.  _post_id = '+_list_elem['item_id']+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
-                    print(par_data)
-                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                
                 yield _fetch_count
 
     def _cw_fetch(self, par_data, err_txt = ''):  
@@ -865,7 +878,7 @@ class CrawlerVkWall(CrawlerVk):
         #print(txt)
 
         self._cw_soup = BeautifulSoup(txt, "html.parser")
-        return 200
+        return 200  #need const
 
     def _cw_fetch_wall(self):
         self._cw_wall_fetch_par['fixed'] = self._cw_fixed_post_id
@@ -1076,7 +1089,9 @@ class CrawlerVkWall(CrawlerVk):
             if self._cw_check_date_deep(_dt_in_dt):
                 self._stop_repl_scraping = True
                 return None, par
-            if par['post_id'] in self._cw_activity['post_list'] and self._cw_check_date_deep(self._cw_activity['post_dates'][par['post_id']]):
+            if (par['post_id'] in self._cw_activity['post_list'] 
+                and _dt_in_dt != const.EMPTY_DATE
+                and self._cw_activity['post_dates'][par['post_id']] > _dt_in_dt):
                 self._stop_repl_scraping = True
                 return None, par
 
@@ -1084,7 +1099,7 @@ class CrawlerVkWall(CrawlerVk):
                 'result_type': 'POST',
                 'url': self._cw_url,
                 'sn_id': int(self._cw_group_id),
-                'sn_post_id': int(par['reply_id']), #!!!!!!!!!!!!!!!!!! reply_id ???? проверить !!
+                'sn_post_id': int(par['reply_id']), 
                 'sn_post_parent_id': _parent_id,
                 'author': par['author'],
                 'content_date': _dt_in_str,
@@ -1093,14 +1108,16 @@ class CrawlerVkWall(CrawlerVk):
                 }
             if par['post_id'] == _parent_id:
                 res_unit['result_type'] = 'REPLY'
-                if self._cw_debug_mode:  #!!!!!!!!!!!!! par['post_id'] - incorrect
+                if self._cw_debug_mode:  #!!!!!!!!!!!!! par['post_id'] - incorrect ??
                     print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                    print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
             else:
                 res_unit['result_type'] = 'REPLY to REPLY'
                 if self._cw_debug_mode:
                     print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                    print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
             if self._cw_debug_mode:
                 print(crawler.remove_empty_symbols(result.text))
                 print('\n       --.....----------------------------------.....-----------\n')
@@ -1220,6 +1237,15 @@ class CrawlerVkWall(CrawlerVk):
             return False
         return dt < self._cw_date_deep
     
+    def _scrape_result_empty(self):
+        if len(self._cw_scrape_result) == 0:
+            return True
+        if len(self._cw_scrape_result) == 1:
+            if self._cw_scrape_result[0]['result_type'] == const.CW_RESULT_TYPE_HTML:
+                self._cw_scrape_result.clear()
+                return True
+        return False
+
 
 
 if __name__ == "__main__":
