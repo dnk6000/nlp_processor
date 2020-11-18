@@ -76,6 +76,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     wall_processed = False
 
     id_group_str = str(id_group)
+    dt_start = scraper.date_now_str()
 
     crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep, sn_activity = sn_activity)
 
@@ -99,11 +100,11 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
                 plpy.notice('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['post_id'], res_unit['dt'])
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['post_id'], res_unit['dt'], dt_start)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY:
                 plpy.notice('dt = {}'.format(res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, 0, res_unit['dt'])
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, 0, res_unit['dt'], dt_start)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])

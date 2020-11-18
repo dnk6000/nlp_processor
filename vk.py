@@ -643,6 +643,9 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_group_last_date_activity = const.EMPTY_DATE
         self._cw_group_prev_last_date_activity = const.EMPTY_DATE
 
+        if '0' in self._cw_activity['post_dates']:
+             self._cw_group_last_date_activity = self._cw_activity['post_dates']['0']
+
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
 
@@ -1111,13 +1114,15 @@ class CrawlerVkWall(CrawlerVk):
                 if self._cw_debug_mode:  #!!!!!!!!!!!!! par['post_id'] - incorrect ??
                     print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-                    print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
+                    if par['post_id'] in self._cw_activity['post_dates']:
+                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
             else:
                 res_unit['result_type'] = 'REPLY to REPLY'
                 if self._cw_debug_mode:
                     print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-                    print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
+                    if par['post_id'] in self._cw_activity['post_dates']:
+                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
             if self._cw_debug_mode:
                 print(crawler.remove_empty_symbols(result.text))
                 print('\n       --.....----------------------------------.....-----------\n')

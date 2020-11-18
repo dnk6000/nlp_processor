@@ -66,6 +66,7 @@
     <Folder Include="Test\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Documentation\Cassandra. Alhoritms of Crawling and Scraping.docx" />
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
     <Content Include="Temp\CheckScraping_Log.txt" />
   </ItemGroup>
