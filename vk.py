@@ -500,15 +500,49 @@ class CrawlerVkGroups(CrawlerVk):
         return
 
 
+class SnRecrawlerCheker:
+    def __init__(self, cass_db = None, id_www_sources = None, sn_id = None, recrawl_days_post = None):
+        self.post_reply_dates = dict()
+        self.group_upd_date = const.EMPTY_DATE
+        self.group_last_date = const.EMPTY_DATE  #last activity date
+
+        if cass_db != None:
+            res = cass_db.get_sn_activity(id_www_sources, sn_id, recrawl_days_post)
+
+            _td = datetime.timedelta(days=recrawl_days_post)
+
+            for i in res:
+                _post_id = str(i['sn_post_id'])
+                if _post_id == '0':
+                    self.group_upd_date = i['upd_date'] - _td
+                    self.group_last_date = i['last_date']
+                else:
+                    self.post_reply_dates[str(i['sn_post_id'])] = i['upd_date'] - _td
+
+    def is_crawled_post(self, dt):
+        '''is post already crawled ? True / False '''
+        if dt == const.EMPTY_DATE or self.group_upd_date == const.EMPTY_DATE:
+            return False
+        return dt > self.group_upd_date
+
+    def is_reply_out_of_date(self, post_id, dt):
+        if not post_id in self.post_reply_dates or dt == const.EMPTY_DATE:
+            return False
+        return dt < self.post_reply_dates[post_id]
+
+    def get_post_out_of_date(self, post_id):
+        ''' for test purpose only'''
+        if not post_id in self.post_reply_dates:
+            return const.EMPTY_DATE
+        else:
+            return self.post_reply_dates[post_id]
 
 class CrawlerVkWall(CrawlerVk):
 
     def __init__(self, *args, 
                  subscribers_only = False, 
                  date_deep = const.EMPTY_DATE, 
-                 #last_dates_posts_activity = list(), 
-                 #sn_activity = CrawlerVkWall.get_sn_activity_empty_dict(), 
-                 sn_activity = dict(), 
+                 sn_recrawler_checker = None, 
                  **kwargs
                  ):
         
@@ -517,9 +551,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_subscribers_only = subscribers_only
 
         self._cw_date_deep = date_deep
-        #self._cw_last_dates_posts_activity = last_dates_posts_activity
 
-        self._cw_activity = sn_activity
 
         self._cw_define_tags()
 
@@ -535,10 +567,11 @@ class CrawlerVkWall(CrawlerVk):
                     }  
 
         self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm', 'вчера в hh:mm'], url = self.url, msg_func = self.msg_func)
-    
-    @staticmethod
-    def get_sn_activity_empty_dict():
-        return {'post_dates': dict(), 'post_list': list()}
+
+        if sn_recrawler_checker == None:
+            self._sn_recrawler_checker = SnRecrawlerCheker() 
+        else:
+            self._sn_recrawler_checker = sn_recrawler_checker
 
     def _cw_define_tags(self):
 
@@ -640,11 +673,8 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_fetch_post_counter = 0
         self._cw_noncritical_error_counter = {}
         self._cw_last_dates_activity = {}
-        self._cw_group_last_date_activity = const.EMPTY_DATE
         self._cw_group_prev_last_date_activity = const.EMPTY_DATE
-
-        if '0' in self._cw_activity['post_dates']:
-             self._cw_group_last_date_activity = self._cw_activity['post_dates']['0']
+        self._cw_group_last_date_activity = self._sn_recrawler_checker.group_last_date
 
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
@@ -1026,7 +1056,8 @@ class CrawlerVkWall(CrawlerVk):
 
                 _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
                 
-                if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
+                #if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
+                if self._cw_check_date_deep(_dt_in_dt) or self._sn_recrawler_checker.is_crawled_post(_dt_in_dt):
                     self._stop_post_scraping = True
                     return None, par
 
@@ -1092,9 +1123,12 @@ class CrawlerVkWall(CrawlerVk):
             if self._cw_check_date_deep(_dt_in_dt):
                 self._stop_repl_scraping = True
                 return None, par
-            if (par['post_id'] in self._cw_activity['post_list'] 
-                and _dt_in_dt != const.EMPTY_DATE
-                and self._cw_activity['post_dates'][par['post_id']] > _dt_in_dt):
+            #if (par['post_id'] in self._cw_activity['post_list'] 
+            #    and _dt_in_dt != const.EMPTY_DATE
+            #    and self._cw_activity['post_dates'][par['post_id']] > _dt_in_dt):
+            #    self._stop_repl_scraping = True
+            #    return None, par
+            if self._sn_recrawler_checker.is_reply_out_of_date(par['post_id'], _dt_in_dt):
                 self._stop_repl_scraping = True
                 return None, par
 
@@ -1115,14 +1149,14 @@ class CrawlerVkWall(CrawlerVk):
                     print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
                     if par['post_id'] in self._cw_activity['post_dates']:
-                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
+                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post reply out of date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'])))
             else:
                 res_unit['result_type'] = 'REPLY to REPLY'
                 if self._cw_debug_mode:
                     print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
                     print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
                     if par['post_id'] in self._cw_activity['post_dates']:
-                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post activity dt: '+str(self._cw_activity['post_dates'][par['post_id']]))
+                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post reply out of date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'])))
             if self._cw_debug_mode:
                 print(crawler.remove_empty_symbols(result.text))
                 print('\n       --.....----------------------------------.....-----------\n')

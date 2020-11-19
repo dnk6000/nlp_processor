@@ -19,20 +19,6 @@ def get_psw_mtyurin():
 
     return 'Bey'+psw+'00'
 
-def get_sn_activity_dict(id_www_sources, sn_id, recrawl_days_post):
-    res = cass_db.get_sn_activity(id_www_sources, sn_id, recrawl_days_post)
-    
-    sn_activity = vk.CrawlerVkWall.get_sn_activity_empty_dict()
-    
-    for i in res:
-        _dt = i['last_date']
-        dt = datetime.datetime(_dt.year, _dt.month, _dt.day, _dt.hour, _dt.minute, _dt.second) #conversing datetime to datetime because date in i['last_date'] with tzinfo
-        sn_activity['post_dates'][str(i['sn_post_id'])] = dt - re_reply_deep
-    #sn_activity['post_dates'] = { str(i['sn_post_id']):i['last_date']-re_reply_deep for i in res }
-    sn_activity['post_list'] = [ str(i['sn_post_id']) for i in res ]
-    
-    return sn_activity
-
 def vk_crawl_groups():
 
     id_project = 5
@@ -69,14 +55,14 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if not res[0]['Success']:
         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    sn_activity = get_sn_activity_dict(VK_SOURCE_ID, id_group, )
+    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, VK_SOURCE_ID, id_group, project_params['recrawl_days_reply'])
 
     wall_processed = False
 
     id_group_str = str(id_group)
     dt_start = scraper.date_now_str()
 
-    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep, sn_activity = sn_activity)
+    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep, sn_activity = sn_activity, sn_recrawler_checker = sn_recrawler_checker)
 
     for res_list in crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
