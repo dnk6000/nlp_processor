@@ -19,8 +19,8 @@ def get_psw_mtyurin():
 
     return 'Bey'+psw+'00'
 
-def get_sn_activity_dict(id_www_sources, sn_id, deep_date, re_reply_deep):
-    res = cass_db.get_sn_activity(id_www_sources, sn_id, deep_date)
+def get_sn_activity_dict(id_www_sources, sn_id, recrawl_days_post):
+    res = cass_db.get_sn_activity(id_www_sources, sn_id, recrawl_days_post)
     
     sn_activity = vk.CrawlerVkWall.get_sn_activity_empty_dict()
     
@@ -60,18 +60,16 @@ def vk_crawl_groups():
                              gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
 
 def vk_crawl_wall(id_project, id_group, id_queue, 
+                  project_params,
                   attempts_counter = 0, 
                   subscribers_only = False, 
-                  date_deep = const.EMPTY_DATE, 
-                  re_date_deep = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90),
-                  re_reply_deep = datetime.timedelta(days=3)
                   ):
 
     res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
     if not res[0]['Success']:
         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    sn_activity = get_sn_activity_dict(VK_SOURCE_ID, id_group, scraper.date_to_str(re_date_deep), re_reply_deep)
+    sn_activity = get_sn_activity_dict(VK_SOURCE_ID, id_group, )
 
     wall_processed = False
 
@@ -164,8 +162,9 @@ def vk_crawl_wall_subscribers(id_project):
 
 def vk_crawling(id_project):
 
+    project_params = cass_db.get_project_params(id_project)[0]
+
     portion_counter = 0
-    date_deep = datetime.datetime(2020, 10, 10)
 
     while True:
         queue_portion = cass_db.queue_select(VK_SOURCE_ID, id_project)
@@ -177,7 +176,7 @@ def vk_crawling(id_project):
             break
 
         for elem in queue_portion:
-            vk_crawl_wall(id_project, elem['sn_id'], elem['id'], elem['attempts_counter'], date_deep = date_deep)
+            vk_crawl_wall(id_project, elem['sn_id'], elem['id'], elem['attempts_counter'], project_params = project_params)
             
 
 def clear_tables_by_project(id_project):

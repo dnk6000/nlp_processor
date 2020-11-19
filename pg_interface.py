@@ -168,16 +168,28 @@ class MainDB():
             pg_func = 'delete from {} where id_project = {};'.format(table_name, id_project)
             plpy.execute(pg_func)
     
-    def get_sn_activity(self, id_www_sources, sn_id, deep_date):
-        plan_id = 'plan_get_get_sn_activity'
+    def get_sn_activity(self, id_www_sources, sn_id, recrawl_days_post):
+        plan_id = 'plan_get_sn_activity'
         if not plan_id in SD or SD[plan_id] == None:
             SD[plan_id] = plpy.prepare(
                 '''
                 SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3)
                 ''', 
-                ["dmn.git_pk", "dmn.git_bigint", "dmn.git_date"])
+                ["dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
 
-        res = plpy.execute(SD[plan_id], [id_www_sources, sn_id, deep_date])
+        res = plpy.execute(SD[plan_id], [id_www_sources, sn_id, recrawl_days_post])
+        return convert_select_result(res)
+
+    def get_project_params(self, id_project):
+        plan_id = 'plan_get_project_params'
+        if not plan_id in SD or SD[plan_id] == None:
+            SD[plan_id] = plpy.prepare(
+                '''
+                SELECT * FROM git000_cfg.get_project_params($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = plpy.execute(SD[plan_id], [id_project])
         return convert_select_result(res)
 
     #def Select(self):
@@ -238,7 +250,8 @@ if __name__ == "__main__":
     #res = cass_db.queue_update(1, date_deferred = scraper.date_to_str(datetime.datetime.now()))  #res[0]['Success']
     #res = cass_db.queue_update(1, attempts_counter = 11)  #res[0]['Success']
     #
-    res = cass_db.get_sn_activity(3, 16758516, '01.01.2020')
+    res = cass_db.get_sn_activity(3, 16758516, 5)
+    res = cass_db.get_project_params(0)
     a = 1
 
     #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)

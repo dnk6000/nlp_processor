@@ -30,6 +30,7 @@ class PlPy(object):
         if self.connection == None:
             self.connection = psycopg2.connect(**self.connection_par)
             self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
+            self.cursor.tzinfo_factory = None #from psycopg2.tz import LocalTimezone
 
     @classmethod
     def __get_next_plan_num__(cls):
