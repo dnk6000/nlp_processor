@@ -501,41 +501,52 @@ class CrawlerVkGroups(CrawlerVk):
 
 
 class SnRecrawlerCheker:
-    def __init__(self, cass_db = None, id_www_sources = None, sn_id = None, recrawl_days_post = None):
+    def __init__(self, cass_db = None, id_www_sources = None, id_project = None, sn_id = None, recrawl_days_post = None, recrawl_days_reply = None):
         self.post_reply_dates = dict()
         self.group_upd_date = const.EMPTY_DATE
         self.group_last_date = const.EMPTY_DATE  #last activity date
 
         if cass_db != None:
-            res = cass_db.get_sn_activity(id_www_sources, sn_id, recrawl_days_post)
+            res = cass_db.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
 
-            _td = datetime.timedelta(days=recrawl_days_post)
+            _td = datetime.timedelta(days=recrawl_days_reply)
 
             for i in res:
                 _post_id = str(i['sn_post_id'])
                 if _post_id == '0':
-                    self.group_upd_date = i['upd_date'] - _td
+                    self.group_upd_date = i['upd_date']
                     self.group_last_date = i['last_date']
                 else:
-                    self.post_reply_dates[str(i['sn_post_id'])] = i['upd_date'] - _td
+                    if i['upd_date'] == None:
+                        self.post_reply_dates[str(i['sn_post_id'])] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
+                    else:
+                        self.post_reply_dates[str(i['sn_post_id'])] = { 'upd_date': i['upd_date'], 'wait_date': i['upd_date'] - _td }
 
     def is_crawled_post(self, dt):
         '''is post already crawled ? True / False '''
         if dt == const.EMPTY_DATE or self.group_upd_date == const.EMPTY_DATE:
             return False
-        return dt > self.group_upd_date
+        return dt < self.group_upd_date
 
-    def is_reply_out_of_date(self, post_id, dt):
+    def is_reply_out_of_wait_date(self, post_id, dt):
         if not post_id in self.post_reply_dates or dt == const.EMPTY_DATE:
             return False
-        return dt < self.post_reply_dates[post_id]
+        return dt < self.post_reply_dates[post_id]['wait_date']
 
-    def get_post_out_of_date(self, post_id):
+    def is_reply_out_of_upd_date(self, post_id, dt):
+        if not post_id in self.post_reply_dates or dt == const.EMPTY_DATE:
+            return False
+        return dt < self.post_reply_dates[post_id]['upd_date']
+
+    def get_post_out_of_date(self, post_id, date_type):
         ''' for test purpose only'''
         if not post_id in self.post_reply_dates:
             return const.EMPTY_DATE
         else:
-            return self.post_reply_dates[post_id]
+            return self.post_reply_dates[post_id][date_type]
+
+    def get_post_list(self):
+        return [i for i in self.post_reply_dates]
 
 class CrawlerVkWall(CrawlerVk):
 
@@ -625,11 +636,11 @@ class CrawlerVkWall(CrawlerVk):
         #self._cw_tg_Replies.add  (    TN( fn   , self._cw_add_list_post_repl , pr({**ro('^return wall.showNextReplies')} , OneTag  , '') ) )
 
         self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
-        self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies')   , OneTag  , 'show next') ) )
-
+        self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies|^return Unauthorized.showMoreBox')   , OneTag  , 'show next') ) )
+        
     def _cw_set_debug_mode(self):
         self._cw_debug_mode = True
-        #self._cw_debug_post_filter = '113608'  #много комментов
+        #self._cw_debug_post_filter = '115161'  #много комментов
         #self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
         #self._cw_debug_post_filter = '112463'  #возникает ошибка получения даты комментария
         #self._cw_debug_post_filter = '35'  #фикс
@@ -750,7 +761,7 @@ class CrawlerVkWall(CrawlerVk):
                 yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
             if self._stop_post_scraping:
-                self._cw_post_repl_list.extend(self._cw_activity['post_list'])
+                self._cw_post_repl_list.extend(self._sn_recrawler_checker.get_post_list())  
 
             for step in self._cw_get_post_replies():
                 if not self._scrape_result_empty():
@@ -838,9 +849,9 @@ class CrawlerVkWall(CrawlerVk):
             _replies_offset = int(_list_elem['offset'])
             _fetch_count = 0
             self._cw_fetch_repl_counter = 0
-            self._stop_repl_scraping = False
+            self._stop_repl2_scraping = False
 
-            while (self._cw_fetch_repl_counter >= self._cw_num_repl_request or _first_step) and not self._stop_repl_scraping:
+            while (self._cw_fetch_repl_counter >= self._cw_num_repl_request or _first_step) and not self._stop_repl2_scraping:
                 _count = int(_list_elem['count']) if _first_step else self._cw_num_repl_request
 
                 par_data = {'act': 'get_post_replies', 
@@ -865,7 +876,7 @@ class CrawlerVkWall(CrawlerVk):
                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
                 
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch 2nd-level post replies ! '+str(par_data)):
-                    if attempt_res != 200:
+                    if attempt_res != 200:  #TODO constant
                         yield _fetch_count
 
                 self._cw_fetch_repl_counter = 0
@@ -873,8 +884,8 @@ class CrawlerVkWall(CrawlerVk):
                 self._cw_tg_Replies.scan(self._cw_soup, {'post_id': _list_elem['post_id']})
 
                 if self._cw_debug_mode:
-                    if self._stop_repl_scraping:
-                        print(' --- set Repl to Repl STOP SCRAPING ---')
+                    if self._stop_repl2_scraping:
+                        print(' --- set Reply to Reply STOP SCRAPING ---')
 
                 _fetch_count += 1
 
@@ -923,14 +934,18 @@ class CrawlerVkWall(CrawlerVk):
             yield attempt
 
 
-    def _cw_get_post_id(self, html_attr, error_msg = ''):
-        if 'showNextReplies' in html_attr:
-            match = re.match( r'(.*)-(\d*)_(\d*)', html_attr ) 
+    def _cw_get_post_id(self, html_attr, error_msg = '', mode = ''):
+        if mode == 'href':
+            #match = re.match( r'(.*)-(\d*)_(\d*)', html_attr ) #'showNextReplies'
+            match = re.match( r'.*(wall)-(\d*)_(\d*)\?reply=(\d*)', html_attr ) 
         else:
             match = re.match( r'^(post|replies|\/wall)-(\d*)_(\d*)', html_attr ) 
 
         if match:
-            return {'group_id':match.group(2), 'post_id': match.group(3) }
+            if mode == 'href':
+                return {'group_id':match.group(2), 'post_id': match.group(3), 'parent_id': match.group(4)}
+            else:
+                return {'group_id':match.group(2), 'post_id': match.group(3) }
         else:
             raise exceptions.CrawlVkByBrowserError(self._cw_url, error_msg, self.msg_func)
 
@@ -943,7 +958,7 @@ class CrawlerVkWall(CrawlerVk):
             res = soup.findAll('', kwargs['tag_key'])
         else:
             res = soup.find('', kwargs['tag_key'])
-
+            
         return res, par
 
     def _cw_find_tags_in_post_list(self, soup, par, **kwargs):
@@ -954,6 +969,7 @@ class CrawlerVkWall(CrawlerVk):
         z = self._cw_get_post_id(soup.attrs['id'], 'Post item_id not found !')
 
         par['post_id'] = z['post_id']
+        par['is_fixed_post'] = 'post_fixed' in soup.attrs['class']
 
         #Debug
         if self._cw_debug_mode and self._cw_debug_post_filter != '':
@@ -1058,7 +1074,7 @@ class CrawlerVkWall(CrawlerVk):
                 
                 #if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
                 if self._cw_check_date_deep(_dt_in_dt) or self._sn_recrawler_checker.is_crawled_post(_dt_in_dt):
-                    self._stop_post_scraping = True
+                    self._stop_post_scraping = not par['is_fixed_post'] #non stop for fixed posts
                     return None, par
 
                 self._cw_post_repl_list.append(par['post_id'])
@@ -1120,20 +1136,47 @@ class CrawlerVkWall(CrawlerVk):
 
             _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
 
+            if par['post_id'] == _parent_id:
+                _type_reply = 'REPLY'
+            else:
+                _type_reply = 'REPLY to REPLY'
+
+            if self._cw_debug_mode: 
+                if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
+                    print('SKIPPED')
+                print(_type_reply + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+                print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                print('_cw_date_deep '+str(self._cw_date_deep)+
+                        '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
+                        '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
+                        )
+                print(crawler.remove_empty_symbols(result.text))
+                print('\n       --.....----------------------------------.....-----------\n')
+
             if self._cw_check_date_deep(_dt_in_dt):
-                self._stop_repl_scraping = True
+                if _type_reply == 'REPLY':
+                    self._stop_repl_scraping = True
+                else:
+                    self._stop_repl2_scraping = True
+                if self._cw_debug_mode:
+                    print('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by _cw_check_date_deep')
                 return None, par
             #if (par['post_id'] in self._cw_activity['post_list'] 
             #    and _dt_in_dt != const.EMPTY_DATE
             #    and self._cw_activity['post_dates'][par['post_id']] > _dt_in_dt):
             #    self._stop_repl_scraping = True
             #    return None, par
-            if self._sn_recrawler_checker.is_reply_out_of_date(par['post_id'], _dt_in_dt):
-                self._stop_repl_scraping = True
+            if self._sn_recrawler_checker.is_reply_out_of_wait_date(par['post_id'], _dt_in_dt):
+                if _type_reply == 'REPLY':
+                    self._stop_repl_scraping = True
+                else:
+                    self._stop_repl2_scraping = True
+                if self._cw_debug_mode:
+                    print('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by is_reply_out_of_wait_date')
                 return None, par
 
             res_unit = { 
-                'result_type': 'POST',
+                'result_type': _type_reply,
                 'url': self._cw_url,
                 'sn_id': int(self._cw_group_id),
                 'sn_post_id': int(par['reply_id']), 
@@ -1143,25 +1186,43 @@ class CrawlerVkWall(CrawlerVk):
                 'content_header': '',
                 'content': crawler.remove_empty_symbols(result.text)
                 }
-            if par['post_id'] == _parent_id:
-                res_unit['result_type'] = 'REPLY'
-                if self._cw_debug_mode:  #!!!!!!!!!!!!! par['post_id'] - incorrect ??
-                    print('REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-                    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-                    if par['post_id'] in self._cw_activity['post_dates']:
-                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post reply out of date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'])))
-            else:
-                res_unit['result_type'] = 'REPLY to REPLY'
-                if self._cw_debug_mode:
-                    print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-                    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-                    if par['post_id'] in self._cw_activity['post_dates']:
-                        print('_cw_date_deep '+str(self._cw_date_deep)+'    post reply out of date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'])))
-            if self._cw_debug_mode:
-                print(crawler.remove_empty_symbols(result.text))
-                print('\n       --.....----------------------------------.....-----------\n')
+
+            #if self._cw_debug_mode: 
+            #    if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
+            #        print('SKIPPED')
+            #    print(_type_reply + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+            #    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+            #    print('_cw_date_deep '+str(self._cw_date_deep)+
+            #            '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
+            #            '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
+            #            )
+            #if _type_reply == 'REPLY':
+            #    if self._cw_debug_mode: 
+            #        if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
+            #            print('SKIPPED')
+            #        print(_type_reply + 'REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+            #        print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+            #        print('_cw_date_deep '+str(self._cw_date_deep)+
+            #              '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
+            #              '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
+            #              )
+            #else:
+            #    res_unit['result_type'] = 'REPLY to REPLY'
+            #    if self._cw_debug_mode:
+            #        if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
+            #            print('SKIPPED')
+            #        print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
+            #        print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+            #        print('_cw_date_deep '+str(self._cw_date_deep)+
+            #              '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
+            #              '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
+            #              )
+            #if self._cw_debug_mode:
+            #    print(crawler.remove_empty_symbols(result.text))
+            #    print('\n       --.....----------------------------------.....-----------\n')
             
-            self._cw_scrape_result.append(res_unit)
+            if not self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
+                self._cw_scrape_result.append(res_unit)
             self._cw_fix_last_date(par['post_id'], _dt_in_dt)
             
         return None, par
@@ -1176,10 +1237,11 @@ class CrawlerVkWall(CrawlerVk):
             if result.text != 'Показать предыдущие комментарии': 
                 return None, par
 
-            z = self._cw_get_post_id(result.attrs['onclick'], 'Reply id for show prev repl list not found !')
+            #z = self._cw_get_post_id(result.attrs['onclick'], 'Reply id for show prev repl list not found !')
+            z = self._cw_get_post_id(result.attrs['href'], 'Reply id for show prev repl list not found !', mode = 'href')
 
             self._cw_post_repl2_list.append(
-                {'item_id': z['post_id'], #id parent reply
+                {'item_id': z['parent_id'], #z['post_id'], #id parent reply
                  'count': result.attrs['data-count'],
                  'offset': result.attrs['data-offset'],
                  'post_id': par['post_id'] #id post

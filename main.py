@@ -55,14 +55,14 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if not res[0]['Success']:
         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, VK_SOURCE_ID, id_group, project_params['recrawl_days_reply'])
+    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, VK_SOURCE_ID, id_project, id_group, project_params['recrawl_days_post'], project_params['recrawl_days_reply'])
 
     wall_processed = False
 
     id_group_str = str(id_group)
     dt_start = scraper.date_now_str()
 
-    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = date_deep, sn_activity = sn_activity, sn_recrawler_checker = sn_recrawler_checker)
+    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = project_params['date_deep'], sn_recrawler_checker = sn_recrawler_checker)
 
     for res_list in crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
@@ -84,11 +84,11 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
                 plpy.notice('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, res_unit['post_id'], res_unit['dt'], dt_start)
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, res_unit['post_id'], res_unit['dt'], dt_start)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY:
                 plpy.notice('dt = {}'.format(res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_group_str, 0, res_unit['dt'], dt_start)
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, 0, res_unit['dt'], dt_start)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
@@ -162,7 +162,7 @@ def vk_crawling(id_project):
             break
 
         for elem in queue_portion:
-            vk_crawl_wall(id_project, elem['sn_id'], elem['id'], elem['attempts_counter'], project_params = project_params)
+            vk_crawl_wall(id_project = id_project, id_group = elem['sn_id'], id_queue = elem['id'], attempts_counter = elem['attempts_counter'], project_params = project_params)
             
 
 def clear_tables_by_project(id_project):
@@ -170,6 +170,7 @@ def clear_tables_by_project(id_project):
         'git200_crawl.data_html',
         'git200_crawl.queue',
         'git200_crawl.sn_accounts',
+        'git200_crawl.sn_activity',
         'git300_scrap.data_text'
         ]
     for t in tables:
@@ -179,7 +180,7 @@ def clear_tables_by_project(id_project):
 
 #########################################
 
-ID_TEST_PROJECT = 5
+ID_TEST_PROJECT = 6
 
 cass_db = pg_interface.MainDB()
 

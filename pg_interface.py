@@ -64,15 +64,15 @@ class MainDB():
                                  account_screen_name, account_closed, num_subscribers])
             return res[0]
 
-    def upsert_sn_activity(self, id_source, sn_id, sn_post_id, last_date, upd_date):
+    def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date):
         plan_id = 'plan_upsert_sn_activity'
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5);'
+                pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);'
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_bigint","dmn.git_bigint","dmn.git_datetime","dmn.git_datetime"])
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_bigint","dmn.git_bigint","dmn.git_datetime","dmn.git_datetime"])
 
-            res = plpy.execute(SD[plan_id], [id_source, sn_id, sn_post_id, last_date, upd_date])
+            res = plpy.execute(SD[plan_id], [id_source, id_project, sn_id, sn_post_id, last_date, upd_date])
 
     def get_www_source_id(self, www_source_name):
         ''' result syntax: res[0]['get_www_sources_id'] '''
@@ -168,16 +168,16 @@ class MainDB():
             pg_func = 'delete from {} where id_project = {};'.format(table_name, id_project)
             plpy.execute(pg_func)
     
-    def get_sn_activity(self, id_www_sources, sn_id, recrawl_days_post):
+    def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post):
         plan_id = 'plan_get_sn_activity'
         if not plan_id in SD or SD[plan_id] == None:
             SD[plan_id] = plpy.prepare(
                 '''
-                SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3)
+                SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3, $4)
                 ''', 
-                ["dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
+                ["dmn.git_pk", "dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
 
-        res = plpy.execute(SD[plan_id], [id_www_sources, sn_id, recrawl_days_post])
+        res = plpy.execute(SD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
         return convert_select_result(res)
 
     def get_project_params(self, id_project):
