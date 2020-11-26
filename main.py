@@ -19,17 +19,15 @@ def get_psw_mtyurin():
 
     return 'Bey'+psw+'00'
 
-def vk_crawl_groups():
-
-    id_project = 5
+def vk_crawl_groups(id_project):
 
     crawler = vk.CrawlerVkGroups(login = '89273824101', 
                          password = get_psw_mtyurin(), 
-                         base_search_words = ['Фурсов'], 
+                         base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
                          id_project = id_project
                          )
-    select_result = cass_db.select_groups_id(id_project = 5)
+    select_result = cass_db.select_groups_id(id_project)
     crawler.id_cash = list(i['account_id'] for i in select_result)
 
     for groups_list in crawler.crawl_groups(): #by API
@@ -107,7 +105,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 plpy.notice(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST):
                     plpy.notice('Request error: pause before repeating...')
-                    time.sleep(2) #через параметр
+                    time.sleep(2) #TODO через параметр
                 
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
@@ -180,16 +178,16 @@ def clear_tables_by_project(id_project):
 
 #########################################
 
-ID_TEST_PROJECT = 6
+ID_TEST_PROJECT = 7
 
 cass_db = pg_interface.MainDB()
 
 #for i in range(1,20):
 #    clear_tables_by_project(i)
 
-vk_crawling(ID_TEST_PROJECT)
+#vk_crawling(ID_TEST_PROJECT)
 
-#vk_crawl_groups()
+vk_crawl_groups(ID_TEST_PROJECT)
 #vk_crawl_wall(5, 52233236, subscribers_only = True)
 #vk_crawl_wall(ID_TEST_PROJECT, 16758516, subscribers_only = False)
 

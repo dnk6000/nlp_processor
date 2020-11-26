@@ -512,15 +512,15 @@ class SnRecrawlerCheker:
             _td = datetime.timedelta(days=recrawl_days_reply)
 
             for i in res:
-                _post_id = str(i['sn_post_id'])
+                _post_id = i['sn_post_id']
                 if _post_id == '0':
                     self.group_upd_date = i['upd_date']
                     self.group_last_date = i['last_date']
                 else:
                     if i['upd_date'] == None:
-                        self.post_reply_dates[str(i['sn_post_id'])] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
+                        self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
                     else:
-                        self.post_reply_dates[str(i['sn_post_id'])] = { 'upd_date': i['upd_date'], 'wait_date': i['upd_date'] - _td }
+                        self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['upd_date'], 'wait_date': i['upd_date'] - _td }
 
     def is_crawled_post(self, dt):
         '''is post already crawled ? True / False '''
@@ -824,7 +824,7 @@ class CrawlerVkWall(CrawlerVk):
                     print('############################################################')
 
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data)):
-                    if attempt_res != 200:
+                    if attempt_res != 200:  #TODO constant
                         yield _fetch_count
 
                 self._cw_fetch_repl_counter = 0
@@ -895,7 +895,7 @@ class CrawlerVkWall(CrawlerVk):
         '''make post-request with par_data params.
            either gets data or raise an exception 
         '''
-        time.sleep(2)   #!!!!!!!!!! smart func needed !
+        time.sleep(2)   #TODO !!!!!!!!!! smart func needed !
         
         _request_attempt = self.request_tries
         while True:
@@ -922,7 +922,7 @@ class CrawlerVkWall(CrawlerVk):
         #print(txt)
 
         self._cw_soup = BeautifulSoup(txt, "html.parser")
-        return 200  #need const
+        return 200  #TODO need const
 
     def _cw_fetch_wall(self):
         self._cw_wall_fetch_par['fixed'] = self._cw_fixed_post_id
@@ -1084,8 +1084,8 @@ class CrawlerVkWall(CrawlerVk):
                         {
                         'result_type': 'POST',
                         'url': self._cw_url,
-                        'sn_id': int(self._cw_group_id),
-                        'sn_post_id': int(par['post_id']),
+                        'sn_id': self._cw_group_id,
+                        'sn_post_id': par['post_id'],
                         'sn_post_parent_id': 0,
                         'author': par['author'],
                         'content_date': _dt_in_str,
@@ -1102,7 +1102,7 @@ class CrawlerVkWall(CrawlerVk):
                     self._cw_fix_last_date(par['post_id'], _dt_in_dt)
                         
             else:
-                self.warning('Warning: Text not found ! \n '+self._cw_url)
+                self.warning('Warning: Text not found ! \n '+self._cw_url)  
         
         return None, par
     
@@ -1161,11 +1161,7 @@ class CrawlerVkWall(CrawlerVk):
                 if self._cw_debug_mode:
                     print('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by _cw_check_date_deep')
                 return None, par
-            #if (par['post_id'] in self._cw_activity['post_list'] 
-            #    and _dt_in_dt != const.EMPTY_DATE
-            #    and self._cw_activity['post_dates'][par['post_id']] > _dt_in_dt):
-            #    self._stop_repl_scraping = True
-            #    return None, par
+
             if self._sn_recrawler_checker.is_reply_out_of_wait_date(par['post_id'], _dt_in_dt):
                 if _type_reply == 'REPLY':
                     self._stop_repl_scraping = True
@@ -1178,8 +1174,8 @@ class CrawlerVkWall(CrawlerVk):
             res_unit = { 
                 'result_type': _type_reply,
                 'url': self._cw_url,
-                'sn_id': int(self._cw_group_id),
-                'sn_post_id': int(par['reply_id']), 
+                'sn_id': self._cw_group_id,
+                'sn_post_id': par['reply_id'], 
                 'sn_post_parent_id': _parent_id,
                 'author': par['author'],
                 'content_date': _dt_in_str,
@@ -1187,42 +1183,9 @@ class CrawlerVkWall(CrawlerVk):
                 'content': crawler.remove_empty_symbols(result.text)
                 }
 
-            #if self._cw_debug_mode: 
-            #    if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
-            #        print('SKIPPED')
-            #    print(_type_reply + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-            #    print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-            #    print('_cw_date_deep '+str(self._cw_date_deep)+
-            #            '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
-            #            '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
-            #            )
-            #if _type_reply == 'REPLY':
-            #    if self._cw_debug_mode: 
-            #        if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
-            #            print('SKIPPED')
-            #        print(_type_reply + 'REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-            #        print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-            #        print('_cw_date_deep '+str(self._cw_date_deep)+
-            #              '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
-            #              '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
-            #              )
-            #else:
-            #    res_unit['result_type'] = 'REPLY to REPLY'
-            #    if self._cw_debug_mode:
-            #        if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
-            #            print('SKIPPED')
-            #        print('REPLY to REPLY. Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-            #        print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-            #        print('_cw_date_deep '+str(self._cw_date_deep)+
-            #              '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
-            #              '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
-            #              )
-            #if self._cw_debug_mode:
-            #    print(crawler.remove_empty_symbols(result.text))
-            #    print('\n       --.....----------------------------------.....-----------\n')
-            
             if not self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
                 self._cw_scrape_result.append(res_unit)
+
             self._cw_fix_last_date(par['post_id'], _dt_in_dt)
             
         return None, par
@@ -1262,7 +1225,7 @@ class CrawlerVkWall(CrawlerVk):
 
             try:
                 self._cw_num_subscribers = int(result.text.replace(' ', ''))
-                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': int(self._cw_group_id),  'num_subscribers': self._cw_num_subscribers } )  
+                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': self._cw_group_id,  'num_subscribers': self._cw_num_subscribers } )  
             except:
                 self._cw_add_to_result_noncritical_error(const.ERROR_SCRAP_NUMBER_SUBSCRIBERS, self._cw_get_post_repr())
 
@@ -1319,7 +1282,7 @@ class CrawlerVkWall(CrawlerVk):
         for post_id in self._cw_last_dates_activity:
             self._cw_scrape_result.append({
                 'result_type': const.CW_RESULT_TYPE_DT_POST_ACTIVITY,
-                'post_id': int(post_id),
+                'post_id': post_id,
                 'dt': scraper.date_to_str(self._cw_last_dates_activity[post_id])
                 })
         
@@ -1347,35 +1310,6 @@ class CrawlerVkWall(CrawlerVk):
                 return True
         return False
 
-
-
-if __name__ == "__main__":
-
-    cass_db = pg_interface.MainDB()
-    #crawler_vk = CrawlerVk(login = '89273824101', 
-    #                     password = get_psw_mtyurin(), 
-    #                     base_search_words = ['Фурсов'], 
-    #                     msg_func = print, 
-    #                     add_db_func = cass_db.add_to_db_sn_accounts
-    #                     )
-            #CassDB = pgree.CassandraDB(password=pgree.get_psw_mtyurin())
-            #CassDB.Connect()
-
-            #Crawler = crawler_vk(msg_func = print, 
-            #                     add_db_func = { 'update_num_subscribers' : CassDB.update_sn_num_subscribers,
-            #                                     'add_to_db_data_text'    : CassDB.add_to_db_data_text
-            #                                   }
-            #                     )
-            #res = Crawler.crawl_wall(16758516)
-    #res = Crawler.crawl_wall('16758516_109038')
-
-    #print(res)
-    #try:
-    #    res = Crawler.crawl_wall(777716758516)
-    #    print(res)
-    #except:
-    #    pass
-    #sys.exit(0)
 
 
 

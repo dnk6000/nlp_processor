@@ -24,7 +24,7 @@ class MainDB():
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
                 SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3)''', 
-                                ["dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
+                                ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
 
             res = plpy.execute(SD[plan_id], [sn_network, sn_id, num_subscribers])
 
@@ -34,7 +34,7 @@ class MainDB():
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
                 SD[plan_id] = plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
-                ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_bigint","dmn.git_bigint","dmn.git_bigint"])
+                ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_sn_id","dmn.git_sn_id","dmn.git_sn_id"])
 
             res = plpy.execute(SD[plan_id],[id_data_html, id_project, id_www_sources, content, content_header, content_date,
                                             sn_id, sn_post_id, sn_post_parent_id])
@@ -58,7 +58,7 @@ class MainDB():
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
                 SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8)''', 
-                        ["dmn.git_pk", "dmn.git_pk", "dmn.git_string", "dmn.git_bigint", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_integer"])
+                        ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_integer"])
 
             res = plpy.execute(SD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers])
@@ -70,7 +70,7 @@ class MainDB():
             if not plan_id in SD or SD[plan_id] == None:
                 pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);'
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_bigint","dmn.git_bigint","dmn.git_datetime","dmn.git_datetime"])
+                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
 
             res = plpy.execute(SD[plan_id], [id_source, id_project, sn_id, sn_post_id, last_date, upd_date])
 
@@ -175,7 +175,7 @@ class MainDB():
                 '''
                 SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3, $4)
                 ''', 
-                ["dmn.git_pk", "dmn.git_pk", "dmn.git_bigint", "dmn.git_integer"])
+                ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
 
         res = plpy.execute(SD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
         return convert_select_result(res)
