@@ -203,6 +203,7 @@ def remove_empty_symbols(text):
     
     txt = unicodedata.normalize("NFKD",text)   #solves the problem with simbol \xa0
     txt = re.sub(chr(10), ' ', txt)
+    txt = re.sub('\x00', ' ', txt)
     txt = re.sub('\n+', ' ', txt)
     txt = re.sub(' +', ' ', txt)
     

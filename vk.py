@@ -284,7 +284,7 @@ class CrawlerVk(CrawlerSocialNet):
                     self.msg('Ошибка получения нового токена VK !')
                     raise 'Getting token error'
         #except Exception as e:
-        #    print(e)
+        #    self.msg(e)
         pass
 
     def _get_vk_session(self):
@@ -319,7 +319,7 @@ class CrawlerVk(CrawlerSocialNet):
         form.fields['pass'] = self.password
 
         response = session.post(form.action, data=form.form_values())
-        #print('onLoginDone' in response.text)
+        #self.msg('onLoginDone' in response.text)
 
 
         token_params = {'client_id': '7467601', 
@@ -377,11 +377,11 @@ class CrawlerVkGroups(CrawlerVk):
         for tagBody in tagsArticleBody:
             
             self.count += 1
-            #print('group id '+tagBody.attrs['data-id'])
+            #self.msg('group id '+tagBody.attrs['data-id'])
 
             tagBlocks = tagBody.findAll(re.compile('^img'), { 'class' : re.compile('search_item_img') })
             for tagBlock in tagBlocks:
-                print(str(self.count) + ' group id: '+tagBody.attrs['data-id'] + '     group name: '+tagBlock.attrs['alt'])
+                self.msg(str(self.count) + ' group id: '+tagBody.attrs['data-id'] + '     group name: '+tagBlock.attrs['alt'])
                 groups_list.append({ 'id'   : tagBody.attrs['data-id'], 
                                      'name' : tagBlock.attrs['alt'],
                                      'screen_name' : '',
@@ -401,11 +401,11 @@ class CrawlerVkGroups(CrawlerVk):
         for tagBody in tagsArticleBody:
             
             self.count += 1
-            #print('group id '+tagBody.attrs['data-id'])
+            #self.msg('group id '+tagBody.attrs['data-id'])
 
             tagBlocks = tagBody.findAll(re.compile('^img'), { 'class' : re.compile('search_item_img') })
             for tagBlock in tagBlocks:
-                print(str(self.count) + ' group id: '+tagBody.attrs['data-id'] + '     group name: '+tagBlock.attrs['alt'])
+                self.msg(str(self.count) + ' group id: '+tagBody.attrs['data-id'] + '     group name: '+tagBlock.attrs['alt'])
                 groups_list.append({ 'id'   : tagBody.attrs['data-id'], 
                                      'name' : tagBlock.attrs['alt'],
                                      'screen_name' : '',
@@ -584,6 +584,8 @@ class CrawlerVkWall(CrawlerVk):
         else:
             self._sn_recrawler_checker = sn_recrawler_checker
 
+        self._cw_set_debug_mode(turn_on = False)
+
     def _cw_define_tags(self):
 
         TN = scraper.TagNode
@@ -613,7 +615,8 @@ class CrawlerVkWall(CrawlerVk):
                                   )
 
         self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : re.compile('(Подписчики)|(Участники)') }, OneTag  , '-' ) ) )
-        self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
+        #self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
+        self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : re.compile('(header_count)|(group_friends_count)') }, OneTag, 'number') ) )
 
         self._cw_tg_FixedArea = TT ( TN( fn, self._cw_scrap_fixed_area , pr(rc('wall_fixed'), OneTag  , 'all fixed area'     ) ) )
         self._cw_tg_FixedArea.add  (    TN( fn, self._cw_scrap_fixed_area , pr(nPostTag        , MultiTag, 'posts in fixed area') ) )
@@ -638,20 +641,15 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_tg_ShowPrevRepl = TT ( TN( fn, self._cw_scrap_repl_show_next , pr(rc('^replies_wrap_deep') , MultiTag, 'wrap deep') ) )
         self._cw_tg_ShowPrevRepl.add  (    TN( fn, self._cw_scrap_repl_show_next , pr(ro('^return wall.showNextReplies|^return Unauthorized.showMoreBox')   , OneTag  , 'show next') ) )
         
-    def _cw_set_debug_mode(self):
-        self._cw_debug_mode = True
-        #self._cw_debug_post_filter = '115161'  #много комментов
-        #self._cw_debug_post_filter = '113978'  #возникает ошибка получения даты комментария
-        #self._cw_debug_post_filter = '112463'  #возникает ошибка получения даты комментария
-        #self._cw_debug_post_filter = '35'  #фикс
-        self._cw_debug_post_filter = ''
-        if self._cw_debug_mode: 
-            self._cw_debug_num_fetching_post = 9999999  #number of fetching wall page
-            self.msg('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
-        else:
-            self._cw_debug_num_fetching_post = 9999999
+    def _cw_set_debug_mode(self, turn_on = False, debug_post_filter = '', num_fetching_post = 999999):
+        self._cw_debug_num_fetching_post = num_fetching_post #number of fetching wall page
+        self._cw_debug_post_filter = debug_post_filter
+        self._cw_debug_mode = turn_on
 
-    def crawl_wall(self, group_id): # _cw_
+        if self._cw_debug_mode: 
+            self.msg('! Debug mode ! _cw_debug_post_filter = '+self._cw_debug_post_filter+'    _cw_debug_num_fetching_post = '+str(self._cw_debug_num_fetching_post))
+
+    def crawl_wall(self, group_id): # class variables prefix: _cw_
         try:
             for step_result in self._crawl_wall(group_id):
                 yield step_result
@@ -670,11 +668,15 @@ class CrawlerVkWall(CrawlerVk):
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
             
+    def _is_good_status_code(self, status_code, raise_error = False):
+        if status_code == const.HTTP_STATUS_CODE_200:
+            return True
+        else:
+            return False
 
     def _crawl_wall(self, group_id):
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
-        self._cw_group_id = ''
         self._cw_post_counter = 0
         self._cw_post_counter2 = 0    # equal to _cw_post_counter except for fixed posts
         self._cw_post_repl_list = []  # first level replies
@@ -690,15 +692,13 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_num_posts_request = 10  #number of posts per one fetch-request
         self._cw_num_repl_request = 20  #number of replies received per request
 
-        self._cw_set_debug_mode()
-
         self._cw_session = requests_html.HTMLSession()
 
-        if type(group_id) == str:
-            self._cw_url = self.url + 'wall-' + group_id
+        self._cw_group_id = group_id
+        if not self._cw_debug_mode or self._cw_debug_post_filter == '':
+            self._cw_url = self.url + 'club' + self._cw_group_id  #self.url + 'wall-' + group_id
         else:
-            self._cw_group_id = str(group_id)
-            self._cw_url = self.url + 'club' + str(group_id)
+            self._cw_url = self.url + 'wall-' + self._cw_group_id+'_'+self._cw_debug_post_filter  #addressing to a specific post: https://vk.com/wall-16758516_109038
 
         self._cw_url_fetch = self.url + 'al_wall.php'
         if self._cw_debug_mode:
@@ -728,7 +728,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_scrape_result.clear()
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
+                'datetime': scraper.date_to_str(datetime.datetime.now()),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -740,7 +740,7 @@ class CrawlerVkWall(CrawlerVk):
         if self._cw_subscribers_only:
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS if self._cw_num_subscribers > 0 else const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
+                'datetime': scraper.date_to_str(datetime.datetime.now()),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -783,7 +783,7 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_scrape_result.append( {
             'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS, 
-            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc)),
+            'datetime': scraper.date_to_str(datetime.datetime.now()),
             'event_description': self._cw_get_post_repr()
             } )
         yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -818,10 +818,11 @@ class CrawlerVkWall(CrawlerVk):
                 _replies_offset += self._cw_num_repl_request
                 
                 if self._cw_debug_mode:
-                    print('############################################################')
-                    print('REPLY FETCH.  _post_id = '+_post_id+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
-                    print(par_data)
-                    print('############################################################')
+                    self.msg('############################################################')
+                    self.msg('REPLY FETCH.  _post_id = '+_post_id+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
+                    self.msg(self._cw_url)
+                    self.msg(par_data)
+                    self.msg('############################################################')
 
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch post replies ! '+str(par_data)):
                     if attempt_res != 200:  #TODO constant
@@ -834,7 +835,7 @@ class CrawlerVkWall(CrawlerVk):
 
                 if self._cw_debug_mode:
                     if self._stop_repl_scraping:
-                        print(' --- set Repl STOP SCRAPING ---')
+                        self.msg(' --- set Repl STOP SCRAPING ---')
 
                 _fetch_count += 1
 
@@ -870,10 +871,11 @@ class CrawlerVkWall(CrawlerVk):
                 _replies_offset += _count
 
                 if self._cw_debug_mode:
-                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                    print('REPLY to REPLY FETCH.  _post_id = '+_list_elem['item_id']+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
-                    print(par_data)
-                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                    self.msg('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                    self.msg('REPLY to REPLY FETCH.  _post_id = '+_list_elem['item_id']+' _cw_fetch_repl_counter = '+str(self._cw_fetch_repl_counter)+' _fetch_count = '+str(_fetch_count))
+                    self.msg(self._cw_url)
+                    self.msg(par_data)
+                    self.msg('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
                 
                 for attempt_res in self._cw_fetch(par_data, 'Error when trying to fetch 2nd-level post replies ! '+str(par_data)):
                     if attempt_res != 200:  #TODO constant
@@ -885,7 +887,7 @@ class CrawlerVkWall(CrawlerVk):
 
                 if self._cw_debug_mode:
                     if self._stop_repl2_scraping:
-                        print(' --- set Reply to Reply STOP SCRAPING ---')
+                        self.msg(' --- set Reply to Reply STOP SCRAPING ---')
 
                 _fetch_count += 1
 
@@ -919,7 +921,7 @@ class CrawlerVkWall(CrawlerVk):
             txt = '<' + txt
         self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } )
 
-        #print(txt)
+        #self.msg(txt)
 
         self._cw_soup = BeautifulSoup(txt, "html.parser")
         return 200  #TODO need const
@@ -1094,10 +1096,11 @@ class CrawlerVkWall(CrawlerVk):
                         }
                     )
                     if self._cw_debug_mode:
-                        print('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_fetch_post_counter = '+str(self._cw_fetch_post_counter))
-                        print('Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
-                        print(crawler.remove_empty_symbols(res.text))
-                        print('\n____________________________________________________________\n')
+                        self.msg('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_fetch_post_counter = '+str(self._cw_fetch_post_counter))
+                        self.msg(' url: '+self._cw_url)
+                        self.msg(' Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
+                        self.msg(crawler.remove_empty_symbols(res.text))
+                        self.msg('\n____________________________________________________________\n')
                     
                     self._cw_fix_last_date(par['post_id'], _dt_in_dt)
                         
@@ -1143,15 +1146,15 @@ class CrawlerVkWall(CrawlerVk):
 
             if self._cw_debug_mode: 
                 if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
-                    print('SKIPPED')
-                print(_type_reply + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id)
-                print('Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
-                print('_cw_date_deep '+str(self._cw_date_deep)+
+                    self.msg('SKIPPED:')
+                self.msg(_type_reply + ' Group ID = '+self._cw_group_id + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id+' url: '+self._cw_url)
+                self.msg(' Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                self.msg(' _cw_date_deep '+str(self._cw_date_deep)+
                         '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
                         '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
                         )
-                print(crawler.remove_empty_symbols(result.text))
-                print('\n       --.....----------------------------------.....-----------\n')
+                self.msg(crawler.remove_empty_symbols(result.text))
+                self.msg('\n       --.....----------------------------------.....-----------\n')
 
             if self._cw_check_date_deep(_dt_in_dt):
                 if _type_reply == 'REPLY':
@@ -1159,7 +1162,7 @@ class CrawlerVkWall(CrawlerVk):
                 else:
                     self._stop_repl2_scraping = True
                 if self._cw_debug_mode:
-                    print('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by _cw_check_date_deep')
+                    self.msg('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by _cw_check_date_deep')
                 return None, par
 
             if self._sn_recrawler_checker.is_reply_out_of_wait_date(par['post_id'], _dt_in_dt):
@@ -1168,7 +1171,7 @@ class CrawlerVkWall(CrawlerVk):
                 else:
                     self._stop_repl2_scraping = True
                 if self._cw_debug_mode:
-                    print('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by is_reply_out_of_wait_date')
+                    self.msg('-- SET '+_type_reply+' STOP SCRAPING -- SKIPPED -- by is_reply_out_of_wait_date')
                 return None, par
 
             res_unit = { 
@@ -1238,7 +1241,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc))
+            'datetime': scraper.date_to_str(datetime.datetime.now())
             })
         
         if not err_type in self._cw_noncritical_error_counter:
@@ -1251,7 +1254,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now(datetime.timezone.utc))
+            'datetime': scraper.date_to_str(datetime.datetime.now())
             })
 
     def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):

@@ -1,5 +1,6 @@
 import psycopg2
 import const
+import exceptions
 
 try:
     import plpyemul
@@ -16,7 +17,28 @@ def get_psw_mtyurin():
 class MainDB():
 
     def __init__(self):
-        pass
+        self.db_error_counter = 0
+        self.db_error_limit = 10  #number errors in a row (=подряд)
+
+    def _check_db_error_limit(self, _exception):
+        if _exception == None:
+            self.db_error_counter = 0
+        else:
+            self.db_error_counter += 1
+            if self.db_error_counter >= self.db_error_limit:
+                plpy.notice('Limit of write errors in the database reached! (pg_interface.py)')
+                raise _exception
+
+    def _execute(self, plan_id, var_list, id_project = 0):
+        try:
+            res = plpy.execute(SD[plan_id], var_list)
+            self._check_db_error_limit(None)
+            return res
+        except Exception as e:
+            self.log_error(const.CW_RESULT_TYPE_DB_ERROR, id_project, exceptions.get_err_description(e, plan_id = plan_id, var_list = var_list))
+            self._check_db_error_limit(e)
+            return None
+
 
 
     def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, **kwargs):
@@ -36,10 +58,10 @@ class MainDB():
                 SD[plan_id] = plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
                 ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_sn_id","dmn.git_sn_id","dmn.git_sn_id"])
 
-            res = plpy.execute(SD[plan_id],[id_data_html, id_project, id_www_sources, content, content_header, content_date,
-                                            sn_id, sn_post_id, sn_post_parent_id])
+            res = self._execute(plan_id, [id_data_html, id_project, id_www_sources, content, content_header, content_date,
+                                                sn_id, sn_post_id, sn_post_parent_id], id_project)
 
-            return res[0]
+            return None if res == None else res[0]
 
     def upsert_data_html(self, url, content, id_project, id_www_sources, **kwargs):
         plan_id = 'plan_upsert_data_html'
@@ -48,9 +70,9 @@ class MainDB():
                 SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
                                             ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
-            res = plpy.execute(SD[plan_id],[url, content, id_project, id_www_sources])
+            res = self._execute(plan_id,[url, content, id_project, id_www_sources], id_project)
 
-            return res[0]
+            return None if res == None else res[0]
 
     def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers = None):
@@ -94,7 +116,7 @@ class MainDB():
                 '''
                 SELECT id, account_id 
                    FROM git200_crawl.sn_accounts
-                   WHERE id_project = $1
+                   WHERE id_project = $1 AND NOT account_closed
                 ''', 
                 ["integer"])
 
@@ -192,6 +214,31 @@ class MainDB():
         res = plpy.execute(SD[plan_id], [id_project])
         return convert_select_result(res)
 
+    def need_stop_func(self, func_name, id_project):
+        plan_id = 'plan_need_stop_func'
+        if not plan_id in SD or SD[plan_id] == None:
+            SD[plan_id] = plpy.prepare(
+                '''
+                SELECT * FROM git000_cfg.need_stop_func($1, $2)
+                ''', 
+                ["dmn.git_string", "dmn.git_pk"])
+
+        res = plpy.execute(SD[plan_id], [func_name, id_project])
+        return convert_select_result(res)
+
+    def set_config_param(self, key_name, key_value):
+        plan_id = 'plan_set_config_param'
+        if not plan_id in SD or SD[plan_id] == None:
+            SD[plan_id] = plpy.prepare(
+                '''
+                SELECT * FROM git000_cfg.set_config_param($1, $2)
+                ''', 
+                ["dmn.git_string", "dmn.git_string"])
+
+        res = plpy.execute(SD[plan_id], [key_name, key_value])
+        return convert_select_result(res)
+
+
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
     #                        FROM git200_crawl.sn_accounts")
@@ -200,6 +247,24 @@ class MainDB():
     #       print(row)
     #       print("\n")
     pass
+
+class NeedStopChecker:
+    def __init__(self, cass_db, id_project, state = None):
+        self.cass_db = cass_db
+        self.id_project = id_project
+        if state == 'off':
+            self.set_stop_off()
+        elif state == 'on':
+            self.set_stop_on()
+
+    def set_stop_off():
+        pass
+
+    def set_stop_on():
+        pass
+
+    def need_stop():
+        pass
 
 def convert_select_result(res, num_fields = 1):
     '''in pgree environment need another processing!
@@ -250,8 +315,11 @@ if __name__ == "__main__":
     #res = cass_db.queue_update(1, date_deferred = scraper.date_to_str(datetime.datetime.now()))  #res[0]['Success']
     #res = cass_db.queue_update(1, attempts_counter = 11)  #res[0]['Success']
     #
-    res = cass_db.get_sn_activity(3, 16758516, 5)
-    res = cass_db.get_project_params(0)
+    #res = cass_db.get_sn_activity(3, 6, 16758516, 90)
+    #res = cass_db.get_project_params(0)
+    res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
+    res = cass_db.set_config_param('stop_func_crawl_wall', str(0))  #res[0]['result']
+    res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
     a = 1
 
     #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)

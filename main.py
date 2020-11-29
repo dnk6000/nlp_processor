@@ -8,9 +8,9 @@ from plpyemul import PlPy as plpy
 import pg_interface
 import const
 import gvars
+import crawler
 import scraper
-
-VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
+import exceptions
 
 def get_psw_mtyurin():
     
@@ -21,16 +21,16 @@ def get_psw_mtyurin():
 
 def vk_crawl_groups(id_project):
 
-    crawler = vk.CrawlerVkGroups(login = '89273824101', 
+    vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
                          password = get_psw_mtyurin(), 
                          base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
                          id_project = id_project
                          )
     select_result = cass_db.select_groups_id(id_project)
-    crawler.id_cash = list(i['account_id'] for i in select_result)
+    vk_crawler.id_cash = list(i['account_id'] for i in select_result)
 
-    for groups_list in crawler.crawl_groups(): #by API
+    for groups_list in vk_crawler.crawl_groups(): #by API
         _groups_list = json.loads(groups_list)
 
         n = len(_groups_list)
@@ -47,22 +47,30 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   project_params,
                   attempts_counter = 0, 
                   subscribers_only = False, 
+                  id_post = ''
                   ):
 
-    res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
-    if not res[0]['Success']:
-        cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
+    if id_queue != None:
+        res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
+        if not res[0]['Success']:
+            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, VK_SOURCE_ID, id_project, id_group, project_params['recrawl_days_post'], project_params['recrawl_days_reply'])
+    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, 
+                                                gvars.get('VK_SOURCE_ID'), 
+                                                id_project, 
+                                                sn_id = id_group, 
+                                                recrawl_days_post = project_params['recrawl_days_post'], 
+                                                recrawl_days_reply = project_params['recrawl_days_reply'])
 
     wall_processed = False
 
     id_group_str = str(id_group)
     dt_start = scraper.date_now_str()
 
-    crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = project_params['date_deep'], sn_recrawler_checker = sn_recrawler_checker)
+    vk_crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = project_params['date_deep'], sn_recrawler_checker = sn_recrawler_checker)
+    vk_crawler._cw_set_debug_mode(turn_on = True, debug_post_filter = id_post)
 
-    for res_list in crawler.crawl_wall(id_group):
+    for res_list in vk_crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
 
         n = len(_res_list)
@@ -71,6 +79,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
         for res_unit in _res_list:
             c += 1
+
             plpy.notice(res_unit['result_type'])
             
             if res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS:
@@ -86,7 +95,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY:
                 plpy.notice('dt = {}'.format(res_unit['dt']))
-                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, 0, res_unit['dt'], dt_start)
+                cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, '', res_unit['dt'], dt_start)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_HTML:
                 #plpy.notice('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
@@ -115,34 +124,51 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
                 attempts_counter += 1
                 date_deferred = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
-                res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = scraper.date_to_str(date_deferred))
-                if not res[0]['Success']:
-                    cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
+                if id_queue != None:
+                    res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = scraper.date_to_str(date_deferred))
+                    if not res[0]['Success']:
+                        cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
 
             
             elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
                 #plpy.notice('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 cass_db.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
-
-    res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = scraper.date_now_str())
-    if not res[0]['Success']:
-        cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
+                
+    if id_queue != None:
+        res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = scraper.date_now_str())
+        if not res[0]['Success']:
+            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 
 def vk_crawl_wall_subscribers(id_project):
     select_result = cass_db.select_groups_id(id_project = id_project)
+    project_params = cass_db.get_project_params(id_project)[0]
 
     number_of_groups = len(select_result)
 
     plpy.notice('Number groups for select subscribers: {}'.format(number_of_groups))
 
     c = 0
+    portion_counter = 0
 
-    for i in select_result:
-        c += 1
-        sn_id = i['account_id']
-        plpy.notice('Select subscribers for group: {}    Progress: {} / {}'.format(sn_id, c, number_of_groups))
-        vk_crawl_wall(id_project, sn_id, subscribers_only = True)
-        time.sleep(1)
+    while True:
+        queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
+
+        portion_counter += 1
+        plpy.notice('GET QUEUE PORTION № {}'.format(portion_counter));
+
+        if len(queue_portion) == 0:
+            break
+
+        for elem in queue_portion:
+            c += 1
+            plpy.notice('Select subscribers for group: {}    Progress: {} / {}'.format(elem['sn_id'], c, number_of_groups))
+            vk_crawl_wall(id_project = id_project, 
+                          id_group = elem['sn_id'], 
+                          id_queue = elem['id'], 
+                          attempts_counter = elem['attempts_counter'], 
+                          project_params = project_params, 
+                          subscribers_only = True)
+            time.sleep(1)
 
 def vk_crawling(id_project):
 
@@ -151,7 +177,7 @@ def vk_crawling(id_project):
     portion_counter = 0
 
     while True:
-        queue_portion = cass_db.queue_select(VK_SOURCE_ID, id_project)
+        queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
 
         portion_counter += 1
         plpy.notice('GET QUEUE PORTION № {}'.format(portion_counter));
@@ -161,6 +187,12 @@ def vk_crawling(id_project):
 
         for elem in queue_portion:
             vk_crawl_wall(id_project = id_project, id_group = elem['sn_id'], id_queue = elem['id'], attempts_counter = elem['attempts_counter'], project_params = project_params)
+
+def vk_crawling_group(id_project, id_group, id_post = ''):
+
+    project_params = cass_db.get_project_params(id_project)[0]
+
+    vk_crawl_wall(id_project = id_project, id_group = id_group, id_queue = None, attempts_counter = 0, project_params = project_params, id_post = id_post)
             
 
 def clear_tables_by_project(id_project):
@@ -169,11 +201,14 @@ def clear_tables_by_project(id_project):
         'git200_crawl.queue',
         'git200_crawl.sn_accounts',
         'git200_crawl.sn_activity',
-        'git300_scrap.data_text'
+        'git300_scrap.data_text',
+        'git999_log.log'
         ]
     for t in tables:
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
         cass_db.clear_table_by_project(t, id_project)
+
+
 
 
 #########################################
@@ -182,12 +217,29 @@ ID_TEST_PROJECT = 7
 
 cass_db = pg_interface.MainDB()
 
+vk_crawling_group(ID_TEST_PROJECT, id_group = '164571882')                       #debug group
+#vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
+
+
 #for i in range(1,20):
 #    clear_tables_by_project(i)
 
+#--1--
+#vk_crawl_groups(ID_TEST_PROJECT)
+
+#--2--
+#plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
+#cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
+#cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
+#vk_crawl_wall_subscribers(ID_TEST_PROJECT)
+
+#--3--
+#plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
+#cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
+#cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
 #vk_crawling(ID_TEST_PROJECT)
 
-vk_crawl_groups(ID_TEST_PROJECT)
+
 #vk_crawl_wall(5, 52233236, subscribers_only = True)
 #vk_crawl_wall(ID_TEST_PROJECT, 16758516, subscribers_only = False)
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+import traceback
 
 class CrawlerException(Exception):
     pass
@@ -39,3 +40,11 @@ class ScrapeDateError(ScraperException):
 
     def __repr__(self):
         return self.__dict__
+
+def get_err_description(_exeption, **kwargs):
+    _descr = ''
+    _descr += '\n'.join(map(str, sys.exc_info()))
+    _descr += traceback.format_exc()
+    _descr += '\n'+' Exception: '+str(_exeption)
+    _descr += '\n'+' kwargs: '+str(kwargs)
+    return _descr
