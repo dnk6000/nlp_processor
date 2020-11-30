@@ -62,12 +62,19 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
                                                 recrawl_days_reply = project_params['recrawl_days_reply'])
 
+    need_stop_cheker = pg_interface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+
     wall_processed = False
 
     id_group_str = str(id_group)
     dt_start = scraper.date_now_str()
 
-    vk_crawler = vk.CrawlerVkWall(msg_func = plpy.notice, subscribers_only = subscribers_only, date_deep = project_params['date_deep'], sn_recrawler_checker = sn_recrawler_checker)
+    vk_crawler = vk.CrawlerVkWall(msg_func = plpy.notice, 
+                                  subscribers_only = subscribers_only, 
+                                  date_deep = project_params['date_deep'], 
+                                  sn_recrawler_checker = sn_recrawler_checker,
+                                  need_stop_cheker = need_stop_cheker
+                                  )
     vk_crawler._cw_set_debug_mode(turn_on = True, debug_post_filter = id_post)
 
     for res_list in vk_crawler.crawl_wall(id_group):
@@ -108,6 +115,11 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
                 cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
                 wall_processed = True
+            
+            elif res_unit['result_type'] == const.CW_RESULT_TYPE_WARNING:
+                cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+                if 'wall_processed' in res_unit:
+                    wall_processed = res_unit['wall_processed']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
                 cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
@@ -217,10 +229,11 @@ ID_TEST_PROJECT = 7
 
 cass_db = pg_interface.MainDB()
 
-vk_crawling_group(ID_TEST_PROJECT, id_group = '164571882')                       #debug group
+#--0-- debug
+#vk_crawling_group(ID_TEST_PROJECT, id_group = '164571882')                       #debug group
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
 
-
+#--0-- clear
 #for i in range(1,20):
 #    clear_tables_by_project(i)
 
@@ -237,7 +250,7 @@ vk_crawling_group(ID_TEST_PROJECT, id_group = '164571882')                      
 #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
 #cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
 #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
-#vk_crawling(ID_TEST_PROJECT)
+vk_crawling(ID_TEST_PROJECT)
 
 
 #vk_crawl_wall(5, 52233236, subscribers_only = True)

@@ -41,6 +41,11 @@ class ScrapeDateError(ScraperException):
     def __repr__(self):
         return self.__dict__
 
+class UserInterruptByDB(Exception):
+    pass
+
+
+
 def get_err_description(_exeption, **kwargs):
     _descr = ''
     _descr += '\n'.join(map(str, sys.exc_info()))

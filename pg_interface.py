@@ -41,14 +41,14 @@ class MainDB():
 
 
 
-    def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, **kwargs):
+    def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, is_broken = False, broken_status_code = '', **kwargs):
         plan_id = 'plan_update_sn_num_subscribers'
         with plpy.subtransaction():
             if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3)''', 
-                                ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
+                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
+                                ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
 
-            res = plpy.execute(SD[plan_id], [sn_network, sn_id, num_subscribers])
+            res = plpy.execute(SD[plan_id], [sn_network, sn_id, num_subscribers, is_broken, broken_status_code])
 
     def upsert_data_text(self, id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
                                 sn_id = None, sn_post_id = None, sn_post_parent_id = None, **kwargs):
@@ -249,22 +249,25 @@ class MainDB():
     pass
 
 class NeedStopChecker:
-    def __init__(self, cass_db, id_project, state = None):
+    def __init__(self, cass_db, id_project, func_name, state = None):
         self.cass_db = cass_db
         self.id_project = id_project
+        self.func_name = func_name
         if state == 'off':
             self.set_stop_off()
         elif state == 'on':
             self.set_stop_on()
 
-    def set_stop_off():
-        pass
+    def set_stop_off(self):
+        self.cass_db.set_config_param('stop_func_'+self.func_name, '')
 
-    def set_stop_on():
-        pass
+    def set_stop_on(self):
+        self.cass_db.set_config_param('stop_func_'+self.func_name, str(self.id_project))
 
-    def need_stop():
-        pass
+    def need_stop(self):
+        res = self.cass_db.need_stop_func(self, func_name, id_project)
+        if res[0].result:
+            raise exceptions.UserInterruptByDB()
 
 def convert_select_result(res, num_fields = 1):
     '''in pgree environment need another processing!

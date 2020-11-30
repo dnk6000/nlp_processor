@@ -173,7 +173,7 @@ class CrawlerSocialNet:
 
         while len(self.search_list) > 0:
             search_elem = self.search_list.pop(0)
-            self._crawl_groups(search_elem)
+            #self._crawl_groups(search_elem)
             for res in self._crawl_groups(search_elem):
                 yield res_for_pg.get_json_result(res)
             
@@ -349,7 +349,7 @@ class CrawlerVkGroups(CrawlerVk):
 
     def _crawl_groups_api(self, search_elem):
 
-        time.sleep(self.api_request_pause_sec)
+        time.sleep(self.api_request_pause_sec) 
 
         params = { 'q'     : search_elem['search_str'],
                    'count' : self.api_limit_res
@@ -387,6 +387,11 @@ class CrawlerVkGroups(CrawlerVk):
                                      'screen_name' : '',
                                      'is_closed' : 0
                                    })
+
+            tagLabeled = tagBody.findAll('', { 'class' : 'labeled ' })
+            for tagLab in tagLabeled:
+                self.msg(tagLab.content)
+
 
         self._add_groups_to_db(groups_list)
 
@@ -553,7 +558,8 @@ class CrawlerVkWall(CrawlerVk):
     def __init__(self, *args, 
                  subscribers_only = False, 
                  date_deep = const.EMPTY_DATE, 
-                 sn_recrawler_checker = None, 
+                 sn_recrawler_checker = None,
+                 need_stop_cheker = None,
                  **kwargs
                  ):
         
@@ -583,6 +589,8 @@ class CrawlerVkWall(CrawlerVk):
             self._sn_recrawler_checker = SnRecrawlerCheker() 
         else:
             self._sn_recrawler_checker = sn_recrawler_checker
+
+        self._cw_need_stop_checker = need_stop_cheker
 
         self._cw_set_debug_mode(turn_on = False)
 
@@ -668,12 +676,6 @@ class CrawlerVkWall(CrawlerVk):
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
             
-    def _is_good_status_code(self, status_code, raise_error = False):
-        if status_code == const.HTTP_STATUS_CODE_200:
-            return True
-        else:
-            return False
-
     def _crawl_wall(self, group_id):
         self._cw_num_subscribers = 0
         self._cw_fixed_post_id = ''
@@ -704,6 +706,8 @@ class CrawlerVkWall(CrawlerVk):
         if self._cw_debug_mode:
             self.msg('URL:  '+self._cw_url)
 
+        self._check_user_interrupt()
+
         _request_attempt = self.request_tries
         while True:
             try:
@@ -716,6 +720,16 @@ class CrawlerVkWall(CrawlerVk):
                 else:
                     self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_GET, self._cw_get_post_repr())
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+
+        if not self._is_good_status_code(d.status_code, get_url = self._cw_url, stop_if_broken = True):
+            self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 
+                                            'sn_id': self._cw_group_id,  
+                                            'num_subscribers': 0,
+                                            'is_broken': True,
+                                            'broken_status_code': str(d.status_code)
+                                           } )  
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
+            return
 
         self._cw_soup = BeautifulSoup(d.text, "html.parser")
         if not self._cw_subscribers_only:
@@ -753,6 +767,7 @@ class CrawlerVkWall(CrawlerVk):
         _fetch_enable = True
 
         while _fetch_enable and not self._stop_post_scraping:
+            self._check_user_interrupt()
             self._cw_fetch_post_counter = 0
 
             #get posts
@@ -763,10 +778,13 @@ class CrawlerVkWall(CrawlerVk):
             if self._stop_post_scraping:
                 self._cw_post_repl_list.extend(self._sn_recrawler_checker.get_post_list())  
 
+            self._check_user_interrupt()
             for step in self._cw_get_post_replies():
+                self._check_user_interrupt()
                 if not self._scrape_result_empty():
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             for step in self._cw_get_post_replies2(): #second level
+                self._check_user_interrupt()
                 if not self._scrape_result_empty():
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
@@ -776,6 +794,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_debug_num_fetching_post -= 1
             if (self._cw_fetch_post_counter >= self._cw_num_posts_request) and (self._cw_debug_num_fetching_post > 0) and not self._stop_post_scraping: 
                 for attempt in self._cw_fetch_wall():
+                    self._check_user_interrupt()
                     if not self._scrape_result_empty():
                         yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             else:
@@ -1257,6 +1276,17 @@ class CrawlerVkWall(CrawlerVk):
             'datetime': scraper.date_to_str(datetime.datetime.now())
             })
 
+    def _cw_add_to_result_warning(self, description, ext_dict):
+        self._cw_scrape_result.append(
+            {
+             **{
+                'result_type': const.CW_RESULT_TYPE_WARNING,
+                'event_description': description,
+                'datetime': scraper.date_to_str(datetime.datetime.now())
+                }, 
+             **ext_dict 
+            } )
+
     def _cw_get_post_repr(self, post_id = '', repl_id = '', parent_id = ''):
         _repr = ''
         _repr = _repr + 'url: '+self._cw_url + '\n'
@@ -1313,6 +1343,23 @@ class CrawlerVkWall(CrawlerVk):
                 return True
         return False
 
+    def _is_good_status_code(self, status_code, get_url, stop_if_broken = False):
+        if status_code == const.HTTP_STATUS_CODE_200:
+            return True
+        else:
+            _descr = 'Status code received: '+str(status_code)
+            _descr += '\n'+get_url
+            if stop_if_broken:
+                ext_dict = { 'wall_processed': True }
+            else:
+                ext_dict = {}
+            self._cw_add_to_result_warning(_descr, ext_dict)
+            return False
+
+    def _check_user_interrupt(self):
+        if self._cw_need_stop_checker == None:
+            return False
+        self._cw_need_stop_checker.need_stop()
 
 
 
