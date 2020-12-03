@@ -1,4 +1,3 @@
-import psycopg2
 import const
 import exceptions
 
@@ -14,7 +13,7 @@ def get_psw_mtyurin():
 
     return 'Fdt'+psw+'00'
 
-class MainDB():
+class MainDB:
 
     def __init__(self):
         self.db_error_counter = 0
@@ -107,7 +106,7 @@ class MainDB():
                 ["text"])
 
         res = plpy.execute(SD[plan_id], [www_source_name])
-        return convert_select_result(res)
+        return convert_select_result(res)[0]['get_www_sources_id']
 
     def select_groups_id(self, id_project):
         plan_id = 'plan_select_groups_id'
@@ -236,6 +235,7 @@ class MainDB():
                 ["dmn.git_string", "dmn.git_string"])
 
         res = plpy.execute(SD[plan_id], [key_name, key_value])
+        plpy.commit()
         return convert_select_result(res)
 
 
@@ -265,8 +265,8 @@ class NeedStopChecker:
         self.cass_db.set_config_param('stop_func_'+self.func_name, str(self.id_project))
 
     def need_stop(self):
-        res = self.cass_db.need_stop_func(self, func_name, id_project)
-        if res[0].result:
+        res = self.cass_db.need_stop_func(self.func_name, self.id_project)
+        if res[0]['result']:
             raise exceptions.UserInterruptByDB()
 
 def convert_select_result(res, num_fields = 1):
@@ -320,23 +320,27 @@ if __name__ == "__main__":
     #
     #res = cass_db.get_sn_activity(3, 6, 16758516, 90)
     #res = cass_db.get_project_params(0)
-    res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
-    res = cass_db.set_config_param('stop_func_crawl_wall', str(0))  #res[0]['result']
-    res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
+    #res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
+    #res = cass_db.set_config_param('stop_func_crawl_wall', str(0))  #res[0]['result']
+    #res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
+    
+    res = cass_db.upsert_data_html(url = 'TST', content = 'TEST 03/12/2020', id_project = 10, id_www_sources = 3)
+    print(res) #res['id_modified']
+    
     a = 1
 
     #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
 
     #CassDB.update_sn_num_subscribers('vk', 0, 16758516, 444)
 
-    #CassDB.upsert_data_text( 
+    #cass_db.upsert_data_text( 
     #                        url = 'test', 
     #                        content = 'test text', 
     #                        gid_data_html = 0, 
     #                        content_header = 'test head', 
     #                        content_date = datetime.today(), 
     #                        id_project = 0, 
-    #                        sn_network = 'vk', 
+    #                        sn_network = 3, 
     #                        sn_id = 111, 
     #                        sn_post_id = 222, 
     #                        sn_post_parent_id = 333)

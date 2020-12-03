@@ -42,8 +42,16 @@ class ScrapeDateError(ScraperException):
         return self.__dict__
 
 class UserInterruptByDB(Exception):
-    pass
+    def __str__(self):
+        return 'UserInterruptByDB'
 
+class StopProcess(Exception):
+    def __str__(self):
+        return 'StopProcess'
+
+class CrawlCriticalErrorsLimit(Exception):
+    def __init__(self, number_of_errors):
+        self.number_of_errors = number_of_errors
 
 
 def get_err_description(_exeption, **kwargs):

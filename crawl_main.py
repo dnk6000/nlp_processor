@@ -47,7 +47,8 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   project_params,
                   attempts_counter = 0, 
                   subscribers_only = False, 
-                  id_post = ''
+                  id_post = '',
+                  critical_error_counter = {}
                   ):
 
     if id_queue != None:
@@ -133,15 +134,21 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 plpy.notice(res_unit['err_type'])
                 plpy.notice(res_unit['err_description'])
                 wall_processed = False
+                critical_error_counter['counter'] += 1
 
-                attempts_counter += 1
-                date_deferred = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
                 if id_queue != None:
+                    attempts_counter += 1
+                    date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
                     res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = scraper.date_to_str(date_deferred))
                     if not res[0]['Success']:
                         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
 
-            
+                if res_unit['stop_process']:
+                    raise exceptions.StopProcess()
+
+                if critical_error_counter['counter'] >= 3:
+                    raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
+
             elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
                 #plpy.notice('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 cass_db.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
@@ -161,6 +168,7 @@ def vk_crawl_wall_subscribers(id_project):
 
     c = 0
     portion_counter = 0
+    critical_error_counter = {'counter': 0}
 
     while True:
         queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
@@ -179,7 +187,8 @@ def vk_crawl_wall_subscribers(id_project):
                           id_queue = elem['id'], 
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params, 
-                          subscribers_only = True)
+                          subscribers_only = True,
+                          critical_error_counter = critical_error_counter)
             time.sleep(1)
 
 def vk_crawling(id_project):
@@ -187,6 +196,7 @@ def vk_crawling(id_project):
     project_params = cass_db.get_project_params(id_project)[0]
 
     portion_counter = 0
+    critical_error_counter = {'counter': 0}
 
     while True:
         queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
@@ -198,7 +208,12 @@ def vk_crawling(id_project):
             break
 
         for elem in queue_portion:
-            vk_crawl_wall(id_project = id_project, id_group = elem['sn_id'], id_queue = elem['id'], attempts_counter = elem['attempts_counter'], project_params = project_params)
+            vk_crawl_wall(id_project = id_project, 
+                          id_group = elem['sn_id'], 
+                          id_queue = elem['id'], 
+                          attempts_counter = elem['attempts_counter'], 
+                          project_params = project_params,
+                          critical_error_counter = critical_error_counter)
 
 def vk_crawling_group(id_project, id_group, id_post = ''):
 
@@ -230,7 +245,7 @@ ID_TEST_PROJECT = 7
 cass_db = pg_interface.MainDB()
 
 #--0-- debug
-#vk_crawling_group(ID_TEST_PROJECT, id_group = '164571882')                       #debug group
+#vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
 
 #--0-- clear

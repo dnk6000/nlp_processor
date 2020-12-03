@@ -65,7 +65,7 @@ class StrToDate:
 
                 if 'day' in res:
                     if match.group('day') == 'сегодня' or match.group('day') == 'вчера':
-                        _dt = datetime.datetime.now(datetime.timezone.utc)
+                        _dt = datetime.datetime.now()
                         day = _dt.day
                         month = _dt.month
                         if match.group('day') == 'вчера':
@@ -78,7 +78,7 @@ class StrToDate:
                 if 'year' in res:
                     year = int(match.group('year'))
                 else:
-                    year = datetime.datetime.now(datetime.timezone.utc).year
+                    year = datetime.datetime.now().year
 
                 hour = 0 if not 'hour' in res else int(match.group('hour'))
                 minute = 0 if not 'minute' in res else int(match.group('minute'))
@@ -107,7 +107,7 @@ def date_to_str(dt):
     return dt.strftime("%d.%m.%Y %H:%M:%S")
 
 def date_now_str():
-    return date_to_str(datetime.datetime.now(datetime.timezone.utc).astimezone())
+    return date_to_str(datetime.datetime.now().astimezone())
 
 class Scraper():
 

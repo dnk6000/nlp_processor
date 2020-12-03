@@ -7,6 +7,7 @@ VK_SOURCE_ID - id VK in table www_sources
 '''
 
 import const
+import pg_interface
 
 if not const.PG_ENVIRONMENT:
     GD = dict()
@@ -19,4 +20,10 @@ def get(key):
         GD[key] = None
     return GD[key]
 
-set('VK_SOURCE_ID', 3)
+def initialize():
+    cass_db = pg_interface.MainDB()
+
+    if not 'VK_SOURCE_ID' in GD:
+        GD['VK_SOURCE_ID'] = cass_db.get_www_source_id('vk')
+
+initialize()

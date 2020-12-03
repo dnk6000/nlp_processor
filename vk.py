@@ -118,7 +118,7 @@ class CrawlerSocialNet:
             except:
                 pass
         else:
-            self.msg_func(message)
+            self.msg_func('Warning:' + message)
 
     def _add_next_search_level(self, search_elem):
         if search_elem['_level'] == 0:
@@ -518,7 +518,7 @@ class SnRecrawlerCheker:
 
             for i in res:
                 _post_id = i['sn_post_id']
-                if _post_id == '0':
+                if _post_id == '':
                     self.group_upd_date = i['upd_date']
                     self.group_last_date = i['last_date']
                 else:
@@ -662,16 +662,17 @@ class CrawlerVkWall(CrawlerVk):
             for step_result in self._crawl_wall(group_id):
                 yield step_result
         except requests.exceptions.RequestException as e:
-            _descr = self._cw_url + '\n'
-            _descr += '\n'.join(map(str, sys.exc_info()))
-            _descr += traceback.format_exc()
+            _descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
+        except exceptions.UserInterruptByDB as e:
+            _descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
+            self._cw_add_to_result_critical_error(str(e), _descr, stop_process = True)
+            yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+            return
         except Exception as e:
-            _descr = self._cw_url + '\n'
-            _descr += '\n'.join(map(str, sys.exc_info()))
-            _descr += traceback.format_exc()
+            _descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return
@@ -1124,7 +1125,9 @@ class CrawlerVkWall(CrawlerVk):
                     self._cw_fix_last_date(par['post_id'], _dt_in_dt)
                         
             else:
-                self.warning('Warning: Text not found ! \n '+self._cw_url)  
+                _descr = 'Text not found ! \n '+self._cw_url
+                self.warning(_descr)
+                self._cw_add_to_result_warning(_descr, {})
         
         return None, par
     
@@ -1268,12 +1271,13 @@ class CrawlerVkWall(CrawlerVk):
         
         self._cw_noncritical_error_counter[err_type] += 1
 
-    def _cw_add_to_result_critical_error(self, err_type, description):
+    def _cw_add_to_result_critical_error(self, err_type, description, stop_process = False):
         self._cw_scrape_result.append({
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now())
+            'datetime': scraper.date_to_str(datetime.datetime.now()),
+            'stop_process': stop_process
             })
 
     def _cw_add_to_result_warning(self, description, ext_dict):
