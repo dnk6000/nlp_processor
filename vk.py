@@ -18,7 +18,6 @@ import vk_requests.exceptions
 from bs4 import BeautifulSoup
 
 #internal modules
-import pg_interface
 import crawler
 import scraper
 import exceptions

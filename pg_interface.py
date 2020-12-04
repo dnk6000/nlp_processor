@@ -1,23 +1,27 @@
 import const
 import exceptions
 
-try:
-    import plpyemul
-except:
-    pass
-
-def get_psw_mtyurin():
-    
-    with open('C:\Temp\mypsw.txt', 'r') as f:
-        psw = f.read()
-
-    return 'Fdt'+psw+'00'
+from glob_vars import glob_vars
+if const.PY_ENVIRONMENT: GD = None
+gvars = None
 
 class MainDB:
 
-    def __init__(self):
+    def __init__(self, plpy, GD):
         self.db_error_counter = 0
         self.db_error_limit = 10  #number errors in a row (=подряд)
+        
+        self.plpy = plpy
+
+        global gvars
+        gvars = glob_vars(GD)
+        self._initialize_gvars()
+
+
+    def _initialize_gvars(self):
+        if not gvars.initialized:
+            gvars.set('VK_SOURCE_ID', self.get_www_source_id('vk'))
+            gvars.initialize()
 
     def _check_db_error_limit(self, _exception):
         if _exception == None:
@@ -25,12 +29,12 @@ class MainDB:
         else:
             self.db_error_counter += 1
             if self.db_error_counter >= self.db_error_limit:
-                plpy.notice('Limit of write errors in the database reached! (pg_interface.py)')
+                self.plpy.notice('Limit of write errors in the database reached! (pg_interface.py)')
                 raise _exception
 
     def _execute(self, plan_id, var_list, id_project = 0):
         try:
-            res = plpy.execute(SD[plan_id], var_list)
+            res = self.plpy.execute(gvars.GD[plan_id], var_list)
             self._check_db_error_limit(None)
             return res
         except Exception as e:
@@ -42,19 +46,19 @@ class MainDB:
 
     def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, is_broken = False, broken_status_code = '', **kwargs):
         plan_id = 'plan_update_sn_num_subscribers'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
                                 ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
 
-            res = plpy.execute(SD[plan_id], [sn_network, sn_id, num_subscribers, is_broken, broken_status_code])
+            res = self.plpy.execute(gvars.GD[plan_id], [sn_network, sn_id, num_subscribers, is_broken, broken_status_code])
 
     def upsert_data_text(self, id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
                                 sn_id = None, sn_post_id = None, sn_post_parent_id = None, **kwargs):
         plan_id = 'plan_upsert_data_text'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+                gvars.GD[plan_id] = self.plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
                 ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_sn_id","dmn.git_sn_id","dmn.git_sn_id"])
 
             res = self._execute(plan_id, [id_data_html, id_project, id_www_sources, content, content_header, content_date,
@@ -64,9 +68,9 @@ class MainDB:
 
     def upsert_data_html(self, url, content, id_project, id_www_sources, **kwargs):
         plan_id = 'plan_upsert_data_html'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
                                             ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
             res = self._execute(plan_id,[url, content, id_project, id_www_sources], id_project)
@@ -76,42 +80,42 @@ class MainDB:
     def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers = None):
         plan_id = 'plan_upsert_sn_accounts'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
-                SD[plan_id] = plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8)''', 
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8)''', 
                         ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_integer"])
 
-            res = plpy.execute(SD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
+            res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers])
             return res[0]
 
     def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date):
         plan_id = 'plan_upsert_sn_activity'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
                 pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);'
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
+                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
 
-            res = plpy.execute(SD[plan_id], [id_source, id_project, sn_id, sn_post_id, last_date, upd_date])
+            res = self.plpy.execute(gvars.GD[plan_id], [id_source, id_project, sn_id, sn_post_id, last_date, upd_date])
 
     def get_www_source_id(self, www_source_name):
         ''' result syntax: res[0]['get_www_sources_id'] '''
         plan_id = 'plan_get_www_source_id'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT git010_dict.get_www_sources_id($1) 
                 ''', 
                 ["text"])
 
-        res = plpy.execute(SD[plan_id], [www_source_name])
+        res = self.plpy.execute(gvars.GD[plan_id], [www_source_name])
         return convert_select_result(res)[0]['get_www_sources_id']
 
     def select_groups_id(self, id_project):
         plan_id = 'plan_select_groups_id'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT id, account_id 
                    FROM git200_crawl.sn_accounts
@@ -119,7 +123,7 @@ class MainDB:
                 ''', 
                 ["integer"])
 
-        res = plpy.execute(SD[plan_id], [id_project])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_project])
         return convert_select_result(res)
 
     def log_trace(self, record_type, id_project, description):
@@ -142,100 +146,100 @@ class MainDB:
 
     def _log_write(self, log_level, record_type, id_project, description):
         plan_id = 'plan_log_write_'+const.CW_LOG_LEVEL_FUNC[log_level]
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
                 pg_func = 'select git999_log.write($1, $2, $3, $4, $5);'
                 pg_func = pg_func.replace('write', const.CW_LOG_LEVEL_FUNC[log_level])
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"])
+                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"])
 
-            res = plpy.execute(SD[plan_id], [record_type, id_project, None, None, description])
+            res = self.plpy.execute(gvars.GD[plan_id], [record_type, id_project, None, None, description])
 
     def queue_generate(self, id_www_source, id_project):
         plan_id = 'plan_queue_generate'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
                 pg_func = 'select * from git200_crawl.queue_generate($1, $2);'
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk"])
+                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk"])
 
-            res = plpy.execute(SD[plan_id], [id_www_source, id_project])
+            res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project])
         return res
 
     def queue_update(self, id_queue, is_process = None, date_start_process = None, date_end_process = None, 
                            date_deferred = None, attempts_counter = None):
         plan_id = 'plan_queue_update'
-        with plpy.subtransaction():
-            if not plan_id in SD or SD[plan_id] == None:
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
                 pg_func = 'select * from git200_crawl.queue_update($1, $2, $3, $4, $5, $6);'
 
-                SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
+                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
 
-            res = plpy.execute(SD[plan_id], [id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter])
+            res = self.plpy.execute(gvars.GD[plan_id], [id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter])
         return res
     
     def queue_select(self, id_www_source, id_project, number_records = 10):
         plan_id = 'plan_queue_select'
-        if not plan_id in SD or SD[plan_id] == None:
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
             pg_func = 'select * from git200_crawl.queue_select($1, $2, $3);'
-            SD[plan_id] = plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
 
-        res = plpy.execute(SD[plan_id], [id_www_source, id_project, number_records])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records])
 
         return res
 
     def clear_table_by_project(self, table_name, id_project):
-        with plpy.subtransaction():
+        with self.plpy.subtransaction():
             pg_func = 'delete from {} where id_project = {};'.format(table_name, id_project)
-            plpy.execute(pg_func)
+            self.plpy.execute(pg_func)
     
     def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post):
         plan_id = 'plan_get_sn_activity'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3, $4)
                 ''', 
                 ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
 
-        res = plpy.execute(SD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
         return convert_select_result(res)
 
     def get_project_params(self, id_project):
         plan_id = 'plan_get_project_params'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.get_project_params($1)
                 ''', 
                 ["dmn.git_pk"])
 
-        res = plpy.execute(SD[plan_id], [id_project])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_project])
         return convert_select_result(res)
 
     def need_stop_func(self, func_name, id_project):
         plan_id = 'plan_need_stop_func'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.need_stop_func($1, $2)
                 ''', 
                 ["dmn.git_string", "dmn.git_pk"])
 
-        res = plpy.execute(SD[plan_id], [func_name, id_project])
+        res = self.plpy.execute(gvars.GD[plan_id], [func_name, id_project])
         return convert_select_result(res)
 
     def set_config_param(self, key_name, key_value):
         plan_id = 'plan_set_config_param'
-        if not plan_id in SD or SD[plan_id] == None:
-            SD[plan_id] = plpy.prepare(
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.set_config_param($1, $2)
                 ''', 
                 ["dmn.git_string", "dmn.git_string"])
 
-        res = plpy.execute(SD[plan_id], [key_name, key_value])
-        plpy.commit()
+        res = self.plpy.execute(gvars.GD[plan_id], [key_name, key_value])
+        self.plpy.commit()
         return convert_select_result(res)
 
 
@@ -276,21 +280,6 @@ def convert_select_result(res, num_fields = 1):
         #return [row[0] for row in res]
         return res
         
-
-# plpy object creating, this code cannot be executed in the PGree environment  
-try:
-    cassandra_db_conn_par = {
-        'database': 'cassandra_new', 
-        'host'   : '192.168.60.46', 
-        'port': '5432', 
-        'user': 'm.tyurin', 
-        'password': get_psw_mtyurin()
-    }
-    plpy = plpyemul.PlPy(**cassandra_db_conn_par)
-except:
-    pass
-
-SD = {}
 
 if __name__ == "__main__":
     #print(get_psw_mtyurin())

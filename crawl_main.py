@@ -4,25 +4,47 @@ import json
 
 import vk
 
-from plpyemul import PlPy as plpy
 import pg_interface
 import const
-import gvars
 import crawler
 import scraper
 import exceptions
 
-def get_psw_mtyurin():
+from glob_vars import glob_vars
+if const.PY_ENVIRONMENT: GD = None
+gvars = glob_vars(GD)
+
+
+def get_psw_vk_mtyurin():
     
     with open('C:\Temp\mypswvk.txt', 'r') as f:
         psw = f.read()
 
     return 'Bey'+psw+'00'
 
+if const.PY_ENVIRONMENT:
+    import plpyemul
+
+    def get_psw_db_mtyurin():
+        with open('C:\Temp\mypsw.txt', 'r') as f:
+            psw = f.read()
+        return 'Fdt'+psw+'00'
+
+    cassandra_db_conn_par = {
+        'database': 'cassandra_new', 
+        'host'   : '192.168.60.46', 
+        'port': '5432', 
+        'user': 'm.tyurin', 
+        'password': get_psw_db_mtyurin()
+    }
+    plpy = plpyemul.PlPy(**cassandra_db_conn_par)
+
+
+
 def vk_crawl_groups(id_project):
 
     vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
-                         password = get_psw_mtyurin(), 
+                         password = get_psw_vk_mtyurin(), 
                          base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
                          id_project = id_project
@@ -242,7 +264,7 @@ def clear_tables_by_project(id_project):
 
 ID_TEST_PROJECT = 7
 
-cass_db = pg_interface.MainDB()
+cass_db = pg_interface.MainDB(plpy, GD)
 
 #--0-- debug
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group

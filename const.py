@@ -2,12 +2,14 @@
 
 from datetime import datetime
 
-try:
-    plpy.execute('SELECT 1')
+try: 
+    import plpyemul  #this library is not in PG
 except:
-    PG_ENVIRONMENT = False
-else:
     PG_ENVIRONMENT = True
+    PY_ENVIRONMENT = False
+else:
+    PG_ENVIRONMENT = False
+    PY_ENVIRONMENT = True
 
 ERROR_POST_AUTHOR_NOT_FOUND  = 'Post author not found'
 ERROR_POST_AUTHOR_EMPTY      = 'Post author empty'
