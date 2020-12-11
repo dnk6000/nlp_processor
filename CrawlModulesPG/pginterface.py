@@ -1,7 +1,7 @@
-import const
-import exceptions
+import CrawlModulesPG.const as const
+import CrawlModulesPG.exceptions as exceptions
 
-from glob_vars import glob_vars
+from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
 gvars = None
 
@@ -14,7 +14,7 @@ class MainDB:
         self.plpy = plpy
 
         global gvars
-        gvars = glob_vars(GD)
+        gvars = GlobVars(GD)
         self._initialize_gvars()
 
 
@@ -282,9 +282,30 @@ def convert_select_result(res, num_fields = 1):
         
 
 if __name__ == "__main__":
-    #print(get_psw_mtyurin())
+    import CrawlModulesPyOnly.self_psw as self_psw
+    from CrawlModulesPG.globvars import GlobVars
+    if const.PY_ENVIRONMENT: 
+        GD = None
+    else: 
+        GD = {}
+    if const.PY_ENVIRONMENT:
+        import CrawlModulesPyOnly.plpyemul as plpyemul
 
-    cass_db = MainDB()
+        def get_psw_db_mtyurin():
+            with open('C:\Temp\mypsw.txt', 'r') as f:
+                psw = f.read()
+            return 'Fdt'+psw+'00'
+
+        cassandra_db_conn_par = {
+            'database': 'cassandra_new', 
+            'host'   : '192.168.60.46', 
+            'port': '5432', 
+            'user': 'm.tyurin', 
+            'password': self_psw.get_psw_db_mtyurin()
+        }
+        plpy = plpyemul.PlPy(**cassandra_db_conn_par)
+
+    cass_db = MainDB(plpy, GD)
     #CassDB.Connect()
     print("Database opened successfully")
 
@@ -297,7 +318,7 @@ if __name__ == "__main__":
 
     #res = cass_db.get_www_source_id('vk')
 
-    #res = cass_db.log_debug('Ошибка 555', 1, '555 Длинное описание')
+    res = cass_db.log_error('Ошибка 555', 7, '555 Длинное описание')
 
     #res = cass_db.queue_generate(3, 5)  #res[0]['Success']
     #res = cass_db.queue_update(1, is_process = True)  #res[0]['Success']
@@ -313,8 +334,8 @@ if __name__ == "__main__":
     #res = cass_db.set_config_param('stop_func_crawl_wall', str(0))  #res[0]['result']
     #res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
     
-    res = cass_db.upsert_data_html(url = 'TST', content = 'TEST 03/12/2020', id_project = 10, id_www_sources = 3)
-    print(res) #res['id_modified']
+    #res = cass_db.upsert_data_html(url = 'TST', content = 'TEST 03/12/2020', id_project = 10, id_www_sources = 3)
+    #print(res) #res['id_modified']
     
     a = 1
 

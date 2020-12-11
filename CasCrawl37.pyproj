@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>crawl_main.py</StartupFile>
+    <StartupFile>CrawlModulesPyOnly\main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -24,23 +24,26 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="crawler.py" />
-    <Compile Include="exceptions.py">
+    <Compile Include="CrawlModulesPG\crawler.py" />
+    <Compile Include="CrawlModulesPG\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="crawl_main.py">
+    <Compile Include="CrawlModulesPyOnly\main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="const.py">
+    <Compile Include="CrawlModulesPG\const.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="glob_vars.py">
+    <Compile Include="CrawlModulesPG\globvars.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CrawlModulesPyOnly\self_psw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Test\pg_test.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="plpyemul.py">
+    <Compile Include="CrawlModulesPyOnly\plpyemul.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Temp\модуль1временно.py" />
@@ -48,9 +51,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Test\z_ParserAddressByNatasha.py" />
-    <Compile Include="pg_interface.py" />
-    <Compile Include="scraper.py" />
-    <Compile Include="vk.py" />
+    <Compile Include="CrawlModulesPG\pginterface.py" />
+    <Compile Include="CrawlModulesPG\scraper.py" />
+    <Compile Include="CrawlModulesPG\vk.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="CassandraPy37\">
@@ -65,6 +68,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Documentation\" />
+    <Folder Include="CrawlModulesPyOnly\" />
+    <Folder Include="CrawlModulesPG\" />
     <Folder Include="Temp\" />
     <Folder Include="Test\" />
   </ItemGroup>

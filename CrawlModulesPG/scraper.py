@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import const
-import crawler
-import exceptions
+import CrawlModulesPG.const as const
+import CrawlModulesPG.crawler as crawler
+import CrawlModulesPG.exceptions as exceptions
 
 import re
 from html.parser import HTMLParser  
@@ -26,7 +26,8 @@ class StrToDate:
         'dd mmm в hh:mm' : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') в (?P<hour>\d\d?):(?P<minute>\d\d)', #15 янв в 10:40
         'dd mmm yyyy'    : '(?P<day>\d\d?) (?P<monthshort>'+MONTHSHORTSs+') (?P<year>\d\d\d\d)',                 #15 янв 2019
         'сегодня в hh:mm': '(?P<day>сегодня) в (?P<hour>\d\d?):(?P<minute>\d\d)',                                #сегодня в 10:40
-        'вчера в hh:mm'  : '(?P<day>вчера) в (?P<hour>\d\d?):(?P<minute>\d\d)'                                   #вчера в 10:40
+        'вчера в hh:mm'  : '(?P<day>вчера) в (?P<hour>\d\d?):(?P<minute>\d\d)',                                  #вчера в 10:40
+        '%Y-%m-%d %H:%M:%S+.*': '(?P<year>\d\d\d\d?)-(?P<month>\d\d?)-(?P<day>\d\d?) (?P<hour>\d\d?):(?P<minute>\d\d?):(?P<second>\d\d?)' #2020-12-05 07:58:11+03
         }
 
     def __init__(self, re_patterns = '', url = '', msg_func = None, str_date_format = ''):
@@ -94,6 +95,8 @@ class StrToDate:
 
         if type_res == 'S,D':
             return _res_date_in_str, _res_date_in_datetime
+        elif type_res == 'D':
+            return _res_date_in_datetime
         else:
             return _res_date_in_str
 

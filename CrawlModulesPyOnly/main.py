@@ -2,49 +2,48 @@ import time
 import datetime
 import json
 
-import vk
+import CrawlModulesPG.vk as vk
 
-import pg_interface
-import const
-import crawler
-import scraper
-import exceptions
+import CrawlModulesPG.pginterface as pginterface
+import CrawlModulesPG.const as const
+import CrawlModulesPG.crawler as crawler
+import CrawlModulesPG.scraper as scraper
+import CrawlModulesPG.exceptions as exceptions
 
-from glob_vars import glob_vars
-if const.PY_ENVIRONMENT: GD = None
-gvars = glob_vars(GD)
+from CrawlModulesPG.globvars import GlobVars
+if const.PY_ENVIRONMENT: 
+    GD = None
+else: 
+    GD = {}
+gvars = GlobVars(GD)
 
-
-def get_psw_vk_mtyurin():
-    
-    with open('C:\Temp\mypswvk.txt', 'r') as f:
-        psw = f.read()
-
-    return 'Bey'+psw+'00'
 
 if const.PY_ENVIRONMENT:
-    import plpyemul
-
-    def get_psw_db_mtyurin():
-        with open('C:\Temp\mypsw.txt', 'r') as f:
-            psw = f.read()
-        return 'Fdt'+psw+'00'
+    import CrawlModulesPyOnly.plpyemul as plpyemul
+    import CrawlModulesPyOnly.self_psw as self_psw
 
     cassandra_db_conn_par = {
         'database': 'cassandra_new', 
         'host'   : '192.168.60.46', 
         'port': '5432', 
         'user': 'm.tyurin', 
-        'password': get_psw_db_mtyurin()
+        'password': self_psw.get_psw_db_mtyurin()
     }
     plpy = plpyemul.PlPy(**cassandra_db_conn_par)
+#else:
+#    try: 
+#        plpy = None  #otherwise an error occurs: using the plpy before assignment
+#    except:
+#        pass
+
 
 
 
 def vk_crawl_groups(id_project):
 
+    import CrawlModulesPyOnly.self_psw as self_psw
     vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
-                         password = get_psw_vk_mtyurin(), 
+                         password = self_psw.get_psw_vk_mtyurin(), 
                          base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
                          id_project = id_project
@@ -70,7 +69,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   attempts_counter = 0, 
                   subscribers_only = False, 
                   id_post = '',
-                  critical_error_counter = {}
+                  critical_error_counter = {'counter': 0}
                   ):
 
     if id_queue != None:
@@ -83,20 +82,23 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                                 id_project, 
                                                 sn_id = id_group, 
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
-                                                recrawl_days_reply = project_params['recrawl_days_reply'])
+                                                recrawl_days_reply = project_params['recrawl_days_reply'],
+                                                plpy = plpy)
 
-    need_stop_cheker = pg_interface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
 
     wall_processed = False
 
     id_group_str = str(id_group)
+
     dt_start = scraper.date_now_str()
 
     vk_crawler = vk.CrawlerVkWall(msg_func = plpy.notice, 
                                   subscribers_only = subscribers_only, 
                                   date_deep = project_params['date_deep'], 
                                   sn_recrawler_checker = sn_recrawler_checker,
-                                  need_stop_cheker = need_stop_cheker
+                                  need_stop_cheker = need_stop_cheker,
+                                  write_file_func = write_debug_file 
                                   )
     vk_crawler._cw_set_debug_mode(turn_on = True, debug_post_filter = id_post)
 
@@ -153,8 +155,6 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
-                plpy.notice(res_unit['err_type'])
-                plpy.notice(res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -257,17 +257,32 @@ def clear_tables_by_project(id_project):
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
         cass_db.clear_table_by_project(t, id_project)
 
-
+def write_debug_file(msg):
+    #print(msg)
+    pass
 
 
 #########################################
 
 ID_TEST_PROJECT = 7
 
-cass_db = pg_interface.MainDB(plpy, GD)
+cass_db = pginterface.MainDB(plpy, GD)
 
 #--0-- debug
-#vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
+
+#from bs4 import BeautifulSoup
+#import re
+#debug_file = open(r"C:\Work\Python\CasCrawl37\Test\tst.txt", encoding='utf-8')
+#msg = debug_file.read()
+#debug_file.close()
+#_cw_soup = BeautifulSoup(msg, "html.parser")
+#res = _cw_soup.findAll(re.compile('.*'), { 'aria-label' : re.compile('(Подписчики)|(Участники)') })
+#plpy.notice(str(res[0]))
+#f=1
+#import bs4
+#plpy.notice('Version BS4 = '+bs4.__version__)
+
+vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
 
 #--0-- clear
@@ -287,7 +302,7 @@ cass_db = pg_interface.MainDB(plpy, GD)
 #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
 #cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
 #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
-vk_crawling(ID_TEST_PROJECT)
+#vk_crawling(ID_TEST_PROJECT)
 
 
 #vk_crawl_wall(5, 52233236, subscribers_only = True)

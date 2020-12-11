@@ -3,7 +3,7 @@
 from datetime import datetime
 
 try: 
-    import plpyemul  #this library is not in PG
+    import CrawlModulesPyOnly.plpyemul  as plpyemul #this library is not in PG
 except:
     PG_ENVIRONMENT = True
     PY_ENVIRONMENT = False

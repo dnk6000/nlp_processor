@@ -6,11 +6,11 @@
 VK_SOURCE_ID - id VK in table www_sources
 '''
 
-import const
+import CrawlModulesPG.const as const
 
 GDpy = dict()
 
-class glob_vars:
+class GlobVars:
     def __init__(self, GD):
         if GD == None:
             self.GD = GDpy

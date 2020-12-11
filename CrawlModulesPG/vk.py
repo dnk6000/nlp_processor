@@ -18,10 +18,10 @@ import vk_requests.exceptions
 from bs4 import BeautifulSoup
 
 #internal modules
-import crawler
-import scraper
-import exceptions
-import const
+import CrawlModulesPG.crawler as crawler
+import CrawlModulesPG.scraper as scraper
+import CrawlModulesPG.exceptions as exceptions
+import CrawlModulesPG.const as const
 
 #import asyncio
 #from pyppeteer import launch
@@ -44,7 +44,8 @@ class CrawlerSocialNet:
                  warning_func = None,
                  add_db_func = None, 
                  id_project = 0,
-                 crawl_method = 'api'
+                 crawl_method = 'api',
+                 **kwargs
                  ):
         """
         crawl_method = 'api' / 'browse'
@@ -100,6 +101,10 @@ class CrawlerSocialNet:
         self.api_limit_res = 1000       # максимум записей возвращаемых API
 
         self.id_cash = []
+
+        self._re_any_chars = re.compile('.*')
+
+
 
     def msg(self, message):
 
@@ -372,7 +377,7 @@ class CrawlerVkGroups(CrawlerVk):
         soup = BeautifulSoup(htmltxt, "html.parser")
 
         articleBodyTag     = 'groups_row search_row clear_fix'
-        tagsArticleBody     = soup.findAll('', { 'class' : re.compile(articleBodyTag) })
+        tagsArticleBody     = soup.findAll(self._re_any_chars, { 'class' : re.compile(articleBodyTag) })
         for tagBody in tagsArticleBody:
             
             self.count += 1
@@ -387,7 +392,7 @@ class CrawlerVkGroups(CrawlerVk):
                                      'is_closed' : 0
                                    })
 
-            tagLabeled = tagBody.findAll('', { 'class' : 'labeled ' })
+            tagLabeled = tagBody.findAll(self._re_any_chars, { 'class' : 'labeled ' })
             for tagLab in tagLabeled:
                 self.msg(tagLab.content)
 
@@ -401,7 +406,7 @@ class CrawlerVkGroups(CrawlerVk):
         soup = BeautifulSoup(htmltxt, "html.parser")
 
         articleBodyTag     = 'groups_row search_row clear_fix'
-        tagsArticleBody     = soup.findAll('', { 'class' : re.compile(articleBodyTag) })
+        tagsArticleBody     = soup.findAll(self._re_any_chars, { 'class' : re.compile(articleBodyTag) })
         for tagBody in tagsArticleBody:
             
             self.count += 1
@@ -505,10 +510,11 @@ class CrawlerVkGroups(CrawlerVk):
 
 
 class SnRecrawlerCheker:
-    def __init__(self, cass_db = None, id_www_sources = None, id_project = None, sn_id = None, recrawl_days_post = None, recrawl_days_reply = None):
+    def __init__(self, cass_db = None, id_www_sources = None, id_project = None, sn_id = None, recrawl_days_post = None, recrawl_days_reply = None, plpy = None):
         self.post_reply_dates = dict()
         self.group_upd_date = const.EMPTY_DATE
         self.group_last_date = const.EMPTY_DATE  #last activity date
+        self.str_to_date = scraper.StrToDate('%Y-%m-%d %H:%M:%S+.*')
 
         if cass_db != None:
             res = cass_db.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
@@ -517,14 +523,22 @@ class SnRecrawlerCheker:
 
             for i in res:
                 _post_id = i['sn_post_id']
+                _upd_date = self._get_date(i['upd_date'])
                 if _post_id == '':
-                    self.group_upd_date = i['upd_date']
-                    self.group_last_date = i['last_date']
+                    self.group_upd_date = _upd_date
+                    self.group_last_date = self._get_date(i['last_date'])
                 else:
-                    if i['upd_date'] == None:
-                        self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
-                    else:
-                        self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['upd_date'], 'wait_date': i['upd_date'] - _td }
+                    #if _upd_date == None or _upd_date == const.EMPTY_DATE:
+                    #    plpy.notice('333333333333333');
+                    #    self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
+                    #else:
+                    self.post_reply_dates[i['sn_post_id']] = { 'upd_date': _upd_date, 'wait_date': _upd_date - _td }
+
+    def _get_date(self, dt):
+        if type(dt) == str:
+            return self.str_to_date.get_date(dt, type_res = 'D')
+        else:
+            return dt
 
     def is_crawled_post(self, dt):
         '''is post already crawled ? True / False '''
@@ -592,6 +606,11 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_need_stop_checker = need_stop_cheker
 
         self._cw_set_debug_mode(turn_on = False)
+
+        if 'write_file_func' in kwargs:
+            self._write_file_func = kwargs['write_file_func']
+        else:
+            self._write_file_func = None
 
     def _cw_define_tags(self):
 
@@ -721,6 +740,8 @@ class CrawlerVkWall(CrawlerVk):
                     self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_GET, self._cw_get_post_repr())
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
+        self._write_debug_file(d.text)
+
         if not self._is_good_status_code(d.status_code, get_url = self._cw_url, stop_if_broken = True):
             self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 
                                             'sn_id': self._cw_group_id,  
@@ -732,9 +753,20 @@ class CrawlerVkWall(CrawlerVk):
             return
 
         self._cw_soup = BeautifulSoup(d.text, "html.parser")
+
+        #DEBUG
+        #debug_file = open(r"C:\Work\Python\CasCrawl37\Test\tst.txt", encoding='utf-8')
+        #msg = debug_file.read()
+        #debug_file.close()
+        #self._cw_soup = BeautifulSoup(msg, "html.parser")
+        #DEBUG
+
+
         if not self._cw_subscribers_only:
             self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!! d.content ??
-            
+        
+        self.msg('111111111111')
+
         #is group found ?
         self._cw_signs_count = 0
         self._cw_tg_NotFound.scan(self._cw_soup, {})
@@ -748,8 +780,14 @@ class CrawlerVkWall(CrawlerVk):
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
 
+        self.msg('2222222222222222')
+
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup, {})
+        
+        #DEBUG
+        self.msg(str(self._cw_scrape_result[1]))
+        #DEBUG
 
         if self._cw_subscribers_only:
             self._cw_scrape_result.append( {
@@ -760,6 +798,7 @@ class CrawlerVkWall(CrawlerVk):
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
 
+        self.msg('33333333333333')
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup, {})
 
@@ -976,9 +1015,9 @@ class CrawlerVkWall(CrawlerVk):
         if soup == None: return None, par
 
         if kwargs['multi']:
-            res = soup.findAll('', kwargs['tag_key'])
+            res = soup.findAll(self._re_any_chars, kwargs['tag_key'])
         else:
-            res = soup.find('', kwargs['tag_key'])
+            res = soup.find(self._re_any_chars, kwargs['tag_key'])
             
         return res, par
 
@@ -1021,7 +1060,7 @@ class CrawlerVkWall(CrawlerVk):
 
 
     def _cw_scrap_fixed_area(self, result, par, **kwargs):
-        if result == None: return None
+        if result == None: return None, par
 
         if kwargs['mode'] == 'all fixed area':
             return result, par
@@ -1094,6 +1133,7 @@ class CrawlerVkWall(CrawlerVk):
                 _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
                 
                 #if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
+                self.msg('88888888888888 1111 '+str(_dt_in_dt))
                 if self._cw_check_date_deep(_dt_in_dt) or self._sn_recrawler_checker.is_crawled_post(_dt_in_dt):
                     self._stop_post_scraping = not par['is_fixed_post'] #non stop for fixed posts
                     return None, par
@@ -1177,6 +1217,7 @@ class CrawlerVkWall(CrawlerVk):
                 self.msg(crawler.remove_empty_symbols(result.text))
                 self.msg('\n       --.....----------------------------------.....-----------\n')
 
+            self.msg('88888888888888 22222 '+str(_dt_in_dt))
             if self._cw_check_date_deep(_dt_in_dt):
                 if _type_reply == 'REPLY':
                     self._stop_repl_scraping = True
@@ -1240,6 +1281,9 @@ class CrawlerVkWall(CrawlerVk):
         return result, par
 
     def _cw_scrap_subscribers(self, result, par, **kwargs):
+        self.msg('111111 SUBSCR 111111111')
+        self.msg(str(result))
+
         if result == None: return None, par
         
         if kwargs['mode'] == '-':
@@ -1365,4 +1409,8 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_need_stop_checker.need_stop()
 
 
-
+    def _write_debug_file(self, data):
+        if self._write_file_func == None:
+            self.msg(str(data))
+        else:
+            self._write_file_func(str(data))
