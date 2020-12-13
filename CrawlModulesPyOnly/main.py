@@ -9,6 +9,7 @@ import CrawlModulesPG.const as const
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.exceptions as exceptions
+import CrawlModulesPG.date as date
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
@@ -73,7 +74,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   ):
 
     if id_queue != None:
-        res = cass_db.queue_update(id_queue, date_start_process = scraper.date_now_str())
+        res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
         if not res[0]['Success']:
             cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
@@ -91,7 +92,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     id_group_str = str(id_group)
 
-    dt_start = scraper.date_now_str()
+    dt_start = date.date_now_str()
 
     vk_crawler = vk.CrawlerVkWall(msg_func = plpy.notice, 
                                   subscribers_only = subscribers_only, 
@@ -161,7 +162,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 if id_queue != None:
                     attempts_counter += 1
                     date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
-                    res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = scraper.date_to_str(date_deferred))
+                    res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
                     if not res[0]['Success']:
                         cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
 
@@ -176,7 +177,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 cass_db.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
                 
     if id_queue != None:
-        res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = scraper.date_now_str())
+        res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = date.date_now_str())
         if not res[0]['Success']:
             cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 

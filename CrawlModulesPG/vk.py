@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import re
 import sys
 import datetime
@@ -22,6 +24,7 @@ import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.exceptions as exceptions
 import CrawlModulesPG.const as const
+import CrawlModulesPG.date as date
 
 #import asyncio
 #from pyppeteer import launch
@@ -514,7 +517,7 @@ class SnRecrawlerCheker:
         self.post_reply_dates = dict()
         self.group_upd_date = const.EMPTY_DATE
         self.group_last_date = const.EMPTY_DATE  #last activity date
-        self.str_to_date = scraper.StrToDate('%Y-%m-%d %H:%M:%S+.*')
+        self.str_to_date = date.StrToDate('%Y-%m-%d %H:%M:%S+.*')
 
         if cass_db != None:
             res = cass_db.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
@@ -529,7 +532,6 @@ class SnRecrawlerCheker:
                     self.group_last_date = self._get_date(i['last_date'])
                 else:
                     #if _upd_date == None or _upd_date == const.EMPTY_DATE:
-                    #    plpy.notice('333333333333333');
                     #    self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
                     #else:
                     self.post_reply_dates[i['sn_post_id']] = { 'upd_date': _upd_date, 'wait_date': _upd_date - _td }
@@ -596,7 +598,7 @@ class CrawlerVkWall(CrawlerVk):
                     'wall_start_from': '',
                     }  
 
-        self._str_to_date = scraper.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm', 'вчера в hh:mm'], url = self.url, msg_func = self.msg_func)
+        self._str_to_date = date.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm', 'вчера в hh:mm'], url = self.url, msg_func = self.msg_func)
 
         if sn_recrawler_checker == None:
             self._sn_recrawler_checker = SnRecrawlerCheker() 
@@ -765,8 +767,6 @@ class CrawlerVkWall(CrawlerVk):
         if not self._cw_subscribers_only:
             self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_HTML, 'url': self._cw_url, 'content': d.text } ) #!!!!!!!!!!!! d.content ??
         
-        self.msg('111111111111')
-
         #is group found ?
         self._cw_signs_count = 0
         self._cw_tg_NotFound.scan(self._cw_soup, {})
@@ -774,13 +774,11 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_scrape_result.clear()
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'datetime': date.date_to_str(datetime.datetime.now()),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
-
-        self.msg('2222222222222222')
 
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup, {})
@@ -792,13 +790,12 @@ class CrawlerVkWall(CrawlerVk):
         if self._cw_subscribers_only:
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS if self._cw_num_subscribers > 0 else const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND, 
-                'datetime': scraper.date_to_str(datetime.datetime.now()),
+                'datetime': date.date_to_str(datetime.datetime.now()),
                 'event_description': self._cw_get_post_repr()
                 } )
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
 
-        self.msg('33333333333333')
         #get fixed posts
         self._cw_tg_FixedArea.scan(self._cw_soup, {})
 
@@ -841,7 +838,7 @@ class CrawlerVkWall(CrawlerVk):
 
         self._cw_scrape_result.append( {
             'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS, 
-            'datetime': scraper.date_to_str(datetime.datetime.now()),
+            'datetime': date.date_to_str(datetime.datetime.now()),
             'event_description': self._cw_get_post_repr()
             } )
         yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
@@ -1133,7 +1130,6 @@ class CrawlerVkWall(CrawlerVk):
                 _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
                 
                 #if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
-                self.msg('88888888888888 1111 '+str(_dt_in_dt))
                 if self._cw_check_date_deep(_dt_in_dt) or self._sn_recrawler_checker.is_crawled_post(_dt_in_dt):
                     self._stop_post_scraping = not par['is_fixed_post'] #non stop for fixed posts
                     return None, par
@@ -1217,7 +1213,6 @@ class CrawlerVkWall(CrawlerVk):
                 self.msg(crawler.remove_empty_symbols(result.text))
                 self.msg('\n       --.....----------------------------------.....-----------\n')
 
-            self.msg('88888888888888 22222 '+str(_dt_in_dt))
             if self._cw_check_date_deep(_dt_in_dt):
                 if _type_reply == 'REPLY':
                     self._stop_repl_scraping = True
@@ -1281,7 +1276,6 @@ class CrawlerVkWall(CrawlerVk):
         return result, par
 
     def _cw_scrap_subscribers(self, result, par, **kwargs):
-        self.msg('111111 SUBSCR 111111111')
         self.msg(str(result))
 
         if result == None: return None, par
@@ -1306,7 +1300,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now())
+            'datetime': date.date_to_str(datetime.datetime.now())
             })
         
         if not err_type in self._cw_noncritical_error_counter:
@@ -1319,7 +1313,7 @@ class CrawlerVkWall(CrawlerVk):
             'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
             'err_type': err_type,
             'err_description': description,
-            'datetime': scraper.date_to_str(datetime.datetime.now()),
+            'datetime': date.date_to_str(datetime.datetime.now()),
             'stop_process': stop_process
             })
 
@@ -1329,7 +1323,7 @@ class CrawlerVkWall(CrawlerVk):
              **{
                 'result_type': const.CW_RESULT_TYPE_WARNING,
                 'event_description': description,
-                'datetime': scraper.date_to_str(datetime.datetime.now())
+                'datetime': date.date_to_str(datetime.datetime.now())
                 }, 
              **ext_dict 
             } )
@@ -1363,7 +1357,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_scrape_result.append({
                 'result_type': const.CW_RESULT_TYPE_DT_POST_ACTIVITY,
                 'post_id': post_id,
-                'dt': scraper.date_to_str(self._cw_last_dates_activity[post_id])
+                'dt': date.date_to_str(self._cw_last_dates_activity[post_id])
                 })
         
         self._cw_last_dates_activity = {} #after transfer to result clear dict
@@ -1373,7 +1367,7 @@ class CrawlerVkWall(CrawlerVk):
             self._cw_group_prev_last_date_activity = self._cw_group_last_date_activity
             self._cw_scrape_result.append({
                 'result_type': const.CW_RESULT_TYPE_DT_GROUP_ACTIVITY,
-                'dt': scraper.date_to_str(self._cw_group_last_date_activity)
+                'dt': date.date_to_str(self._cw_group_last_date_activity)
                 })
 
     def _cw_check_date_deep(self, dt):

@@ -1,5 +1,6 @@
 import CrawlModulesPG.const as const
 import CrawlModulesPG.exceptions as exceptions
+import CrawlModulesPG.date as date
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
@@ -203,7 +204,7 @@ class MainDB:
                 ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
-        return convert_select_result(res)
+        return convert_select_result(res, ['last_date', 'upd_date'])
 
     def get_project_params(self, id_project):
         plan_id = 'plan_get_project_params'
@@ -215,7 +216,7 @@ class MainDB:
                 ["dmn.git_pk"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_project])
-        return convert_select_result(res)
+        return convert_select_result(res, ['date_deep'])
 
     def need_stop_func(self, func_name, id_project):
         plan_id = 'plan_need_stop_func'
@@ -273,12 +274,19 @@ class NeedStopChecker:
         if res[0]['result']:
             raise exceptions.UserInterruptByDB()
 
-def convert_select_result(res, num_fields = 1):
-    '''in pgree environment need another processing!
-    '''
-    if num_fields == 1:
-        #return [row[0] for row in res]
-        return res
+def convert_select_result(res, str_to_date_conv_fields = []):
+
+    #plpy in PG return date fields in str format, therefore, a conversion is required
+    if const.PG_ENVIRONMENT and len(str_to_date_conv_fields) > 0:
+
+        converter = date.StrToDate('%Y-%m-%d %H:%M:%S+.*')
+
+        for field in str_to_date_conv_fields:
+            for row in res:
+                row[field] = converter.get_date(row[field], type_res = 'D')
+                
+    #return [row[0] for row in res]
+    return res
         
 
 if __name__ == "__main__":

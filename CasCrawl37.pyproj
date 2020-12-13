@@ -28,6 +28,9 @@
     <Compile Include="CrawlModulesPG\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CrawlModulesPG\date.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CrawlModulesPyOnly\main.py">
       <SubType>Code</SubType>
     </Compile>
