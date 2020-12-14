@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import os
 import sys
 import datetime
 import time
@@ -55,9 +56,10 @@ class CrawlerSocialNet:
 
         self.id_project = id_project
 
-        self.login     = '' if 'login' in vk_account else vk_account['login']
-        self.password  = '' if 'password' in vk_account else vk_account['password']
-        self.app_id    = '' if 'app_id' in vk_account else vk_account['app_id']
+        self.login     = '' if not 'login' in vk_account else vk_account['login']
+        self.password  = '' if not 'password' in vk_account else vk_account['password']
+        self.app_id    = '' if not 'app_id' in vk_account else vk_account['app_id']
+        self.token_file_name = const.TOKEN_FOLDER + 'vk_app_'+self.app_id+'.txt'
 
         self.request_tries = 3 #number of repeats requests in case of an error
 
@@ -81,8 +83,6 @@ class CrawlerSocialNet:
                                }]
 
         self.crawl_method = crawl_method
-
-        self.local_service_folder = 'C:\\Temp\\'
 
         #russian sequence to iterate
         ia = ord('а')
@@ -278,20 +278,27 @@ class CrawlerVk(CrawlerSocialNet):
         self.api_available = self.login != ''
 
         if self.api_available:
-            with open(self.local_service_folder + 'vktoken.txt', 'r') as f:
-                self.service_token = f.read()
+            if os.path.isfile(self.token_file_name):
+                _need_new_token = False
+                with open(self.token_file_name, 'r') as f:
+                    self.service_token = f.read()
 
-            try:
-                self.api = vk_requests.create_api(service_token = self.service_token)
-                cities = self.api.database.getCities(country_id = 1, region_id = 1067455)
-            except vk_requests.exceptions.VkAPIError:
+                try:
+                    self.api = vk_requests.create_api(service_token = self.service_token)
+                    cities = self.api.database.getCities(country_id = 1, region_id = 1067455)
+                except vk_requests.exceptions.VkAPIError:
+                    _need_new_token = True
+                #except Exception as e:
+                #    self.msg(e)
+            else:
+                _need_new_token = True
+
+            if _need_new_token:
                 if self.get_vk_service_token():
                     self.api = vk_requests.create_api(service_token = self.service_token)
                 else:
                     self.msg('Ошибка получения нового токена VK !')
                     raise 'Getting token error'
-        #except Exception as e:
-        #    self.msg(e)
         pass
 
     def _get_vk_session(self):
@@ -343,7 +350,7 @@ class CrawlerVk(CrawlerSocialNet):
         if match:
             self.service_token = req.url[match.start()+14 : match.end()-11]
 
-            with open(self.local_service_folder + 'vktoken.txt', 'w') as f:
+            with open(self.token_file_name, 'w') as f:
                 psw = f.write(self.service_token)
 
             return True

@@ -8,9 +8,9 @@ VK_ACCOUNT = [
      }
     ]
 
-'login': '89273824101', 
-'password': self_psw.get_psw_vk_mtyurin(),
-'app_id': ''
+#'login': '89273824101', 
+#'password': self_psw.get_psw_vk_mtyurin(),
+#'app_id': '7467601'
 
 
 '''

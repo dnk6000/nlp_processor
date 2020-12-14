@@ -52,3 +52,8 @@ EMPTY_DATE = datetime(1,1,1)
 
 SN_GROUP_MARK = 'G'
 SN_USER_MARK = 'U'
+
+if PG_ENVIRONMENT:
+    TOKEN_FOLDER = '/opt2/pgpython/modules/Tokens/'
+else:
+    TOKEN_FOLDER = 'C:\\Temp\\'
