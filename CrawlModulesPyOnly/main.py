@@ -10,6 +10,7 @@ import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.exceptions as exceptions
 import CrawlModulesPG.date as date
+import CrawlModulesPG.accounts as accounts
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
@@ -43,12 +44,17 @@ if const.PY_ENVIRONMENT:
 def vk_crawl_groups(id_project):
 
     import CrawlModulesPyOnly.self_psw as self_psw
-    vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
-                         password = self_psw.get_psw_vk_mtyurin(), 
+    #vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
+    #                     password = self_psw.get_psw_vk_mtyurin(), 
+    #                     base_search_words = ['Челябинск'], 
+    #                     msg_func = plpy.notice, 
+    #                     id_project = id_project
+    #                     )
+    vk_crawler = vk.CrawlerVkGroups(vk_account = accounts.VK_ACCOUNT[0], 
                          base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
                          id_project = id_project
-                         )
+                         )    
     select_result = cass_db.select_groups_id(id_project)
     vk_crawler.id_cash = list(i['account_id'] for i in select_result)
 
@@ -265,33 +271,21 @@ def write_debug_file(msg):
 
 #########################################
 
-ID_TEST_PROJECT = 7
+ID_TEST_PROJECT = 8
 
 cass_db = pginterface.MainDB(plpy, GD)
 
 #--0-- debug
-
-#from bs4 import BeautifulSoup
-#import re
-#debug_file = open(r"C:\Work\Python\CasCrawl37\Test\tst.txt", encoding='utf-8')
-#msg = debug_file.read()
-#debug_file.close()
-#_cw_soup = BeautifulSoup(msg, "html.parser")
-#res = _cw_soup.findAll(re.compile('.*'), { 'aria-label' : re.compile('(Подписчики)|(Участники)') })
-#plpy.notice(str(res[0]))
-#f=1
-#import bs4
-#plpy.notice('Version BS4 = '+bs4.__version__)
-
-vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
+#vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
 
 #--0-- clear
 #for i in range(1,20):
 #    clear_tables_by_project(i)
+#clear_tables_by_project(ID_TEST_PROJECT)
 
 #--1--
-#vk_crawl_groups(ID_TEST_PROJECT)
+vk_crawl_groups(ID_TEST_PROJECT)
 
 #--2--
 #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));

@@ -40,8 +40,7 @@ class hierarchy:
 class CrawlerSocialNet:
 
     def __init__(self, 
-                 login = '', 
-                 password = '', 
+                 vk_account = {}, 
                  base_search_words = None, 
                  msg_func = None,
                  warning_func = None,
@@ -56,8 +55,9 @@ class CrawlerSocialNet:
 
         self.id_project = id_project
 
-        self.login = login
-        self.password = password
+        self.login     = '' if 'login' in vk_account else vk_account['login']
+        self.password  = '' if 'password' in vk_account else vk_account['password']
+        self.app_id    = '' if 'app_id' in vk_account else vk_account['app_id']
 
         self.request_tries = 3 #number of repeats requests in case of an error
 
@@ -329,7 +329,7 @@ class CrawlerVk(CrawlerSocialNet):
         #self.msg('onLoginDone' in response.text)
 
 
-        token_params = {'client_id': '7467601', 
+        token_params = {'client_id': self.app_id, 
                   'display': 'page', 
                   'redirect_uri': 'https://oauth.vk.com/blank.html',
                   'scope': 'wall',
