@@ -53,6 +53,7 @@ class MainDB:
                                 ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [sn_network, sn_id, num_subscribers, is_broken, broken_status_code])
+        self.plpy.commit()
 
     def upsert_data_text(self, id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
                                 sn_id = None, sn_post_id = None, sn_post_parent_id = None, **kwargs):
@@ -65,7 +66,8 @@ class MainDB:
             res = self._execute(plan_id, [id_data_html, id_project, id_www_sources, content, content_header, content_date,
                                                 sn_id, sn_post_id, sn_post_parent_id], id_project)
 
-            return None if res == None else res[0]
+        self.plpy.commit()
+        return None if res == None else res[0]
 
     def upsert_data_html(self, url, content, id_project, id_www_sources, **kwargs):
         plan_id = 'plan_upsert_data_html'
@@ -76,7 +78,8 @@ class MainDB:
 
             res = self._execute(plan_id,[url, content, id_project, id_www_sources], id_project)
 
-            return None if res == None else res[0]
+        self.plpy.commit()
+        return None if res == None else res[0]
 
     def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers = None):
@@ -88,7 +91,8 @@ class MainDB:
 
             res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
                                  account_screen_name, account_closed, num_subscribers])
-            return res[0]
+        self.plpy.commit()
+        return None if res == None else res[0]
 
     def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date):
         plan_id = 'plan_upsert_sn_activity'
@@ -99,6 +103,7 @@ class MainDB:
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [id_source, id_project, sn_id, sn_post_id, last_date, upd_date])
+        self.plpy.commit()
 
     def get_www_source_id(self, www_source_name):
         ''' result syntax: res[0]['get_www_sources_id'] '''
@@ -155,6 +160,7 @@ class MainDB:
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [record_type, id_project, None, None, description])
+        self.plpy.commit()
 
     def queue_generate(self, id_www_source, id_project):
         plan_id = 'plan_queue_generate'
@@ -165,6 +171,7 @@ class MainDB:
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project])
+        self.plpy.commit()
         return res
 
     def queue_update(self, id_queue, is_process = None, date_start_process = None, date_end_process = None, 
@@ -177,6 +184,7 @@ class MainDB:
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter])
+        self.plpy.commit()
         return res
     
     def queue_select(self, id_www_source, id_project, number_records = 10):
@@ -193,6 +201,7 @@ class MainDB:
         with self.plpy.subtransaction():
             pg_func = 'delete from {} where id_project = {};'.format(table_name, id_project)
             self.plpy.execute(pg_func)
+        self.plpy.commit()
     
     def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post):
         plan_id = 'plan_get_sn_activity'
@@ -217,6 +226,17 @@ class MainDB:
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_project])
         return convert_select_result(res, ['date_deep'])
+
+    def create_project(self, id_project, name = '', full_name = '', date_deep = const.EMPTY_DATE, recrawl_days_post = 0, recrawl_days_reply = 0):
+        plan_id = 'plan_create_project'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git000_cfg.create_project($1, $2, $3, $4, $5, $6)
+                ''', 
+                ["dmn.git_pk", "dmn.git_string", "dmn.git_string", "dmn.git_datetime", "dmn.git_integer", "dmn.git_integer" ])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_project, name, full_name, date_deep, recrawl_days_post, recrawl_days_reply])
+        self.plpy.commit()
 
     def need_stop_func(self, func_name, id_project):
         plan_id = 'plan_need_stop_func'

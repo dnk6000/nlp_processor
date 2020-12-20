@@ -48,6 +48,7 @@ class CrawlerSocialNet:
                  add_db_func = None, 
                  id_project = 0,
                  crawl_method = 'api',
+                 need_stop_cheker = None,
                  **kwargs
                  ):
         """
@@ -106,6 +107,8 @@ class CrawlerSocialNet:
         self.id_cash = []
 
         self._re_any_chars = re.compile('.*')
+
+        self._cw_need_stop_checker = need_stop_cheker
 
 
 
@@ -180,13 +183,36 @@ class CrawlerSocialNet:
 
         while len(self.search_list) > 0:
             search_elem = self.search_list.pop(0)
-            #self._crawl_groups(search_elem)
-            for res in self._crawl_groups(search_elem):
-                yield res_for_pg.get_json_result(res)
+
+            _request_attempt = self.request_tries
+            while _request_attempt > 0:
+                _request_attempt -= 1
+                try:
+                    self._check_user_interrupt()
+                    for res in self._crawl_groups(search_elem):
+                        res_dict = {'result_type': const.CG_RESULT_TYPE_GROUPS_LIST, 'groups_list': res }
+                        yield res_for_pg.get_json_result(res_dict)
+                    break
+                except exceptions.UserInterruptByDB as e:
+                    _request_attempt = -1
+                    _descr = exceptions.get_err_description(e, search_elem = search_elem)
+                    yield res_for_pg.get_json_result(self._get_result_critical_error(str(e), _descr, stop_process = True))
+                except requests.ReadTimeout as e:
+                    if _request_attempt == 0:
+                        _request_attempt = -1
+                    _descr = exceptions.get_err_description(e, search_elem = search_elem)
+                    if _request_attempt > 0:
+                        yield res_for_pg.get_json_result(self._get_result_noncritical_error(const.ERROR_REQUEST_READ_TIMEOUT, _descr))
+                    else:
+                        yield res_for_pg.get_json_result(self._get_result_critical_error(str(e), _descr))
+                except Exception as e:
+                    if _request_attempt == 0:
+                        _request_attempt = -1
+                    _descr = exceptions.get_err_description(e, search_elem = search_elem)
+                    yield res_for_pg.get_json_result(self._get_result_critical_error(str(e), _descr))
             
-        #for base_word in self.gen_base_search_words():
-        #    for seq_num in [0,1]:
-        #        self._crawl_groups(base_word, seq_num)
+            if _request_attempt < 0: #break crawling
+                return
 
     def _crawl_groups(self, search_elem):
         
@@ -239,10 +265,10 @@ class CrawlerSocialNet:
         numelem = len(groups_list)
 
         for i in range(numelem-1,-1,-1):
-            if groups_list[i]['id'] in self.id_cash:
+            if str(groups_list[i]['id']) in self.id_cash:
                 groups_list.pop(i)
             else:
-                self.id_cash.append(groups_list[i]['id'])
+                self.id_cash.append(str(groups_list[i]['id']))
         
         self.msg('  new groups found: '+str(len(groups_list))+' / '+str(numelem))
 
@@ -252,6 +278,29 @@ class CrawlerSocialNet:
         #new_str = old_str.replace("'", " ")
         new_str = old_str
         return new_str
+
+    def _check_user_interrupt(self):
+        if self._cw_need_stop_checker == None:
+            return False
+        self._cw_need_stop_checker.need_stop()
+
+    def _get_result_critical_error(self, err_type, description, stop_process = False):
+        return {
+            'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
+            'err_type': err_type,
+            'err_description': description,
+            'datetime': date.date_to_str(datetime.datetime.now()),
+            'stop_process': stop_process
+            }
+
+    def _get_result_noncritical_error(self, err_type, description):
+        return {
+            'result_type': const.CW_RESULT_TYPE_ERROR,
+            'err_type': err_type,
+            'err_description': description,
+            'datetime': date.date_to_str(datetime.datetime.now())
+            }
+
 
 class CrawlerVk(CrawlerSocialNet):
     def __init__(self, *args, **kwargs):
@@ -298,7 +347,7 @@ class CrawlerVk(CrawlerSocialNet):
                     self.api = vk_requests.create_api(service_token = self.service_token)
                 else:
                     self.msg('Ошибка получения нового токена VK !')
-                    raise 'Getting token error'
+                    raise exceptions.CrawlVkGetTokenError
         pass
 
     def _get_vk_session(self):
@@ -581,7 +630,6 @@ class CrawlerVkWall(CrawlerVk):
                  subscribers_only = False, 
                  date_deep = const.EMPTY_DATE, 
                  sn_recrawler_checker = None,
-                 need_stop_cheker = None,
                  **kwargs
                  ):
         
@@ -611,8 +659,6 @@ class CrawlerVkWall(CrawlerVk):
             self._sn_recrawler_checker = SnRecrawlerCheker() 
         else:
             self._sn_recrawler_checker = sn_recrawler_checker
-
-        self._cw_need_stop_checker = need_stop_cheker
 
         self._cw_set_debug_mode(turn_on = False)
 
@@ -1303,12 +1349,13 @@ class CrawlerVkWall(CrawlerVk):
         return result, par
 
     def _cw_add_to_result_noncritical_error(self, err_type, description):
-        self._cw_scrape_result.append({
-            'result_type': const.CW_RESULT_TYPE_ERROR,
-            'err_type': err_type,
-            'err_description': description,
-            'datetime': date.date_to_str(datetime.datetime.now())
-            })
+        #self._cw_scrape_result.append({
+        #    'result_type': const.CW_RESULT_TYPE_ERROR,
+        #    'err_type': err_type,
+        #    'err_description': description,
+        #    'datetime': date.date_to_str(datetime.datetime.now())
+        #    })
+        self._cw_scrape_result.append(self._get_result_noncritical_error(err_type, description))
         
         if not err_type in self._cw_noncritical_error_counter:
            self._cw_noncritical_error_counter[err_type] = 0
@@ -1316,13 +1363,14 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_noncritical_error_counter[err_type] += 1
 
     def _cw_add_to_result_critical_error(self, err_type, description, stop_process = False):
-        self._cw_scrape_result.append({
-            'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
-            'err_type': err_type,
-            'err_description': description,
-            'datetime': date.date_to_str(datetime.datetime.now()),
-            'stop_process': stop_process
-            })
+        #self._cw_scrape_result.append({
+        #    'result_type': const.CW_RESULT_TYPE_CRITICAL_ERROR,
+        #    'err_type': err_type,
+        #    'err_description': description,
+        #    'datetime': date.date_to_str(datetime.datetime.now()),
+        #    'stop_process': stop_process
+        #    })
+        self._cw_scrape_result.append(self._get_result_critical_error(err_type, description, stop_process))
 
     def _cw_add_to_result_warning(self, description, ext_dict):
         self._cw_scrape_result.append(
@@ -1403,11 +1451,6 @@ class CrawlerVkWall(CrawlerVk):
                 ext_dict = {}
             self._cw_add_to_result_warning(_descr, ext_dict)
             return False
-
-    def _check_user_interrupt(self):
-        if self._cw_need_stop_checker == None:
-            return False
-        self._cw_need_stop_checker.need_stop()
 
 
     def _write_debug_file(self, data):

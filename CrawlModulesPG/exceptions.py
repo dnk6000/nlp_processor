@@ -8,6 +8,9 @@ class CrawlerException(Exception):
 class CrawlVkError(CrawlerException):
     pass
 
+class CrawlVkGetTokenError(CrawlVkError):
+    pass
+
 
 class CrawlVkByBrowserError(CrawlVkError):
     

@@ -41,35 +41,57 @@ if const.PY_ENVIRONMENT:
 
 
 
-def vk_crawl_groups(id_project):
+def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
 
-    import CrawlModulesPyOnly.self_psw as self_psw
-    #vk_crawler = vk.CrawlerVkGroups(login = '89273824101', 
-    #                     password = self_psw.get_psw_vk_mtyurin(), 
-    #                     base_search_words = ['Челябинск'], 
-    #                     msg_func = plpy.notice, 
-    #                     id_project = id_project
-    #                     )
+    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
+
     vk_crawler = vk.CrawlerVkGroups(vk_account = accounts.VK_ACCOUNT[0], 
                          base_search_words = ['Челябинск'], 
                          msg_func = plpy.notice, 
-                         id_project = id_project
+                         id_project = id_project,
+                         need_stop_cheker = need_stop_cheker,
                          )    
     select_result = cass_db.select_groups_id(id_project)
     vk_crawler.id_cash = list(i['account_id'] for i in select_result)
 
-    for groups_list in vk_crawler.crawl_groups(): #by API
-        _groups_list = json.loads(groups_list)
+    for _res_unit in vk_crawler.crawl_groups(): #by API
+        res_unit = json.loads(_res_unit)
 
-        n = len(_groups_list)
-        c = 0
-        print('Add groups to DB: ' + str(n))
+        plpy.notice(res_unit['result_type'])
 
-        for gr in _groups_list:
-            c += 1
-            print('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
-            cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
-                             gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
+        if res_unit['result_type'] == const.CG_RESULT_TYPE_GROUPS_LIST:
+            n = len(res_unit['groups_list'])
+            c = 0
+            plpy.notice('Add groups to DB: ' + str(n))
+
+            for gr in res_unit['groups_list']:
+                c += 1
+                #plpy.notice('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
+                cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
+                                 gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
+        
+        #elif res_unit['result_type'] == const.CW_RESULT_TYPE_WARNING:
+        #    cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+        #    if 'wall_processed' in res_unit:
+        #        wall_processed = res_unit['wall_processed']
+            
+        elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
+            cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+            plpy.notice(res_unit['err_type'])
+            if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
+                plpy.notice('Request error: pause before repeating...')
+                time.sleep(2) #TODO через параметр
+                
+        elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
+            cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+            critical_error_counter['counter'] += 1
+
+            if res_unit['stop_process']:
+                raise exceptions.StopProcess()
+
+            if critical_error_counter['counter'] >= 3:
+                raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
+
 
 def vk_crawl_wall(id_project, id_group, id_queue, 
                   project_params,
@@ -111,7 +133,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     for res_list in vk_crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
-
+        return
         n = len(_res_list)
         c = 0
         plpy.notice('Add posts to DB: ' + str(n))
@@ -271,9 +293,11 @@ def write_debug_file(msg):
 
 #########################################
 
-ID_TEST_PROJECT = 8
 
 cass_db = pginterface.MainDB(plpy, GD)
+
+ID_TEST_PROJECT = 88
+cass_db.create_project(ID_TEST_PROJECT)
 
 #--0-- debug
 #vk_crawling_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
@@ -285,7 +309,7 @@ cass_db = pginterface.MainDB(plpy, GD)
 #clear_tables_by_project(ID_TEST_PROJECT)
 
 #--1--
-vk_crawl_groups(ID_TEST_PROJECT)
+#vk_crawl_groups(ID_TEST_PROJECT)
 
 #--2--
 #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
