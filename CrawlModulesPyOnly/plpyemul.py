@@ -3,6 +3,8 @@ from psycopg2.extras import RealDictCursor
 import re
 import time
 
+import CrawlModulesPG.pauser as pauser
+
 #Хранимые процедуры на Python в PostgreSQL https://tproger.ru/articles/stored-procedures-on-python-in-postgresql/
 #Миллион строк в секунду из Postgres с помощью Python https://habr.com/ru/post/317394/
 
@@ -23,8 +25,9 @@ class PlPy(object):
         self._return_var_names = {}
         self._return_select_result = {}
 
-        self._number_of_tries = 3
-        self._tries_pause = 6 #sec
+        self._number_of_tries = 5
+
+        self._pauser = pauser.ExpPauser(delay_seconds = 3.9, number_intervals = self._number_of_tries) #~15 мин
 
     def _connect(self):
         if self.connection == None:
@@ -54,18 +57,23 @@ class PlPy(object):
         successfully = False
         attempt = 0
 
-        while not successfully and attempt < self._number_of_tries:
+        while not successfully and attempt <= self._number_of_tries:
             try:
                 result = self.cursor.execute(*args, **kwargs)
                 successfully = True
             except Exception as expt:
                 attempt += 1
 
-                if attempt >= self._number_of_tries:
+                if not self._pauser.sleep():
                     raise expt
                 else:
                     print('Ошибка записи в БД !!! Попытка '+str(attempt))
-                    time.sleep(self._tries_pause)
+                #if attempt >= self._number_of_tries:
+                #    raise expt
+                #else:
+                #    print('Ошибка записи в БД !!! Попытка '+str(attempt))
+                #    time.sleep(self._tries_pause)
+                    
 
         return result
 

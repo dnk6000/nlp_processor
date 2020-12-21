@@ -139,7 +139,7 @@ class MainDB:
         self._log_write(const.CW_LOG_LEVEL_DEBUG, record_type, id_project, description)
 
     def log_info(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_INFOcord_type, id_project, description)
+        self._log_write(const.CW_LOG_LEVEL_INFO, record_type, id_project, description)
 
     def log_warn(self, record_type, id_project, description):
         self._log_write(const.CW_LOG_LEVEL_WARN, record_type, id_project, description)
@@ -225,17 +225,24 @@ class MainDB:
                 ["dmn.git_pk"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_project])
-        return convert_select_result(res, ['date_deep'])
+        return convert_select_result(res, ['date_deep'], ['requests_delay_sec'])
 
-    def create_project(self, id_project, name = '', full_name = '', date_deep = const.EMPTY_DATE, recrawl_days_post = 0, recrawl_days_reply = 0):
+    def create_project(self, 
+                       id_project, 
+                       name = '', 
+                       full_name = '', 
+                       date_deep = const.EMPTY_DATE, 
+                       recrawl_days_post = 0, 
+                       recrawl_days_reply = 0, 
+                       requests_delay_sec = 0):
         plan_id = 'plan_create_project'
         if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
-                SELECT * FROM git000_cfg.create_project($1, $2, $3, $4, $5, $6)
+                SELECT * FROM git000_cfg.create_project($1, $2, $3, $4, $5, $6, $7)
                 ''', 
-                ["dmn.git_pk", "dmn.git_string", "dmn.git_string", "dmn.git_datetime", "dmn.git_integer", "dmn.git_integer" ])
-        res = self.plpy.execute(gvars.GD[plan_id], [id_project, name, full_name, date_deep, recrawl_days_post, recrawl_days_reply])
+                ["dmn.git_pk", "dmn.git_string", "dmn.git_string", "dmn.git_datetime", "dmn.git_integer", "dmn.git_integer", "dmn.git_numeric"])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_project, name, full_name, date_deep, recrawl_days_post, recrawl_days_reply, requests_delay_sec])
         self.plpy.commit()
 
     def need_stop_func(self, func_name, id_project):
@@ -294,7 +301,7 @@ class NeedStopChecker:
         if res[0]['result']:
             raise exceptions.UserInterruptByDB()
 
-def convert_select_result(res, str_to_date_conv_fields = []):
+def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = []):
 
     #plpy in PG return date fields in str format, therefore, a conversion is required
     if const.PG_ENVIRONMENT and len(str_to_date_conv_fields) > 0:
@@ -305,6 +312,11 @@ def convert_select_result(res, str_to_date_conv_fields = []):
             for row in res:
                 row[field] = converter.get_date(row[field], type_res = 'D')
                 
+    if len(decimal_to_float_conv_fields) > 0:
+        for field in decimal_to_float_conv_fields:
+            for row in res:
+                row[field] = row[field].__float__()  #class Decimal to float
+
     #return [row[0] for row in res]
     return res
         

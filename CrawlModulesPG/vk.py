@@ -26,6 +26,7 @@ import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.exceptions as exceptions
 import CrawlModulesPG.const as const
 import CrawlModulesPG.date as date
+import CrawlModulesPG.pauser as pauser
 
 #import asyncio
 #from pyppeteer import launch
@@ -49,6 +50,8 @@ class CrawlerSocialNet:
                  id_project = 0,
                  crawl_method = 'api',
                  need_stop_cheker = None,
+                 requests_delay_sec = 2,
+                 request_error_pauser = None,
                  **kwargs
                  ):
         """
@@ -62,7 +65,10 @@ class CrawlerSocialNet:
         self.app_id    = '' if not 'app_id' in vk_account else vk_account['app_id']
         self.token_file_name = const.TOKEN_FOLDER + 'vk_app_'+self.app_id+'.txt'
 
-        self.request_tries = 3 #number of repeats requests in case of an error
+        if 'request_tries' in kwargs:
+            self.request_tries = kwargs['request_tries']
+        else:
+            self.request_tries = 6 #number of repeats requests in case of an error
 
         if base_search_words == None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
@@ -108,7 +114,10 @@ class CrawlerSocialNet:
 
         self._re_any_chars = re.compile('.*')
 
-        self._cw_need_stop_checker = need_stop_cheker
+        self._need_stop_checker = need_stop_cheker
+
+        self._requests_pauser = pauser.IntervalPauser(delay_seconds = requests_delay_sec)
+        self._request_error_pauser = request_error_pauser
 
 
 
@@ -280,9 +289,9 @@ class CrawlerSocialNet:
         return new_str
 
     def _check_user_interrupt(self):
-        if self._cw_need_stop_checker == None:
+        if self._need_stop_checker == None:
             return False
-        self._cw_need_stop_checker.need_stop()
+        self._need_stop_checker.need_stop()
 
     def _get_result_critical_error(self, err_type, description, stop_process = False):
         return {
@@ -301,6 +310,9 @@ class CrawlerSocialNet:
             'datetime': date.date_to_str(datetime.datetime.now())
             }
 
+    def reset_request_error_pauser(self):
+        if not self._request_error_pauser == None:
+            self._request_error_pauser.reset()
 
 class CrawlerVk(CrawlerSocialNet):
     def __init__(self, *args, **kwargs):
@@ -412,7 +424,7 @@ class CrawlerVkGroups(CrawlerVk):
 
     def _crawl_groups_api(self, search_elem):
 
-        time.sleep(self.api_request_pause_sec) 
+        self._requests_pauser.smart_sleep()
 
         params = { 'q'     : search_elem['search_str'],
                    'count' : self.api_limit_res
@@ -522,11 +534,11 @@ class CrawlerVkGroups(CrawlerVk):
                       'real_offset': str(_search_group_offset)
                      }  
         
-        for i in range(300):    #доделать остановку по окончании листинга, пока заложено 300 прокручиваний
+        for i in range(300):    #DEBUG доделать остановку по окончании листинга, пока заложено 300 прокручиваний
 
             self.msg('_____________________ STEP __ ' + str(i))
 
-            time.sleep(self.api_request_pause_sec)
+            self._requests_pauser.smart_sleep()
 
             _params_post['offset']      = str(_search_group_offset)
             _params_post['real_offset'] = str(_search_group_offset)
@@ -781,11 +793,13 @@ class CrawlerVkWall(CrawlerVk):
             self.msg('URL:  '+self._cw_url)
 
         self._check_user_interrupt()
+        self._requests_pauser.smart_sleep()
 
         _request_attempt = self.request_tries
         while True:
             try:
                 d = self._cw_session.get(self._cw_url, headers = self.headers)
+                self.reset_request_error_pauser()
                 break
             except Exception as e:
                 _request_attempt -= 1
@@ -794,8 +808,6 @@ class CrawlerVkWall(CrawlerVk):
                 else:
                     self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_GET, self._cw_get_post_repr())
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
-
-        self._write_debug_file(d.text)
 
         if not self._is_good_status_code(d.status_code, get_url = self._cw_url, stop_if_broken = True):
             self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 
@@ -1005,13 +1017,14 @@ class CrawlerVkWall(CrawlerVk):
         '''make post-request with par_data params.
            either gets data or raise an exception 
         '''
-        time.sleep(2)   #TODO !!!!!!!!!! smart func needed !
+        self._requests_pauser.smart_sleep()
         
         _request_attempt = self.request_tries
         while True:
             try:
                 #self._cw_session.encoding = 'UTF-8'
                 d = self._cw_session.post(self._cw_url_fetch, headers = self.headers, data = par_data)
+                self.reset_request_error_pauser()
                 break
             except Exception as e:
                 _request_attempt -= 1
@@ -1454,6 +1467,7 @@ class CrawlerVkWall(CrawlerVk):
 
 
     def _write_debug_file(self, data):
+        '''DEBUG func'''
         if self._write_file_func == None:
             self.msg(str(data))
         else:

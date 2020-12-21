@@ -11,6 +11,7 @@ import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.exceptions as exceptions
 import CrawlModulesPG.date as date
 import CrawlModulesPG.accounts as accounts
+import CrawlModulesPG.pauser as pauser
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
@@ -116,7 +117,10 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
 
+    request_error_pauser = pauser.ExpPauser()
+
     wall_processed = False
+    CriticalErrorsLimit = 3
 
     id_group_str = str(id_group)
 
@@ -127,13 +131,14 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                   date_deep = project_params['date_deep'], 
                                   sn_recrawler_checker = sn_recrawler_checker,
                                   need_stop_cheker = need_stop_cheker,
-                                  write_file_func = write_debug_file 
+                                  write_file_func = None,
+                                  requests_delay_sec = project_params['requests_delay_sec'],
+                                  request_error_pauser = request_error_pauser
                                   )
     vk_crawler._cw_set_debug_mode(turn_on = True, debug_post_filter = id_post)
 
     for res_list in vk_crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
-        return
         n = len(_res_list)
         c = 0
         plpy.notice('Add posts to DB: ' + str(n))
@@ -178,16 +183,19 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
                 cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
                 plpy.notice(res_unit['err_type'])
-                if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST):
-                    plpy.notice('Request error: pause before repeating...')
-                    time.sleep(2) #TODO через параметр
+                if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
+                    plpy.notice('Request error: pause before repeating...') #DEBUG
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    if not request_error_pauser.sleep():
+                        raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
+
                 
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
-                if id_queue != None:
+                if False and id_queue != None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
                     attempts_counter += 1
                     date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
                     res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
@@ -197,7 +205,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 if res_unit['stop_process']:
                     raise exceptions.StopProcess()
 
-                if critical_error_counter['counter'] >= 3:
+                if critical_error_counter['counter'] >= CriticalErrorsLimit:  
                     raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
 
             elif res_unit['result_type'] in (const.CW_RESULT_TYPE_POST, const.CW_RESULT_TYPE_REPLY, const.CW_RESULT_TYPE_REPLY_TO_REPLY):
@@ -296,7 +304,7 @@ def write_debug_file(msg):
 
 cass_db = pginterface.MainDB(plpy, GD)
 
-ID_TEST_PROJECT = 88
+ID_TEST_PROJECT = 7
 cass_db.create_project(ID_TEST_PROJECT)
 
 #--0-- debug
@@ -321,7 +329,7 @@ cass_db.create_project(ID_TEST_PROJECT)
 #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
 #cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
 #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
-#vk_crawling(ID_TEST_PROJECT)
+vk_crawling(ID_TEST_PROJECT)
 
 
 #vk_crawl_wall(5, 52233236, subscribers_only = True)
