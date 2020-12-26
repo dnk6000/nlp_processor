@@ -53,6 +53,8 @@ class StrToDate:
                 
                 if 'monthshort' in res:
                     month = int(self.MONTHSHORTSt.index(match.group('monthshort'))) + 1
+                elif 'month' in res:
+                    month = int(match.group('month'))
                 else:
                     month = 1
 

@@ -848,10 +848,6 @@ class CrawlerVkWall(CrawlerVk):
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup, {})
         
-        #DEBUG
-        self.msg(str(self._cw_scrape_result[1]))
-        #DEBUG
-
         if self._cw_subscribers_only:
             self._cw_scrape_result.append( {
                 'result_type': const.CW_RESULT_TYPE_FINISH_SUCCESS if self._cw_num_subscribers > 0 else const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND, 
@@ -1195,6 +1191,8 @@ class CrawlerVkWall(CrawlerVk):
 
                 _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
                 
+                self._reg_dt_recognize_error(_dt_in_dt, par['date'])
+
                 #if self._cw_check_date_deep(_dt_in_dt) or par['post_id'] in self._cw_activity['post_list']:
                 if self._cw_check_date_deep(_dt_in_dt) or self._sn_recrawler_checker.is_crawled_post(_dt_in_dt):
                     self._stop_post_scraping = not par['is_fixed_post'] #non stop for fixed posts
@@ -1219,7 +1217,7 @@ class CrawlerVkWall(CrawlerVk):
                     if self._cw_debug_mode:
                         self.msg('POST. Group ID = '+self._cw_group_id+'   Post ID = '+par['post_id']+'    _cw_post_counter = '+str(self._cw_post_counter)+'    _cw_fetch_post_counter = '+str(self._cw_fetch_post_counter))
                         self.msg(' url: '+self._cw_url)
-                        self.msg(' Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date']))
+                        self.msg(' Author: '+par['author']+'    Date: '+self._str_to_date.get_date(par['date'])+'      '+par['date'])
                         self.msg(crawler.remove_empty_symbols(res.text))
                         self.msg('\n____________________________________________________________\n')
                     
@@ -1262,6 +1260,8 @@ class CrawlerVkWall(CrawlerVk):
 
             _dt_in_str, _dt_in_dt = self._str_to_date.get_date(par['date'], type_res = 'S,D')
 
+            self._reg_dt_recognize_error(_dt_in_dt, par['date'])
+
             if par['post_id'] == _parent_id:
                 _type_reply = 'REPLY'
             else:
@@ -1271,7 +1271,7 @@ class CrawlerVkWall(CrawlerVk):
                 if self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
                     self.msg('SKIPPED:')
                 self.msg(_type_reply + ' Group ID = '+self._cw_group_id + ' Post ID = '+par['post_id']+'  Reply ID = '+par['reply_id']+'  Parent ID = '+_parent_id+' url: '+self._cw_url)
-                self.msg(' Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date']))
+                self.msg(' Author: '+par['author']+'    author_id: '+par['author_id']+'    Date: '+self._str_to_date.get_date(par['date'])+'      '+par['date'])
                 self.msg(' _cw_date_deep '+str(self._cw_date_deep)+
                         '    reply wait-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'wait_date'))+
                         '    reply upd-date: '+str(self._sn_recrawler_checker.get_post_out_of_date(par['post_id'],'upd_date'))
@@ -1439,8 +1439,10 @@ class CrawlerVkWall(CrawlerVk):
                 })
 
     def _cw_check_date_deep(self, dt):
+        #self.msg('CHECK DEEP DATE: _cw_date_deep = '+str(self._cw_date_deep)+'  dt = '+str(dt))
         if self._cw_date_deep == const.EMPTY_DATE or dt == const.EMPTY_DATE:
             return False
+        #self.msg('            dt < self._cw_date_deep = '+str(dt < self._cw_date_deep))
         return dt < self._cw_date_deep
     
     def _scrape_result_empty(self):
@@ -1472,3 +1474,7 @@ class CrawlerVkWall(CrawlerVk):
             self.msg(str(data))
         else:
             self._write_file_func(str(data))
+
+    def _reg_dt_recognize_error(self, dt, dt_str):
+        if dt_str != '' and dt == const.EMPTY_DATE:
+            self._cw_add_to_result_noncritical_error(const.ERROR_DATE_RECOGNIZE, 'the original date: '+dt_str)

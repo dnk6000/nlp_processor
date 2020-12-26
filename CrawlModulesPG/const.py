@@ -23,6 +23,7 @@ ERROR_SCRAP_NUMBER_SUBSCRIBERS = 'Group number of subscribers not found'
 ERROR_REQUEST_GET           = 'Get-request failed'
 ERROR_REQUEST_POST          = 'Post-request failed'
 ERROR_REQUEST_READ_TIMEOUT  = 'Read time-out error'
+ERROR_DATE_RECOGNIZE        = 'Date not recognize'
 
 LOG_INFO_REQUEST_PAUSE      = 'Request pause'
 

@@ -162,15 +162,15 @@ class MainDB:
             res = self.plpy.execute(gvars.GD[plan_id], [record_type, id_project, None, None, description])
         self.plpy.commit()
 
-    def queue_generate(self, id_www_source, id_project):
+    def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999):
         plan_id = 'plan_queue_generate'
         with self.plpy.subtransaction():
             if not plan_id in gvars.GD or gvars.GD[plan_id] == None:
-                pg_func = 'select * from git200_crawl.queue_generate($1, $2);'
+                pg_func = 'select * from git200_crawl.queue_generate($1, $2, $3, $4);'
 
-                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk"])
+                gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer"])
 
-            res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project])
+            res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, min_num_subscribers, max_num_subscribers])
         self.plpy.commit()
         return res
 
@@ -225,7 +225,7 @@ class MainDB:
                 ["dmn.git_pk"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_project])
-        return convert_select_result(res, ['date_deep'], ['requests_delay_sec'])
+        return convert_select_result(res, ['date_deep'], ['requests_delay_sec']) 
 
     def create_project(self, 
                        id_project, 
@@ -300,8 +300,10 @@ class NeedStopChecker:
         res = self.cass_db.need_stop_func(self.func_name, self.id_project)
         if res[0]['result']:
             raise exceptions.UserInterruptByDB()
+        #else:  #DEBUG
+        #    return self.func_name+' res:' + str(res[0]['result'])  #DEBUG
 
-def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = []):
+def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = [], msg_func = None):
 
     #plpy in PG return date fields in str format, therefore, a conversion is required
     if const.PG_ENVIRONMENT and len(str_to_date_conv_fields) > 0:
