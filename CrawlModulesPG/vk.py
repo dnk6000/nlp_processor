@@ -806,6 +806,7 @@ class CrawlerVkWall(CrawlerVk):
                 if _request_attempt == 0:
                     raise
                 else:
+                    self._check_user_interrupt()
                     self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_GET, self._cw_get_post_repr())
                     yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
 
@@ -1027,6 +1028,7 @@ class CrawlerVkWall(CrawlerVk):
                 if _request_attempt == 0:
                     raise
                 else:
+                    self._check_user_interrupt()
                     self._cw_add_to_result_noncritical_error(const.ERROR_REQUEST_POST, self._cw_get_post_repr()+err_txt)
                     yield _request_attempt
         

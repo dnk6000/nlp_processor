@@ -8,13 +8,31 @@ VK_ACCOUNT = [
      }
     ]
 
-if False and const.PY_ENVIRONMENT:
+
+TG_ACCOUNT = [
+    #--0--
+    { 'api_id': '',
+      'api_hash': '',
+      'username': '',
+      'phone': ''
+     }
+    ]
+
+
+if const.PY_ENVIRONMENT:
     import CrawlModulesPyOnly.self_psw as self_psw
 
     VK_ACCOUNT[0] = { 'login': '89273824101',
                       'password': self_psw.get_psw_vk_mtyurin(),
                       'app_id': '7467601'
                      }
+    TG_ACCOUNT[0] = { 'api_id': '2389423',
+                      'api_hash': self_psw.get_api_hash_for_telegram(),
+                      'username': 'Cassandra',
+                      'phone': '+79273824101'
+     }
 
 
 #первый запрос токена https://oauth.vk.com/authorize?client_id=7700818&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=wall&response_type=token
+
+#cоздание своего клиента Telegram https://tlgrm.ru/docs/api/obtaining_api_id

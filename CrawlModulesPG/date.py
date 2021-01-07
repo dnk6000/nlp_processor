@@ -50,6 +50,7 @@ class StrToDate:
             match = self.allowed_re_patterns[re_pattern].match(date_in_str)
             if match:
                 res = match.groupdict()
+                dt_now = datetime.datetime.now()
                 
                 if 'monthshort' in res:
                     month = int(self.MONTHSHORTSt.index(match.group('monthshort'))) + 1
@@ -60,9 +61,8 @@ class StrToDate:
 
                 if 'day' in res:
                     if match.group('day') == 'сегодня' or match.group('day') == 'вчера':
-                        _dt = datetime.datetime.now()
-                        day = _dt.day
-                        month = _dt.month
+                        day = dt_now.day
+                        month = dt_now.month
                         if match.group('day') == 'вчера':
                             _td = datetime.timedelta(days = -1)
                     else:
@@ -73,9 +73,13 @@ class StrToDate:
                 if 'year' in res:
                     year = int(match.group('year'))
                 else:
-                    year = datetime.datetime.now().year
+                    year = dt_now.year
+                    _cur_month = dt_now.month
+                    _cur_day = dt_now.day
+                    if (month > _cur_month) or (month == _cur_month and day > _cur_day): #
+                        year -= 1
 
-                hour = 0 if not 'hour' in res else int(match.group('hour'))
+                hour   = 0 if not 'hour'   in res else int(match.group('hour'))
                 minute = 0 if not 'minute' in res else int(match.group('minute'))
 
                 try:
@@ -107,3 +111,7 @@ def date_now_str():
     return date_to_str(datetime.datetime.now().astimezone())
 
 
+if __name__ == "__main__":
+    st = StrToDate()
+    d = st.get_date('08 янв в 10:43')
+    print(d)

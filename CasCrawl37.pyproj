@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CrawlModulesPyOnly\main.py</StartupFile>
+    <StartupFile>Temp\async_example_1.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -34,6 +34,9 @@
     <Compile Include="CrawlModulesPG\accounts.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CrawlModulesPG\telegram.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CrawlModulesPG\pauser.py">
       <SubType>Code</SubType>
     </Compile>
@@ -47,6 +50,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlModulesPyOnly\self_psw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Temp\async_example_1.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Temp\async_example_2.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Test\pg_test.py">

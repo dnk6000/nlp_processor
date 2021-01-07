@@ -239,8 +239,10 @@ def vk_crawl_wall_subscribers(id_project):
     portion_counter = 0
     critical_error_counter = {'counter': 0}
 
+    PORTION_SIZE = 1
+
     while True:
-        queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
+        queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project, PORTION_SIZE)
 
         portion_counter += 1
         msg('GET QUEUE PORTION № {}'.format(portion_counter));
@@ -262,12 +264,12 @@ def vk_crawl_wall_subscribers(id_project):
 
 def vk_crawling(id_project):
 
-    project_params = cass_db.get_project_params(id_project)[0]
-
     portion_counter = 0
     critical_error_counter = {'counter': 0}
 
     while True:
+        project_params = cass_db.get_project_params(id_project)[0]  #temporarily in the loop to adjust the pause 
+
         queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
 
         portion_counter += 1
