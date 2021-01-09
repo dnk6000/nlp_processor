@@ -18,8 +18,27 @@ import CrawlModulesPG.accounts as accounts
 
 
 class Telegram:
-	def __init__(self, *args, **kwargs):
-		pass
+	def __init__(self, username, api_id, api_hash, 
+			        msg_func = None,
+					**kwargs
+				):
+		self.username = username
+		self.api_id = api_id
+		self.api_hash = api_hash
+
+		self.msg_func = msg_func         # функция для сообщений
+
+	def connect(self):
+		self.client = TelegramClient(session = self.username, api_id = self.api_id, api_hash = self.api_hash)
+		self.client.start()
+		
+	def msg(self, message):
+
+		if not self.msg_func == None:
+			try:
+				self.msg_func(message)
+			except:
+				pass
 
 class TelegramGroupSearch(Telegram):
 	def __init__(self, *args, **kwargs):
@@ -27,9 +46,38 @@ class TelegramGroupSearch(Telegram):
 
 class TelegramCrawlMessages(Telegram):
 	def __init__(self, *args, **kwargs):
+		self.messages = []
 		return super().__init__(*args, **kwargs)
 
+	def crawl_messages(self, id_group):
+		_channel = r'https://t.me/' + id_group
+		_offset_msg = 0
+		_limit_msg = 100
 
+		while True:
+			_history = self.client(GetHistoryRequest(
+				peer=_channel,
+				offset_id=_offset_msg,
+				offset_date=None, add_offset=0,
+				limit=_limit_msg, max_id=0, min_id=0,
+				hash=0))
+			if not _history.messages:
+				break
+			for _message in _history.messages:
+				self.messages.append(_message.to_dict())
+
+				self.msg('___________________________________________')
+				self.msg(_message.message)
+				self.msg(str(_message.date))
+				self.msg(str(_message.replies))
+
+			_offset_msg = _history.messages[len(_history.messages) - 1].id
+			
+			#DEBUG
+			_total_messages = len(_history.messages)
+			if _total_messages >= 300:
+				break
+		pass
 
 async def dump_all_participants(channel, all_participants):
 	"""Записывает json-файл с информацией о всех участниках канала/чата"""
@@ -110,15 +158,21 @@ async def main():
 
 
 if __name__ == "__main__":
-    api_id   = accounts.TG_ACCOUNT[0]['api_id']
-    api_hash = accounts.TG_ACCOUNT[0]['api_hash']
-    username = accounts.TG_ACCOUNT[0]['username']
-    phone    = accounts.TG_ACCOUNT[0]['phone']
-    
-    client = TelegramClient(session = username, api_id = api_id, api_hash = api_hash)
+	crawler = TelegramCrawlMessages(**accounts.TG_ACCOUNT[0], msg_func = print)
+	crawler.connect()
+	crawler.crawl_messages('Chelabinsk_tut')
 
-    client.start()
+	#api_id   = accounts.TG_ACCOUNT[0]['api_id']
+	#api_hash = accounts.TG_ACCOUNT[0]['api_hash']
+	#username = accounts.TG_ACCOUNT[0]['username']
+	#phone    = accounts.TG_ACCOUNT[0]['phone']
+	#client = TelegramClient(session = username, api_id = api_id, api_hash = api_hash)
 
-with client:
-	client.loop.run_until_complete(main())
+	#client.start()
+
+	#crawler = TelegramCrawlMessages(**accounts.TG_ACCOUNT[0])
+	pass
+
+#with client:
+#	client.loop.run_until_complete(main())
 pass
