@@ -1,4 +1,4 @@
-import CrawlModulesPG.telegram1 as tg
+import CrawlModulesPG.tg as tg
 import CrawlModulesPyOnly.plpyemul as plpyemul
 
 import datetime
@@ -13,9 +13,8 @@ if __name__ == "__main__":
 
     plpy = plpyemul.PlPy()
 
-    tg1 = tg.TelegramCrawler(func_save_to_db = save_db, msg_func = plpy.notice)
-    tg1.main()
-
+    crawler = tg.TelegramMessagesCrawler(manager_func = save_db, msg_func = plpy.notice)
+    crawler.start()
     pass
 
 

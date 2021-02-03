@@ -37,7 +37,7 @@
     <Compile Include="CrawlModulesPyOnly\tg_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\telegram.py">
+    <Compile Include="CrawlModulesPG\tg.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlModulesPG\telegram_draft_temp.py">
