@@ -19,42 +19,10 @@ import CrawlModulesPG.const as const
 import CrawlModulesPG.date as date
 import CrawlModulesPG.pauser as pauser
 
-
-class AsyncCrawler:
-    def __init__(self,  manager_func = None, 
-                        debug_mode = True,
-                        msg_func = None):
-        self.manager_func = manager_func
+class CommonFunc:
+    def __init__(self, debug_mode = True, msg_func = None, **kwargs):
         self.msg_func     = msg_func
         self.debug_mode   = debug_mode
-        self.tasks = [ asyncio.Task(self._crawling_task()) ]
-
-    async def _crawling_task(self):
-        pass
-
-    async def _manager(self):
-        if self.manager_func != None:
-            self.manager_func()
-        pass
-
-    def start(self):
-        self.loop = asyncio.get_event_loop()
-        
-        for task in self.tasks:
-            task.is_manager = False
-
-        _task_manager = asyncio.Task(self._manager())
-        _task_manager.is_manager = True
-        self.tasks.append(_task_manager)
-
-        try:
-            self.loop.run_until_complete(asyncio.wait(self.tasks))
-        except:
-            self.action_after_loop_exception()
-        finally:
-            self.loop.close()
-            self.action_after_loop_finished()
-            
 
     def msg(self, message):
         if not self.msg_func == None:
@@ -68,6 +36,39 @@ class AsyncCrawler:
             return
         self.msg(message)
 
+
+class AsyncCrawler(CommonFunc):
+    def __init__(self,  manager_func = None, tasks = []):
+        super.__init__(**kwargs)
+        
+        self.manager_func = manager_func
+        self.tasks = tasks
+
+        for task in self.tasks:
+            task.is_manager = False
+
+        _task_manager = asyncio.Task(self._manager())
+        _task_manager.is_manager = True
+        self.tasks.append(_task_manager)
+
+    def start(self):
+        self.loop = asyncio.get_event_loop()
+        
+        try:
+            self.loop.run_until_complete(asyncio.wait(self.tasks))
+        except:
+            self.action_after_loop_exception()
+        finally:
+            self.loop.close()
+            self.action_after_loop_finished()
+            
+    async def manager(self):
+        while self.repeats > 0:
+            self.msg('managing.   repeats = {}   time = {}'.format(self.repeats, str(datetime.datetime.now())))
+            if self.manager_func != None:
+                self.manager_func()
+        await asyncio.sleep(0.1)
+
     def action_after_loop_exception(self):
         pass 
 
@@ -75,7 +76,7 @@ class AsyncCrawler:
         pass 
 
 
-class Telegram(AsyncCrawler):
+class Telegram(CommonFunc):
     def __init__(self, username, api_id, api_hash, **kwargs):
         super().__init__(**kwargs)
 
@@ -89,114 +90,100 @@ class Telegram(AsyncCrawler):
         self.client.start()
 
 
-
-
 class TelegramMessagesCrawler(Telegram):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        
-        self.repeats = 20
-        self.tasks = [ asyncio.Task(self._crawling_task(2)), asyncio.Task(self._crawling_task(3)) ]
+	def __init__(self, id_groups = [], **kwargs):
+		super().__init__(**kwargs)
+		#self.id_group = id_group
 
-    async def _crawling_task(self, sec = 1):
-        #while self.repeats > 0:
-        #    self.repeats -= 1
-        #    self.msg('crawling = {}  repeats = {}   time = {}'.format(sec, self.repeats, str(datetime.datetime.now())))
-        #    await asyncio.sleep(sec)
-        #pass
-        _channel = r'https://t.me/' + id_group
-		_offset_msg = 0
-		_limit_msg = 100
-		_total_messages = 0
-		_request_counter = 0
+		self.repeats = 20 #DEBUG
 
-		pause_sec = 1
+		self.tasks = [ asyncio.Task(self.crawling(id_group)) for id_group in id_groups ]
+		pass
 
+	async def crawling(self, id_group):
+		req_group_params = { 
+			'peer': r'https://t.me/' + id_group, 
+			'offset_id': 0,
+			'offset_date': None, 
+			'add_offset': 0,
+			'limit': 0, 
+			'max_id': 0, 
+			'min_id': 0,
+			'hash': 0 }
+		try:
+			self._crawling(req_group_params)
+		except:
+			pass
+		pass
+
+	async def _crawling(self, req_message_params):
+		req_message_params = {}
+		req_reply_params = req_message_params.copy()
+		total_messages = 0
+		
+		request_counter = 1
 		while True:
-			time.sleep(pause_sec)
-			_req_param = { 'peer': _channel, 
-					  'offset_id':_offset_msg,
-					  'offset_date': None, 
-					  'add_offset': 0,
-					  'limit': _limit_msg, 
-					  'max_id': 0, 
-					  'min_id': 0,
-					  'hash': 0 }
-			self._debug_msg('################ REQUEST MSG - '+str(_request_counter))
-			self._debug_msg(str(_req_param))
-			self._debug_msg('################')
-			_request_counter += 1
+			self.debug_msg('################ REQUEST MSG - '+str(request_counter))
+			self.debug_msg(str(req_message_params))
+			self.debug_msg('################')
+			if self.debug_mode and request_counter > 20:
+				return
+			request_counter += 1
 
-
-			_history = await self.client(GetHistoryRequest(**_req_param))
+			history = await self.client(GetHistoryRequest(**req_message_params))
 			if not _history.messages:
 				break
-			for _message in _history.messages:
-				self.messages.append(_message.to_dict())
-				_total_messages += 1
+			for message in history.messages:
+				#self.messages.append(message.to_dict())
+				total_messages += 1
 
 				txt = crawler.RemoveEmojiSymbols(_message.message)
 
-				self._debug_msg('______________MESSAGE MESSAGE_____________________________')
-				self._debug_msg('ID = '+str(_message.id)+'	'+txt)
-				self._debug_msg(str(_message.date))
-				self._debug_msg(str(_message.replies))
+				self.debug_msg('______________MESSAGE MESSAGE_____________________________')
+				self.debug_msg('ID = '+str(message.id)+'	'+txt)
+				self.debug_msg(str(message.date))
+				self.debug_msg(str(message.replies))
 				#_message.sender_id
 				#_message.views
 
-				if _message.replies != None and _message.replies.replies > 0:
-					_offset_reply = 0
-					while True:
-						time.sleep(pause_sec)
-						_req_param = { 'peer': _channel, 
-								  'msg_id':_message.id,
-								  'offset_id':_offset_reply,
-								  'offset_date': None, 
-								  'add_offset': 0,
-								  'limit': _limit_msg, 
-								  'max_id': 0, 
-								  'min_id': 0,
-								  'hash': 0 }
-						self._debug_msg('################ REQUEST REPLY - '+str(_request_counter))
-						self._debug_msg(str(_req_param))
-						self._debug_msg('################')
-						_request_counter += 1
+				if message.replies != None and message.replies.replies > 0:
+					req_reply_params['msg_id'] = message.id
 
-						_history_repl = await self.client(GetRepliesRequest(**_req_param))
-						if not _history_repl.messages:
+					offset_reply = 0
+					while True:
+						time.sleep(1)
+						self.debug_msg('################ REQUEST REPLY - '+str(request_counter))
+						self.debug_msg(str(req_reply_params))
+						self.debug_msg('################')
+						if self.debug_mode and request_counter > 20:
+							return
+						request_counter += 1
+
+						history_repl = await self.client(GetRepliesRequest(**req_reply_params))
+						if not history_repl.messages:
 							break
-						for _reply in _history_repl.messages:
-							self.messages.append(_reply.to_dict())
-							_total_messages += 1
+						for reply in history_repl.messages:
+							#self.messages.append(reply.to_dict())
+							total_messages += 1
 							txt = crawler.RemoveEmojiSymbols(_reply.message)
 
 							self._debug_msg('________________REPLY REPLY___________________________')
 							self._debug_msg('ID = '+str(_reply.id)+'	Reply to ID = ' + str(_reply.reply_to_msg_id) + '	' + txt)
 							self._debug_msg(str(_reply.date))
 							self._debug_msg(str(_reply.replies))
-						_offset_reply = _history_repl.messages[len(_history_repl.messages) - 1].id
+						
+						req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
+		return
 
-			_offset_msg = _history.messages[len(_history.messages) - 1].id
-			
-			#DEBUG
-			if _total_messages >= 1000:
-				break
-		
-		self.msg('Всего сообщений: '+ str(_total_messages))
-		pass
 
-    async def _manager(self):
-        while self.repeats > 0:
-            self.msg('managing.   repeats = {}   time = {}'.format(self.repeats, str(datetime.datetime.now())))
-            if self.manager_func != None:
-                self.manager_func()
-            await asyncio.sleep(0.1)
 
-    def action_after_loop_exception(self):
-        pass #TODO finally save to DB
 
-    def action_after_loop_finished(self):
-        pass #TODO append to result critical error
+
+	def action_after_loop_exception(self):
+		pass #TODO finally save to DB
+
+	def action_after_loop_finished(self):
+		pass #TODO append to result critical error
 
 
