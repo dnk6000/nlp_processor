@@ -3,6 +3,7 @@
 import CrawlModulesPG.const as const
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.exceptions as exceptions
+import CrawlModulesPG.common as common
 
 import re
 from html.parser import HTMLParser  
@@ -383,15 +384,58 @@ class TagTree():
             child.set_par(par_id, par_value)
 
 
-class ScrapeResult:
-    def __init__(self, clear_result = True):
-        self.clear_result = clear_result
+class ScrapeResult(list, common.CommonFunc):
+	RESULT_TYPE_POST = 'POST'
+	RESULT_TYPE_NUM_SUBSCRIBERS  = 'NUM_SUBSCRIBERS'
+	RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND = 'NUM_SUBSCRIBERS Not found'
+	RESULT_TYPE_FINISH_NOT_FOUND = 'FINISH Not found'
+	RESULT_TYPE_FINISH_SUCCESS   = 'FINISH Success'
+	RESULT_TYPE_ERROR            = 'ERROR'
+	RESULT_TYPE_CRITICAL_ERROR   = 'CRITICAL ERROR'
+	RESULT_TYPE_DB_ERROR         = 'ERROR DB WRITE\READ'
+	RESULT_TYPE_WARNING          = 'WARNING'
+	RESULT_TYPE_HTML             = 'HTML'
+	RESULT_TYPE_POST             = 'POST'
+	RESULT_TYPE_REPLY            = 'REPLY'
+	RESULT_TYPE_REPLY_TO_REPLY   = 'REPLY to REPLY'
+	RESULT_TYPE_DT_POST_ACTIVITY  = 'POST Last dt activity'
+	RESULT_TYPE_DT_GROUP_ACTIVITY = 'GROUP Last dt activity'
+	RESULT_TYPE_GROUPS_LIST     = 'GROUPS LIST'
+	RESULT_TYPE_ERROR			= 'ERROR'
+	RESULT_TYPE_CRITICAL_ERROR  = 'CRITICAL ERROR'
+	RESULT_TYPE_DB_ERROR		= 'ERROR DB WRITE\READ'
 
-    def get_json_result(self, result):
-        json_result = json.dumps(result)
-        if self.clear_result:
-            result.clear()
-        return json_result
+	def __init__(self, *args, clear_result = True, **kwargs):
+		super().__init__(*args, **kwargs)
+
+		self.clear_result = clear_result #clear result after converting to json
+		self.base_res_element = dict(res_type = '')
+
+	def add_result_type_POST(self, url = '', sn_id = '', sn_post_id = '', sn_post_parent_id = '', author = '', content_date = const.EMPTY_DATE, content_header = '', content = ''):
+		res_element = self.base_res_element.copy()
+		if content == None:
+			txt = ''
+		else:
+			txt = crawler.RemoveEmojiSymbols(content)
+
+		res_element['result_type'] = self.RESULT_TYPE_POST
+		res_element['url']				= url
+		res_element['sn_id']			= sn_id
+		res_element['sn_post_id']		= sn_post_id
+		res_element['sn_post_parent_id'] = sn_post_parent_id
+		res_element['author']			= author
+		res_element['content_date']		= content_date
+		res_element['content_header']	= content_header
+		res_element['content']			= txt
+
+		super().append(res_element)
+
+	def to_json(self):
+		json_result = json.dumps(self)
+		if self.clear_result:
+			super().clear()
+		return json_result
+
 
 def Demo_getProcessedPages():
     listProcessedPages = []

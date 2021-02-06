@@ -188,7 +188,7 @@ class CrawlerSocialNet:
 
 
     def crawl_groups(self):
-        res_for_pg = scraper.ScrapeResult()
+        res_for_pg = scraper.LocalScrapeResult()
 
         while len(self.search_list) > 0:
             search_elem = self.search_list.pop(0)
@@ -770,7 +770,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_post_repl_list = []  # first level replies
         self._cw_post_repl2_list = [] # second level replies = href 'Показать предыдущие комментарии'
         self._cw_scrape_result = []
-        self._cw_res_for_pg = scraper.ScrapeResult()
+        self._cw_res_for_pg = scraper.LocalScrapeResult()
         self._cw_fetch_post_counter = 0
         self._cw_noncritical_error_counter = {}
         self._cw_last_dates_activity = {}
@@ -1480,3 +1480,13 @@ class CrawlerVkWall(CrawlerVk):
     def _reg_dt_recognize_error(self, dt, dt_str):
         if dt_str != '' and dt == const.EMPTY_DATE:
             self._cw_add_to_result_noncritical_error(const.ERROR_DATE_RECOGNIZE, 'the original date: '+dt_str)
+
+class LocalScrapeResult:
+    def __init__(self, clear_result = True):
+        self.clear_result = clear_result
+
+    def get_json_result(self, result):
+        json_result = json.dumps(result)
+        if self.clear_result:
+            result.clear()
+        return json_result

@@ -34,10 +34,16 @@
     <Compile Include="CrawlModulesPG\accounts.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPyOnly\tg_main.py">
+    <Compile Include="CrawlModulesPG\common.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlModulesPG\tg.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CrawlModulesPyOnly\tg_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Test\tg_async.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlModulesPG\telegram_draft_temp.py">

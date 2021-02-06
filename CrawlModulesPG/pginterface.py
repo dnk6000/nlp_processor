@@ -22,6 +22,7 @@ class MainDB:
     def _initialize_gvars(self):
         if not gvars.initialized:
             gvars.set('VK_SOURCE_ID', self.get_www_source_id('vk'))
+            gvars.set('TG_SOURCE_ID', self.get_www_source_id('tg'))
             gvars.initialize()
 
     def _check_db_error_limit(self, _exception):
