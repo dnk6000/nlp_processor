@@ -20,7 +20,20 @@ import CrawlModulesPG.pauser as pauser
 import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.common as common
 
-class Telegram(common.CommonFunc):
+class CrawlerCommon(common.CommonFunc):
+	def __init__(self, 
+			     need_stop_cheker = None, 
+				 requests_delay_sec = 2,
+				 request_error_pauser = None, 
+				 **kwargs):
+		
+		super().__init__(**kwargs)
+
+		self.need_stop_checker = need_stop_cheker
+		self.requests_pauser = pauser.IntervalPauser(delay_seconds = requests_delay_sec)
+		self.request_error_pauser = request_error_pauser
+
+class Telegram(CrawlerCommon):
 	def __init__(self, username, api_id, api_hash, **kwargs):
 		super().__init__(**kwargs)
 
@@ -93,33 +106,28 @@ class TelegramMessagesCrawler(Telegram):
 		req_reply_params = req_message_params.copy()
 		total_messages = 0
 		
-		request_counter = 1 #DEBUG
+		self.request_counter = 1 #DEBUG
 		while True:
-			self.debug_msg('################ REQUEST MSG - '+str(request_counter))
+			self.debug_msg('################ REQUEST MSG - '+str(self.request_counter))
 			self.debug_msg(str(req_message_params))
 			self.debug_msg('################')
-			if self.debug_mode and request_counter > 20: #DEBUG
+			if self.debug_mode and self.request_counter > 20: #DEBUG
 				return
 			request_counter += 1 #DEBUG
 
+			self.requests_pauser.smart_sleep()
 			history = self.client(GetHistoryRequest(**req_message_params))
 
 			if not history.messages:
 				return
 
 			req_message_params['offset_id'] = history.messages[len(history.messages) - 1].id #for next request
-
 			for message in history.messages:
 				if message.message == None:
 					continue
 
-				#self.messages.append(message.to_dict())
-				total_messages += 1
-
-				txt = crawler.RemoveEmojiSymbols(message.message)
-
 				self.debug_msg('______________MESSAGE MESSAGE_____________________________')
-				self.debug_msg('ID = '+str(message.id)+'	'+txt)
+				self.debug_msg('ID = '+str(message.id)+'	'+crawler.RemoveEmojiSymbols(message.message))
 				self.debug_msg(str(message.date))
 				self.debug_msg(str(message.replies))
 
@@ -127,48 +135,41 @@ class TelegramMessagesCrawler(Telegram):
 				#_message.sender_id
 				#_message.views
 				
-
-				#if message.replies != None and message.replies.replies > 0:
-				#	req_reply_params['msg_id'] = message.id
-
-				#	offset_reply = 0
-				#	while True:
-				#		time.sleep(1)
-				#		self.debug_msg('################ REQUEST REPLY - '+str(request_counter))
-				#		self.debug_msg(str(req_reply_params))
-				#		self.debug_msg('################')
-				#		if self.debug_mode and request_counter > 20: #DEBUG
-				#			return
-				#		request_counter += 1
-
-				#		history_repl = self.client(GetRepliesRequest(**req_reply_params))
-				#		if not history_repl.messages:
-				#			break
-				#		for reply in history_repl.messages:
-				#			#self.messages.append(reply.to_dict())
-				#			total_messages += 1
-				#			txt = crawler.RemoveEmojiSymbols(_reply.message)
-
-				#			self._debug_msg('________________REPLY REPLY___________________________')
-				#			self._debug_msg('ID = '+str(_reply.id)+'	Reply to ID = ' + str(_reply.reply_to_msg_id) + '	' + txt)
-				#			self._debug_msg(str(_reply.date))
-				#			self._debug_msg(str(_reply.replies))
-						
-				#		req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
+				#Replyes
+				if message.replies != None and message.replies.replies > 0:
+					self._crawling_replies(req_reply_params, id_group, message.id)
 		
-			yield self.scrape_result.to_json()
+			yield self.scrape_result.to_json() #return result per one post-request
 		return
+
+	def _crawling_replies(self, req_reply_params, id_group, id_message):
+		req_reply_params['msg_id'] = id_message
+		offset_reply = 0
+		while True:
+			self.requests_pauser.smart_sleep()
+			self.debug_msg('################ REQUEST REPLY - '+str(self.request_counter))
+			self.debug_msg(str(req_reply_params))
+			self.debug_msg('################')
+			if self.debug_mode and request_counter > 20: #DEBUG
+				return
+			self.request_counter += 1  #DEBUG
+
+			history_repl = self.client(GetRepliesRequest(**req_reply_params))
+			if not history_repl.messages:
+				break
+			for reply in history_repl.messages:
+				self.debug_msg('________________REPLY REPLY___________________________')
+				self.debug_msg('ID = '+str(reply.id)+'	Reply to ID = ' + str(reply.reply_to_msg_id) + '	' + crawler.RemoveEmojiSymbols(reply.message))
+				self.debug_msg(str(reply.date))
+				self.debug_msg(str(reply.replies))
+						
+				self.scrape_result.add_reply(reply, self.get_message_url(message.id, req_message_params['peer']),  id_group, id_message)
+
+			req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
 
 	def get_message_url(self, id_message, url_group):
 		return url_group+'/'+str(id_message)
 
-
-
-	def action_after_loop_exception(self):
-		pass #TODO finally save to DB
-
-	def action_after_loop_finished(self):
-		pass #TODO append to result critical error
 
 class ScrapeResultTG(scraper.ScrapeResult):
 	def __init__(self, *args, **kwargs):
@@ -183,4 +184,16 @@ class ScrapeResultTG(scraper.ScrapeResult):
 			author = str(message.sender_id),
 			content_date = date.date_to_str(message.date),
 			content = message.message
+			)		
+	
+	def add_reply(self, reply, url, group_id, message_id):
+
+		super().add_result_type_REPLY(
+			url = url,
+			sn_id = group_id,
+			sn_post_id = str(reply.id),
+			sn_parent_id = str(message_id),
+			author = str(reply.sender_id),
+			content_date = date.date_to_str(reply.date),
+			content = reply.message
 			)		

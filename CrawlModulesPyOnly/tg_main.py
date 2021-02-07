@@ -53,7 +53,12 @@ def tg_crawl_messages(id_project, id_group, id_queue,
                   critical_error_counter = {'counter': 0}
                   ):
     
-    tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, msg_func = plpy.notice, id_group = id_group, **accounts.TG_ACCOUNT[0])
+    tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
+                                            msg_func = plpy.notice, 
+                                            id_group = id_group,
+                                            date_deep = project_params['date_deep'],
+                                            requests_delay_sec = project_params['requests_delay_sec'],
+                                            **accounts.TG_ACCOUNT[0])
     tg_crawler.connect()
 
     for res_list in tg_crawler.crawling(id_group):

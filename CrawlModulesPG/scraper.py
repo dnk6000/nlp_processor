@@ -385,7 +385,6 @@ class TagTree():
 
 
 class ScrapeResult(list, common.CommonFunc):
-	RESULT_TYPE_POST = 'POST'
 	RESULT_TYPE_NUM_SUBSCRIBERS  = 'NUM_SUBSCRIBERS'
 	RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND = 'NUM_SUBSCRIBERS Not found'
 	RESULT_TYPE_FINISH_NOT_FOUND = 'FINISH Not found'
@@ -411,14 +410,14 @@ class ScrapeResult(list, common.CommonFunc):
 		self.clear_result = clear_result #clear result after converting to json
 		self.base_res_element = dict(res_type = '')
 
-	def add_result_type_POST(self, url = '', sn_id = '', sn_post_id = '', sn_post_parent_id = '', author = '', content_date = const.EMPTY_DATE, content_header = '', content = ''):
+	def add_result_type_content(self, result_type, url = '', sn_id = '', sn_post_id = '', sn_post_parent_id = '', author = '', content_date = const.EMPTY_DATE, content_header = '', content = ''):
 		res_element = self.base_res_element.copy()
 		if content == None:
 			txt = ''
 		else:
 			txt = crawler.RemoveEmojiSymbols(content)
 
-		res_element['result_type'] = self.RESULT_TYPE_POST
+		res_element['result_type']      = result_type
 		res_element['url']				= url
 		res_element['sn_id']			= sn_id
 		res_element['sn_post_id']		= sn_post_id
@@ -429,6 +428,12 @@ class ScrapeResult(list, common.CommonFunc):
 		res_element['content']			= txt
 
 		super().append(res_element)
+
+	def add_result_type_POST(self, **kwargs):
+		add_result_type_content(result_type = self.RESULT_TYPE_POST, **kwargs)
+
+	def add_result_type_REPLY(self, **kwargs):
+		add_result_type_content(result_type = self.RESULT_TYPE_REPLY, **kwargs)
 
 	def to_json(self):
 		json_result = json.dumps(self)
