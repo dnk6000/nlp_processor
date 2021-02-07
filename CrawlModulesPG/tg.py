@@ -48,11 +48,13 @@ class Telegram(CrawlerCommon):
 
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, **kwargs):
+	def __init__(self, id_group, date_deep, **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 
 		self.repeats = 20 #DEBUG
+
+		self.date_deep = datetime.datetime(date_deep.year, date_deep.month, date_deep.day, date_deep.hour, date_deep.minute, date_deep.second, tzinfo = datetime.timezone.utc)
 
 		self.scrape_result = ScrapeResultTG(**kwargs)
 
@@ -103,33 +105,47 @@ class TelegramMessagesCrawler(Telegram):
 			return
 
 	def _crawling(self, req_message_params, id_group):
-		req_reply_params = req_message_params.copy()
-		total_messages = 0
-		
-		self.request_counter = 1 #DEBUG
-		while True:
+		def debug_msg_local_1(): #DEBUG
+			if not self.debug_mode:
+				return
+			nonlocal req_message_params
 			self.debug_msg('################ REQUEST MSG - '+str(self.request_counter))
 			self.debug_msg(str(req_message_params))
 			self.debug_msg('################')
-			if self.debug_mode and self.request_counter > 20: #DEBUG
+			self.request_counter += 1						
+		def debug_msg_local_2(): #DEBUG
+			if not self.debug_mode:
 				return
-			request_counter += 1 #DEBUG
+			nonlocal message
+			self.debug_msg('______________MESSAGE MESSAGE_____________________________')
+			self.debug_msg('ID = '+str(message.id)+'	'+crawler.RemoveEmojiSymbols(message.message))
+			self.debug_msg(str(message.date))
+			self.debug_msg(str(message.replies))
+
+		req_reply_params = req_message_params.copy()
+		self.stop_by_date_deep = False
+
+		self.request_counter = 1								#DEBUG
+		while True:
+			debug_msg_local_1()									#DEBUG
+			#if self.debug_mode and self.request_counter > 20:	#DEBUG
+			#	break
 
 			self.requests_pauser.smart_sleep()
 			history = self.client(GetHistoryRequest(**req_message_params))
 
 			if not history.messages:
-				return
+				break
 
 			req_message_params['offset_id'] = history.messages[len(history.messages) - 1].id #for next request
 			for message in history.messages:
 				if message.message == None:
 					continue
+				self.check_date_deep(message.date)
+				if self.stop_by_date_deep:
+					break
 
-				self.debug_msg('______________MESSAGE MESSAGE_____________________________')
-				self.debug_msg('ID = '+str(message.id)+'	'+crawler.RemoveEmojiSymbols(message.message))
-				self.debug_msg(str(message.date))
-				self.debug_msg(str(message.replies))
+				debug_msg_local_2()									#DEBUG
 
 				self.scrape_result.add_message(message, self.get_message_url(message.id, req_message_params['peer']),  id_group)
 				#_message.sender_id
@@ -140,35 +156,57 @@ class TelegramMessagesCrawler(Telegram):
 					self._crawling_replies(req_reply_params, id_group, message.id)
 		
 			yield self.scrape_result.to_json() #return result per one post-request
+			if self.stop_by_date_deep:
+				self.debug_msg('STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE')
+				break
 		return
 
 	def _crawling_replies(self, req_reply_params, id_group, id_message):
+		def debug_msg_local_1(): #DEBUG
+			if not self.debug_mode:
+				return
+			nonlocal req_reply_params
+			self.debug_msg('################ REQUEST REPLY - '+str(self.request_counter))
+			self.debug_msg(str(req_reply_params))
+			self.debug_msg('################')
+			self.request_counter += 1							#DEBUG
+		def debug_msg_local_2(): #DEBUG
+			if not self.debug_mode:
+				return
+			nonlocal reply
+			self.debug_msg('________________REPLY REPLY___________________________')
+			self.debug_msg('ID = '+str(reply.id)+'	Reply to ID = ' + str(reply.reply_to_msg_id) + '	' + crawler.RemoveEmojiSymbols(reply.message))
+			self.debug_msg(str(reply.date))
+			self.debug_msg(str(reply.replies))
+
 		req_reply_params['msg_id'] = id_message
 		offset_reply = 0
 		while True:
 			self.requests_pauser.smart_sleep()
-			self.debug_msg('################ REQUEST REPLY - '+str(self.request_counter))
-			self.debug_msg(str(req_reply_params))
-			self.debug_msg('################')
-			if self.debug_mode and request_counter > 20: #DEBUG
-				return
-			self.request_counter += 1  #DEBUG
+
+			debug_msg_local_1()									#DEBUG
+			#if self.debug_mode and self.request_counter > 20:	#DEBUG
+			#	return
 
 			history_repl = self.client(GetRepliesRequest(**req_reply_params))
 			if not history_repl.messages:
 				break
+
 			for reply in history_repl.messages:
-				self.debug_msg('________________REPLY REPLY___________________________')
-				self.debug_msg('ID = '+str(reply.id)+'	Reply to ID = ' + str(reply.reply_to_msg_id) + '	' + crawler.RemoveEmojiSymbols(reply.message))
-				self.debug_msg(str(reply.date))
-				self.debug_msg(str(reply.replies))
-						
-				self.scrape_result.add_reply(reply, self.get_message_url(message.id, req_message_params['peer']),  id_group, id_message)
+				debug_msg_local_2()								#DEBUG
+				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message, req_reply_params['peer']),  id_group, id_message)
 
 			req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
 
 	def get_message_url(self, id_message, url_group):
 		return url_group+'/'+str(id_message)
+
+	def get_reply_url(self, id_reply, id_message, url_group):
+		return self.get_message_url(id_message, url_group) + '?comment=' + str(id_reply)
+
+	def check_date_deep(self, dt):
+		if self.date_deep != const.EMPTY_DATE and dt <= self.date_deep:
+			self.stop_by_date_deep = True
 
 
 class ScrapeResultTG(scraper.ScrapeResult):
@@ -179,7 +217,8 @@ class ScrapeResultTG(scraper.ScrapeResult):
 
 		super().add_result_type_POST(
 			url = url,
-			sn_id = group_id,
+			#sn_id = group_id,
+			sn_id = group_id[0:12], #DEBUG
 			sn_post_id = str(message.id),
 			author = str(message.sender_id),
 			content_date = date.date_to_str(message.date),
@@ -190,9 +229,10 @@ class ScrapeResultTG(scraper.ScrapeResult):
 
 		super().add_result_type_REPLY(
 			url = url,
-			sn_id = group_id,
+			#sn_id = group_id,
+			sn_id = group_id[0:12], #DEBUG
 			sn_post_id = str(reply.id),
-			sn_parent_id = str(message_id),
+			sn_post_parent_id = str(message_id),
 			author = str(reply.sender_id),
 			content_date = date.date_to_str(reply.date),
 			content = reply.message

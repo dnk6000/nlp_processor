@@ -430,10 +430,10 @@ class ScrapeResult(list, common.CommonFunc):
 		super().append(res_element)
 
 	def add_result_type_POST(self, **kwargs):
-		add_result_type_content(result_type = self.RESULT_TYPE_POST, **kwargs)
+		self.add_result_type_content(result_type = self.RESULT_TYPE_POST, **kwargs)
 
 	def add_result_type_REPLY(self, **kwargs):
-		add_result_type_content(result_type = self.RESULT_TYPE_REPLY, **kwargs)
+		self.add_result_type_content(result_type = self.RESULT_TYPE_REPLY, **kwargs)
 
 	def to_json(self):
 		json_result = json.dumps(self)
