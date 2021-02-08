@@ -4,9 +4,11 @@ import CrawlModulesPG.const as const
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.exceptions as exceptions
 import CrawlModulesPG.common as common
+import CrawlModulesPG.date as date
 
 import re
 from html.parser import HTMLParser  
+import datetime
 
 from bs4 import BeautifulSoup
 
@@ -434,6 +436,22 @@ class ScrapeResult(list, common.CommonFunc):
 
 	def add_result_type_REPLY(self, **kwargs):
 		self.add_result_type_content(result_type = self.RESULT_TYPE_REPLY, **kwargs)
+
+	def add_result_type_activity(self, sn_id, sn_post_id, last_date, **kwargs):
+		res_element = self.base_res_element.copy()
+
+		if isinstance(last_date, datetime.datetime):
+			_last_date = date.date_to_str(last_date)
+		else:
+			_last_date = last_date
+
+		res_element['result_type']  = self.RESULT_TYPE_DT_POST_ACTIVITY
+		res_element['sn_id']		= sn_id
+		res_element['sn_post_id']	= sn_post_id
+		res_element['last_date']	= _last_date
+
+		super().append(res_element)
+
 
 	def to_json(self):
 		json_result = json.dumps(self)

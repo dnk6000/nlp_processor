@@ -1,6 +1,6 @@
 '''Constants'''
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 try: 
     import CrawlModulesPyOnly.plpyemul  as plpyemul #this library is not in PG
@@ -58,6 +58,7 @@ CW_LOG_LEVEL_FATAL = 5
 HTTP_STATUS_CODE_200 = 200
 
 EMPTY_DATE = datetime(1,1,1)
+EMPTY_DATE_UTC = datetime(1,1,1,tzinfo = timezone.utc)
 
 SN_GROUP_MARK = 'G'
 SN_USER_MARK = 'U'

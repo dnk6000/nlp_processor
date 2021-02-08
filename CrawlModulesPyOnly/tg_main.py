@@ -3,6 +3,7 @@ import time
 import json
 
 import CrawlModulesPG.const as const
+import CrawlModulesPG.date as date
 import CrawlModulesPG.tg as tg
 import CrawlModulesPG.pginterface as pginterface
 import CrawlModulesPyOnly.plpyemul as plpyemul
@@ -53,6 +54,8 @@ def tg_crawl_messages(id_project, id_group, id_queue,
                   critical_error_counter = {'counter': 0}
                   ):
     
+    dt_start = date.date_now_str()
+
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 
                                             id_group = id_group,
@@ -79,10 +82,10 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
             #    cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
             
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
-            #    msg('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))
-            #    cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, res_unit['post_id'], res_unit['dt'], dt_start)
-            
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
+                msg('post id = {} dt = {}'.format(res_unit['sn_post_id'], res_unit['last_date']))
+                cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
+
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_GROUP_ACTIVITY:
             #    msg('dt = {}'.format(res_unit['dt']))
             #    cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, '', res_unit['dt'], dt_start)

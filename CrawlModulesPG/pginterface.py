@@ -95,7 +95,7 @@ class MainDB:
         self.plpy.commit()
         return None if res == None else res[0]
 
-    def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date):
+    def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date, **kwargs):
         plan_id = 'plan_upsert_sn_activity'
         with self.plpy.subtransaction():
             if not plan_id in gvars.GD or gvars.GD[plan_id] == None:

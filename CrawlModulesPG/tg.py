@@ -60,7 +60,8 @@ class TelegramMessagesCrawler(Telegram):
 
 		self._url = r'https://t.me/'
 
-		pass
+		self.activity_registrator = ActivityRegistrator()
+
 
 	def crawling(self, id_group):
 		req_group_params = { 
@@ -122,14 +123,13 @@ class TelegramMessagesCrawler(Telegram):
 			self.debug_msg(str(message.date))
 			self.debug_msg(str(message.replies))
 
+		self.activity_registrator.initialize(id_group)
 		req_reply_params = req_message_params.copy()
 		self.stop_by_date_deep = False
 
 		self.request_counter = 1								#DEBUG
 		while True:
 			debug_msg_local_1()									#DEBUG
-			#if self.debug_mode and self.request_counter > 20:	#DEBUG
-			#	break
 
 			self.requests_pauser.smart_sleep()
 			history = self.client(GetHistoryRequest(**req_message_params))
@@ -151,10 +151,13 @@ class TelegramMessagesCrawler(Telegram):
 				#_message.sender_id
 				#_message.views
 				
+				self.activity_registrator.registrate(message.id, message.date)
+
 				#Replyes
 				if message.replies != None and message.replies.replies > 0:
 					self._crawling_replies(req_reply_params, id_group, message.id)
-		
+
+			self.activity_registrator.move_to_scrape_result(self.scrape_result)		
 			yield self.scrape_result.to_json() #return result per one post-request
 			if self.stop_by_date_deep:
 				self.debug_msg('STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE')
@@ -179,14 +182,15 @@ class TelegramMessagesCrawler(Telegram):
 			self.debug_msg(str(reply.date))
 			self.debug_msg(str(reply.replies))
 
+		
+		first_request = True
 		req_reply_params['msg_id'] = id_message
 		offset_reply = 0
+
 		while True:
 			self.requests_pauser.smart_sleep()
 
 			debug_msg_local_1()									#DEBUG
-			#if self.debug_mode and self.request_counter > 20:	#DEBUG
-			#	return
 
 			history_repl = self.client(GetRepliesRequest(**req_reply_params))
 			if not history_repl.messages:
@@ -195,6 +199,9 @@ class TelegramMessagesCrawler(Telegram):
 			for reply in history_repl.messages:
 				debug_msg_local_2()								#DEBUG
 				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message, req_reply_params['peer']),  id_group, id_message)
+				if first_request:
+					self.activity_registrator.registrate(id_message, reply.date)
+					first_request = False
 
 			req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
 
@@ -218,7 +225,7 @@ class ScrapeResultTG(scraper.ScrapeResult):
 		super().add_result_type_POST(
 			url = url,
 			#sn_id = group_id,
-			sn_id = group_id[0:12], #DEBUG
+			sn_id = group_id[0:12], #DEBUG  CROP ID !!!
 			sn_post_id = str(message.id),
 			author = str(message.sender_id),
 			content_date = date.date_to_str(message.date),
@@ -237,3 +244,32 @@ class ScrapeResultTG(scraper.ScrapeResult):
 			content_date = date.date_to_str(reply.date),
 			content = reply.message
 			)		
+
+class ActivityRegistrator(dict, common.CommonFunc):
+	def __init__(self, *args, sn_id = '', tz = datetime.timezone.utc, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.EMPTY_DATE = const.EMPTY_DATE_UTC if tz == datetime.timezone.utc else const.EMPTY_DATE
+		self.initialize(sn_id)
+		
+	def initialize(self, sn_id):
+		self.common_last_date = self.EMPTY_DATE
+		self.sn_id = sn_id
+		self.clear()
+
+	def registrate(self, sn_post_id, dt):
+		if dt == None or dt == self.EMPTY_DATE: 
+			return
+
+		if not sn_post_id in self:	    #first
+			self[sn_post_id] = dt
+		elif self[sn_post_id] < dt:	#register the latest datetime
+			self[sn_post_id] = dt
+
+		if self.common_last_date < dt:
+			self.common_last_date = dt
+
+	def move_to_scrape_result(self, scrape_result):
+		for sn_post_id in self:
+			scrape_result.add_result_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
+		scrape_result.add_result_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
+		self.clear()
