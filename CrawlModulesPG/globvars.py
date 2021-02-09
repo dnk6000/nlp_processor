@@ -12,7 +12,7 @@ GDpy = dict()
 
 class GlobVars:
     def __init__(self, GD):
-        if GD == None:
+        if GD is None:
             self.GD = GDpy
         else:
             self.GD = GD

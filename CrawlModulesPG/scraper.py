@@ -60,7 +60,7 @@ class Scraper():
                 strDate = tagsArticleDate[0].get_text()
                 datePattern = r'\d\d\.\d\d\.\d\d\d\d'
                 matchRes = re.search(datePattern, strDate)
-                if matchRes != None: 
+                if matchRes is not None: 
                     _ResDate = matchRes[0]
 
             return _ResDate
@@ -142,7 +142,7 @@ class Scraper():
                     strDate = tagsArticleDate[0].attrs['content']
                     datePattern = r'\d\d\d\d-\d\d-\d\d'
                     matchRes = re.search(datePattern, strDate)
-                    if matchRes != None: 
+                    if matchRes is not None: 
                         _ResDate = matchRes[0]
 
             return _ResDate
@@ -204,7 +204,7 @@ class Scraper():
 
     def Scraping(self, html, domain = None ):
         
-        if domain == None:
+        if domain is None:
             listArticles = self.ScrapingUniversal(html)
             return listArticles
 
@@ -357,10 +357,10 @@ class TagTree():
         #result_of_process_func = None 
 
         for node in self.nodes:
-            if node.process_func != None:
+            if node.process_func is not None:
                 proc_par1, proc_par2 = node.process_func(par1, par2, **node.func_par)
             
-            if node.result_func != None:
+            if node.result_func is not None:
                 res_par1, res_par2 = node.result_func(proc_par1, proc_par2, **node.func_par)
             else:
                 res_par1, res_par2 = proc_par1, proc_par2
@@ -414,7 +414,7 @@ class ScrapeResult(list, common.CommonFunc):
 
 	def add_result_type_content(self, result_type, url = '', sn_id = '', sn_post_id = '', sn_post_parent_id = '', author = '', content_date = const.EMPTY_DATE, content_header = '', content = ''):
 		res_element = self.base_res_element.copy()
-		if content == None:
+		if content is None:
 			txt = ''
 		else:
 			txt = crawler.RemoveEmojiSymbols(content)

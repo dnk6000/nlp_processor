@@ -242,7 +242,7 @@ def crawl_endless_scroll_wall(): #!!!
     _post_fixed = ''
 
     tFixedArea     = soup.find('', nFixedArea )
-    if tFixedArea != None:
+    if tFixedArea is not None:
         tPostTag     = tFixedArea.findAll('', nPostTag )
         if len(tPostTag) > 0:
             if len(tPostTag) > 1:
@@ -344,7 +344,7 @@ def crawl_endless_scroll_wall(): #!!!
                     if len(tRepliesContTag) > 0:
                         for iRepliesContTag in tRepliesContTag:
                             tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                            if tRepliesTextTag != None:
+                            if tRepliesTextTag is not None:
                                 print(tRepliesTextTag.text)
                                 print('\n       --xxxx----------------------------------xxxxx-----------\n')
                             else:
@@ -373,14 +373,14 @@ def crawl_endless_scroll_wall(): #!!!
             _replies_offset = 0
 
             tRepliesTag = iPostTag.find('', nRepliesTag )
-            if tRepliesTag != None:
+            if tRepliesTag is not None:
 
                 tRepliesContTag = tRepliesTag.findAll('', nRepliesContTag )
                 if len(tRepliesContTag) > 0:
                     for iRepliesContTag in tRepliesContTag:
                         _replies_offset += 1
                         tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                        if tRepliesTextTag != None:
+                        if tRepliesTextTag is not None:
                             print(_replies_offset)
                             print(tRepliesTextTag.text)
                             print('\n       --.....----------------------------------.....-----------\n')
@@ -391,7 +391,7 @@ def crawl_endless_scroll_wall(): #!!!
             #----begin------------ нажатие на кнопку "Показать следующие комментарии"
             tShowNextRepliesTag = iPostTag.find('', nShowNextRepliesTag )
 
-            if not False & (tShowNextRepliesTag != None):
+            if not False & (tShowNextRepliesTag is not None):
                 _num_read_replies = 20
                 _replies_offset = 0
                 
@@ -420,14 +420,14 @@ def crawl_endless_scroll_wall(): #!!!
                 soup = BeautifulSoup(txt, "html.parser")
         
                 #tRepliesTag = soup.find('', nRepliesTag )
-                #if tRepliesTag != None:
+                #if tRepliesTag is not None:
 
                 tRepliesContTag = soup.findAll('', nRepliesContTag )
                 if len(tRepliesContTag) > 0:
                     for iRepliesContTag in tRepliesContTag:
                         i += 1
                         tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                        if tRepliesTextTag != None:
+                        if tRepliesTextTag is not None:
                             print(_replies_offset, i)
                             print(tRepliesTextTag.text)
                             print('\n       --11111111111111.....----------------------------------.....-----------\n')
@@ -460,14 +460,14 @@ def crawl_endless_scroll_wall(): #!!!
                 soup = BeautifulSoup(txt, "html.parser")
         
                 #tRepliesTag = soup.find('', nRepliesTag )
-                #if tRepliesTag != None:
+                #if tRepliesTag is not None:
 
                 tRepliesContTag = soup.findAll('', nRepliesContTag )
                 if len(tRepliesContTag) > 0:
                     for iRepliesContTag in tRepliesContTag:
                         i += 1
                         tRepliesTextTag = iRepliesContTag.find('', nRepliesTextTag )
-                        if tRepliesTextTag != None:
+                        if tRepliesTextTag is not None:
                             print(_replies_offset, i)
                             print(tRepliesTextTag.text)
                             print('\n       --222222222222.....----------------------------------.....-----------\n')
@@ -650,7 +650,7 @@ if __name__ == "__main__":
 
         for tReplTag in tReplTags:
             tButtTag = tReplTag.find('', _cw_tg_Replies2)
-            if tButtTag != None:
+            if tButtTag is not None:
                 print(tButtTag.text)
 
 

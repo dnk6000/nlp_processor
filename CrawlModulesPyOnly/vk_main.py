@@ -112,7 +112,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   critical_error_counter = {'counter': 0}
                   ):
 
-    if id_queue != None:
+    if id_queue is not None:
         res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
         if not res[0]['Success']:
             cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
@@ -205,7 +205,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
-                if False and id_queue != None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
+                if False and id_queue is not None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
                     attempts_counter += 1
                     date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
                     res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
@@ -222,7 +222,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 #msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
                 cass_db.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
                 
-    if id_queue != None:
+    if id_queue is not None:
         res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = date.date_now_str())
         if not res[0]['Success']:
             cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))

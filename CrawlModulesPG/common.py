@@ -5,7 +5,7 @@ class CommonFunc:
 		self.debug_mode   = debug_mode
 
 	def msg(self, message):
-		if not self.msg_func == None:
+		if not self.msg_func is None:
 			try:
 				self.msg_func(str(message))
 			except:

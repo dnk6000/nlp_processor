@@ -40,7 +40,7 @@ class Telegram:
 		
 	def msg(self, message):
 
-		if not self.msg_func == None:
+		if not self.msg_func is None:
 			try:
 				self.msg_func(message)
 			except:
@@ -100,7 +100,7 @@ class TelegramCrawlMessages(Telegram):
 				#_message.sender_id
 				#_message.views
 
-				if _message.replies != None and _message.replies.replies > 0:
+				if _message.replies is not None and _message.replies.replies > 0:
 					_offset_reply = 0
 					while True:
 						time.sleep(pause_sec)

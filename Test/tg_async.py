@@ -24,7 +24,7 @@ class CommonFunc:
         self.debug_mode   = debug_mode
 
     def msg(self, message):
-        if not self.msg_func == None:
+        if not self.msg_func is None:
             try:
                 self.msg_func(str(message))
             except:
@@ -77,7 +77,7 @@ class AsyncCrawler(CommonFunc):
     async def manager(self):
         #while self.repeats > 0:
         self.msg('managing.   time = {}'.format(str(datetime.datetime.now())))
-        if self.manager_func != None:
+        if self.manager_func is not None:
             self.manager_func()
         await asyncio.sleep(0.1)
 
@@ -168,7 +168,7 @@ class TelegramMessagesCrawler(Telegram):
 				#_message.sender_id
 				#_message.views
 
-				if message.replies != None and message.replies.replies > 0:
+				if message.replies is not None and message.replies.replies > 0:
 					req_reply_params['msg_id'] = message.id
 
 					offset_reply = 0

@@ -122,7 +122,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             #    wall_processed = False
             #    critical_error_counter['counter'] += 1
 
-            #    if False and id_queue != None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
+            #    if False and id_queue is not None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
             #        attempts_counter += 1
             #        date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
             #        res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))

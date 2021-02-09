@@ -70,7 +70,7 @@ class CrawlerSocialNet:
         else:
             self.request_tries = 6 #number of repeats requests in case of an error
 
-        if base_search_words == None:
+        if base_search_words is None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
         else:
             self.base_search_words = base_search_words
@@ -123,7 +123,7 @@ class CrawlerSocialNet:
 
     def msg(self, message):
 
-        if not self.msg_func == None:
+        if not self.msg_func is None:
             try:
                 self.msg_func(message)
             except:
@@ -131,7 +131,7 @@ class CrawlerSocialNet:
 
     def warning(self, message):
 
-        if not self.warning_func == None:
+        if not self.warning_func is None:
             try:
                 self.warning_func(message)
             except:
@@ -262,7 +262,7 @@ class CrawlerSocialNet:
 
     def _add_groups_to_db(self, groups_list):
 
-        if self.add_db_func == None:
+        if self.add_db_func is None:
             self.msg('Add groups to BD //empty func//')
             return 
 
@@ -289,7 +289,7 @@ class CrawlerSocialNet:
         return new_str
 
     def _check_user_interrupt(self):
-        if self._need_stop_checker == None:
+        if self._need_stop_checker is None:
             return False
         self._need_stop_checker.need_stop()
 
@@ -311,7 +311,7 @@ class CrawlerSocialNet:
             }
 
     def reset_request_error_pauser(self):
-        if not self._request_error_pauser == None:
+        if not self._request_error_pauser is None:
             self._request_error_pauser.reset()
 
 class CrawlerVk(CrawlerSocialNet):
@@ -430,10 +430,10 @@ class CrawlerVkGroups(CrawlerVk):
                    'count' : self.api_limit_res
                   }
 
-        if not search_elem['type'] == None:
+        if not search_elem['type'] is None:
             params['type'] = search_elem['type']
 
-        if not search_elem['sort'] == None:
+        if not search_elem['sort'] is None:
             params['sort'] = search_elem['sort']
         
         #groups = self.api.groups.search(q = search_word, count = self.api_limit_res)
@@ -587,7 +587,7 @@ class SnRecrawlerCheker:
         self.group_last_date = const.EMPTY_DATE  #last activity date
         self.str_to_date = date.StrToDate('%Y-%m-%d %H:%M:%S+.*')
 
-        if cass_db != None:
+        if cass_db is not None:
             res = cass_db.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
 
             _td = datetime.timedelta(days=recrawl_days_reply)
@@ -599,7 +599,7 @@ class SnRecrawlerCheker:
                     self.group_upd_date = _upd_date
                     self.group_last_date = self._get_date(i['last_date'])
                 else:
-                    #if _upd_date == None or _upd_date == const.EMPTY_DATE:
+                    #if _upd_date is None or _upd_date == const.EMPTY_DATE:
                     #    self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
                     #else:
                     self.post_reply_dates[i['sn_post_id']] = { 'upd_date': _upd_date, 'wait_date': _upd_date - _td }
@@ -667,7 +667,7 @@ class CrawlerVkWall(CrawlerVk):
 
         self._str_to_date = date.StrToDate(['dd mmm в hh:mm', 'dd mmm yyyy', 'сегодня в hh:mm', 'вчера в hh:mm'], url = self.url, msg_func = self.msg_func)
 
-        if sn_recrawler_checker == None:
+        if sn_recrawler_checker is None:
             self._sn_recrawler_checker = SnRecrawlerCheker() 
         else:
             self._sn_recrawler_checker = sn_recrawler_checker
@@ -1073,7 +1073,7 @@ class CrawlerVkWall(CrawlerVk):
 
 
     def _cw_find_tags(self, soup, par, **kwargs):
-        if soup == None: return None, par
+        if soup is None: return None, par
 
         if kwargs['multi']:
             res = soup.findAll(self._re_any_chars, kwargs['tag_key'])
@@ -1085,7 +1085,7 @@ class CrawlerVkWall(CrawlerVk):
     def _cw_find_tags_in_post_list(self, soup, par, **kwargs):
         '''finds tags inside tag ~'post list'
         '''
-        if soup == None: return None, par
+        if soup is None: return None, par
 
         z = self._cw_get_post_id(soup.attrs['id'], 'Post item_id not found !')
 
@@ -1103,7 +1103,7 @@ class CrawlerVkWall(CrawlerVk):
         return self._cw_find_tags(soup, par, **kwargs)
 
     def _cw_find_tags_repl_list(self, soup, par, **kwargs):
-        if soup == None: return None, par
+        if soup is None: return None, par
 
         z = self._cw_get_post_id(soup.attrs['id'], 'Reply item_id not found !')
 
@@ -1121,7 +1121,7 @@ class CrawlerVkWall(CrawlerVk):
 
 
     def _cw_scrap_fixed_area(self, result, par, **kwargs):
-        if result == None: return None, par
+        if result is None: return None, par
 
         if kwargs['mode'] == 'all fixed area':
             return result, par
@@ -1143,7 +1143,7 @@ class CrawlerVkWall(CrawlerVk):
 
     def _cw_check_not_found(self, result, par, **kwargs):
 
-        if result == None: return None, par
+        if result is None: return None, par
 
         if kwargs['mode'] == 'tag 1':
             if 'Ошибка' in result.text:
@@ -1154,7 +1154,7 @@ class CrawlerVkWall(CrawlerVk):
         return result, par
 
     def _cw_scrap_posts(self, result, par, **kwargs):
-        if result == None: return None, par
+        if result is None: return None, par
 
         if kwargs['mode'] == 'posts list':
             
@@ -1233,7 +1233,7 @@ class CrawlerVkWall(CrawlerVk):
         return None, par
     
     def _cw_scrap_replies(self, result, par, **kwargs):
-        if result == None: return None, par
+        if result is None: return None, par
 
         if kwargs['mode'] == 'repl dived':
             return result, par
@@ -1319,7 +1319,7 @@ class CrawlerVkWall(CrawlerVk):
         return None, par
 
     def _cw_scrap_repl_show_next(self, result, par, **kwargs):
-        if result == None: return None, par
+        if result is None: return None, par
         
         if kwargs['mode'] == 'wrap deep':
             return result, par
@@ -1346,7 +1346,7 @@ class CrawlerVkWall(CrawlerVk):
     def _cw_scrap_subscribers(self, result, par, **kwargs):
         self.msg(str(result))
 
-        if result == None: return None, par
+        if result is None: return None, par
         
         if kwargs['mode'] == '-':
             return result, par
@@ -1412,7 +1412,7 @@ class CrawlerVkWall(CrawlerVk):
         return _repr
 
     def _cw_fix_last_date(self, post_id, dt):
-        if dt == None or dt == const.EMPTY_DATE: return
+        if dt is None or dt == const.EMPTY_DATE: return
 
         if not post_id in self._cw_last_dates_activity:     #first
             self._cw_last_dates_activity[post_id] = dt
@@ -1472,7 +1472,7 @@ class CrawlerVkWall(CrawlerVk):
 
     def _write_debug_file(self, data):
         '''DEBUG func'''
-        if self._write_file_func == None:
+        if self._write_file_func is None:
             self.msg(str(data))
         else:
             self._write_file_func(str(data))

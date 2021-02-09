@@ -57,7 +57,7 @@ class Scraper():
                 strDate = tagsArticleDate[0].get_text()
                 datePattern = r'\d\d\.\d\d\.\d\d\d\d'
                 matchRes = re.search(datePattern, strDate)
-                if matchRes != None: 
+                if matchRes is not None: 
                     _ResDate = matchRes[0]
 
             return _ResDate
@@ -139,7 +139,7 @@ class Scraper():
                     strDate = tagsArticleDate[0].attrs['content']
                     datePattern = r'\d\d\d\d-\d\d-\d\d'
                     matchRes = re.search(datePattern, strDate)
-                    if matchRes != None: 
+                    if matchRes is not None: 
                         _ResDate = matchRes[0]
 
             return _ResDate
@@ -201,7 +201,7 @@ class Scraper():
 
     def Scraping(self, html, domain = None ):
         
-        if domain == None:
+        if domain is None:
             listArticles = self.ScrapingUniversal(html)
             return listArticles
 

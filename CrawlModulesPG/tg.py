@@ -139,7 +139,7 @@ class TelegramMessagesCrawler(Telegram):
 
 			req_message_params['offset_id'] = history.messages[len(history.messages) - 1].id #for next request
 			for message in history.messages:
-				if message.message == None:
+				if message.message is None:
 					continue
 				self.check_date_deep(message.date)
 				if self.stop_by_date_deep:
@@ -154,7 +154,7 @@ class TelegramMessagesCrawler(Telegram):
 				self.activity_registrator.registrate(message.id, message.date)
 
 				#Replyes
-				if message.replies != None and message.replies.replies > 0:
+				if message.replies is not None and message.replies.replies > 0:
 					self._crawling_replies(req_reply_params, id_group, message.id)
 
 			self.activity_registrator.move_to_scrape_result(self.scrape_result)		
@@ -257,7 +257,7 @@ class ActivityRegistrator(dict, common.CommonFunc):
 		self.clear()
 
 	def registrate(self, sn_post_id, dt):
-		if dt == None or dt == self.EMPTY_DATE: 
+		if dt is None or dt == self.EMPTY_DATE: 
 			return
 
 		if not sn_post_id in self:	    #first

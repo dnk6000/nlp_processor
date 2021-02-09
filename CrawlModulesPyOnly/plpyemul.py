@@ -30,7 +30,7 @@ class PlPy(object):
         self._pauser = pauser.ExpPauser(delay_seconds = 3.9, number_intervals = self._number_of_tries) #~15 мин
 
     def _connect(self):
-        if self.connection == None:
+        if self.connection is None:
             self.connection = psycopg2.connect(**self.connection_par)
             self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
             self.cursor.tzinfo_factory = None #from psycopg2.tz import LocalTimezone
@@ -156,16 +156,16 @@ class PlPy(object):
         self._return_select_result[plan_name] = False
 
         re_vars = re.search(r'RETURNING', pgstatement, re.IGNORECASE)
-        if re_vars != None:
+        if re_vars is not None:
             self._return_var_names[plan_name] = True
         else:
             self._return_var_names[plan_name] = False
 
             re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
-            if re_select != None:
+            if re_select is not None:
                 self._return_select_result[plan_name] = True
 
     def __del__(self):
         #print('__del__')
-        if self.connection != None:
+        if self.connection is not None:
             self.connection.close()
