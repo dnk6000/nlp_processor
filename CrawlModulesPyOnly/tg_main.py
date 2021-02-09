@@ -8,6 +8,7 @@ import CrawlModulesPG.tg as tg
 import CrawlModulesPG.pginterface as pginterface
 import CrawlModulesPyOnly.plpyemul as plpyemul
 import CrawlModulesPG.accounts as accounts
+import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
 
 from CrawlModulesPG.globvars import GlobVars
@@ -55,6 +56,14 @@ def tg_crawl_messages(id_project, id_group, id_queue,
                   ):
     
     dt_start = date.date_now_str()
+
+    sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
+                                                TG_SOURCE_ID, 
+                                                id_project, 
+                                                sn_id = id_group, 
+                                                recrawl_days_post = project_params['recrawl_days_post'], 
+                                                recrawl_days_reply = project_params['recrawl_days_reply'],
+                                                plpy = plpy)
 
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 

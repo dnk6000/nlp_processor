@@ -48,7 +48,7 @@ class Telegram(CrawlerCommon):
 
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, date_deep, **kwargs):
+	def __init__(self, id_group, date_deep, sn_recrawler_checker = None, **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 
@@ -62,6 +62,10 @@ class TelegramMessagesCrawler(Telegram):
 
 		self.activity_registrator = ActivityRegistrator()
 
+		if sn_recrawler_checker is None:
+			self._sn_recrawler_checker = crawler.SnRecrawlerCheker() 
+		else:
+			self._sn_recrawler_checker = sn_recrawler_checker
 
 	def crawling(self, id_group):
 		req_group_params = { 
@@ -126,23 +130,27 @@ class TelegramMessagesCrawler(Telegram):
 		self.activity_registrator.initialize(id_group)
 		req_reply_params = req_message_params.copy()
 		self.stop_by_date_deep = False
+		crawled_post_encounter = False
 
 		self.request_counter = 1								#DEBUG
 		while True:
 			debug_msg_local_1()									#DEBUG
 
 			self.requests_pauser.smart_sleep()
-			history = self.client(GetHistoryRequest(**req_message_params))
+			posts = self.client(GetHistoryRequest(**req_message_params))
 
 			if not history.messages:
 				break
 
-			req_message_params['offset_id'] = history.messages[len(history.messages) - 1].id #for next request
-			for message in history.messages:
+			req_message_params['offset_id'] = posts.messages[len(posts.messages) - 1].id #for next request
+			for message in posts.messages:
 				if message.message is None:
 					continue
 				self.check_date_deep(message.date)
 				if self.stop_by_date_deep:
+					break
+				if self._sn_recrawler_checker.is_crawled_post(message.date):
+					crawled_post_encounter = True
 					break
 
 				debug_msg_local_2()									#DEBUG
@@ -157,10 +165,17 @@ class TelegramMessagesCrawler(Telegram):
 				if message.replies is not None and message.replies.replies > 0:
 					self._crawling_replies(req_reply_params, id_group, message.id)
 
+			if crawled_post_encounter:
+				for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
+					self._crawling_replies(req_reply_params, id_group, post_for_recrawl_reply)
+
 			self.activity_registrator.move_to_scrape_result(self.scrape_result)		
 			yield self.scrape_result.to_json() #return result per one post-request
 			if self.stop_by_date_deep:
 				self.debug_msg('STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE')
+				break
+			if crawled_post_encounter:
+				self.debug_msg('STOP BY CRAWLED POST ENCOUNTER')
 				break
 		return
 
@@ -184,6 +199,7 @@ class TelegramMessagesCrawler(Telegram):
 
 		
 		first_request = True
+		crawled_reply_encounter = False
 		req_reply_params['msg_id'] = id_message
 		offset_reply = 0
 
@@ -198,12 +214,20 @@ class TelegramMessagesCrawler(Telegram):
 
 			for reply in history_repl.messages:
 				debug_msg_local_2()								#DEBUG
+
+				if self._sn_recrawler_checker.is_reply_out_of_upd_date(id_message, reply.date):
+					crawled_reply_encounter = True
+					break
+
 				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message, req_reply_params['peer']),  id_group, id_message)
 				if first_request:
 					self.activity_registrator.registrate(id_message, reply.date)
 					first_request = False
-
+			
 			req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
+
+			if crawled_reply_encounter:
+				break
 
 	def get_message_url(self, id_message, url_group):
 		return url_group+'/'+str(id_message)

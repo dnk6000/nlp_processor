@@ -117,7 +117,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         if not res[0]['Success']:
             cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    sn_recrawler_checker = vk.SnRecrawlerCheker(cass_db, 
+    sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 gvars.get('VK_SOURCE_ID'), 
                                                 id_project, 
                                                 sn_id = id_group, 

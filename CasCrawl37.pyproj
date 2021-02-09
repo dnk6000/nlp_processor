@@ -107,7 +107,7 @@
     <Folder Include="Test\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Documentation\Cassandra. Alhoritms of Crawling and Scraping.docx" />
+    <Content Include="Documentation\Cassandra. Algorithms of Crawling and Scraping.docx" />
     <Content Include="Documentation\Cassandra. Рефакторинг Улучшения.docx" />
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
     <Content Include="Temp\CheckScraping_Log.txt" />
