@@ -200,11 +200,15 @@ class SnRecrawlerCheker:
                        sn_id = None, 
                        recrawl_days_post = None, 
                        recrawl_days_reply = None, 
-                       plpy = None):
+                       plpy = None,
+                       tzinfo = None):
+
+        self.tzinfo = tzinfo
+        self.EMPTY_DATE = const.EMPTY_DATE if self.tzinfo is None else const.EMPTY_DATE_UTC
 
         self.post_reply_dates = dict()
-        self.group_upd_date = const.EMPTY_DATE
-        self.group_last_date = const.EMPTY_DATE  #last activity date
+        self.group_upd_date = self.EMPTY_DATE
+        self.group_last_date = self.EMPTY_DATE  #last activity date
         self.str_to_date = date.StrToDate('%Y-%m-%d %H:%M:%S+.*')
 
         if cass_db is not None:
@@ -219,38 +223,38 @@ class SnRecrawlerCheker:
                     self.group_upd_date = _upd_date
                     self.group_last_date = self._get_date(i['last_date'])
                 else:
-                    #if _upd_date is None or _upd_date == const.EMPTY_DATE:
-                    #    self.post_reply_dates[i['sn_post_id']] = { 'upd_date': i['last_date'], 'wait_date': i['last_date'] - _td } #at the initial stage, only. 'upd_date' is not filled in
-                    #else:
                     self.post_reply_dates[i['sn_post_id']] = { 'upd_date': _upd_date, 'wait_date': _upd_date - _td }
 
     def _get_date(self, dt):
         if type(dt) == str:
-            return self.str_to_date.get_date(dt, type_res = 'D')
+            _dt = self.str_to_date.get_date(dt, type_res = 'D')
         else:
-            return dt
+            _dt = dt
+        if self.tzinfo is not None:
+            _dt = date.date_as_utc(_dt)
+        return _dt
 
     def is_crawled_post(self, dt):
         '''is post already crawled ? True / False '''
-        if dt == const.EMPTY_DATE or self.group_upd_date == const.EMPTY_DATE:
+        if dt == self.EMPTY_DATE or self.group_upd_date == self.EMPTY_DATE:
             return False
         return dt < self.group_upd_date
 
     def is_reply_out_of_wait_date(self, post_id, dt):
-        if not post_id in self.post_reply_dates or dt == const.EMPTY_DATE:
+        if not post_id in self.post_reply_dates or dt == self.EMPTY_DATE:
             return False
         return dt < self.post_reply_dates[post_id]['wait_date']
 
     def is_reply_out_of_upd_date(self, post_id, dt):
         '''== reply already crawled ? '''
-        if not post_id in self.post_reply_dates or dt == const.EMPTY_DATE:
+        if not post_id in self.post_reply_dates or dt == self.EMPTY_DATE:
             return False
         return dt < self.post_reply_dates[post_id]['upd_date']
 
     def get_post_out_of_date(self, post_id, date_type):
         ''' for test purpose only'''
         if not post_id in self.post_reply_dates:
-            return const.EMPTY_DATE
+            return self.EMPTY_DATE
         else:
             return self.post_reply_dates[post_id][date_type]
 

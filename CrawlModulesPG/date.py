@@ -110,6 +110,15 @@ def date_to_str(dt):
 def date_now_str():
     return date_to_str(datetime.datetime.now().astimezone())
 
+def date_as_utc(dt):
+    if dt is None:
+        return const.EMPTY_DATE_UTC
+    elif dt.tzinfo is not None:
+        return dt
+    elif dt == const.EMPTY_DATE:
+        return const.EMPTY_DATE_UTC
+    else:
+        return datetime.datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, tzinfo = datetime.timezone.utc)
 
 if __name__ == "__main__":
     st = StrToDate()

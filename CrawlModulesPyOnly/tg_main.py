@@ -60,14 +60,16 @@ def tg_crawl_messages(id_project, id_group, id_queue,
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 TG_SOURCE_ID, 
                                                 id_project, 
-                                                sn_id = id_group, 
+                                                sn_id = id_group[0:12], #DEBUG CROP ID
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
                                                 recrawl_days_reply = project_params['recrawl_days_reply'],
-                                                plpy = plpy)
+                                                plpy = plpy,
+                                                tzinfo = datetime.timezone.utc)
 
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 
                                             id_group = id_group,
+                                            sn_recrawler_checker = sn_recrawler_checker,
                                             date_deep = project_params['date_deep'],
                                             requests_delay_sec = project_params['requests_delay_sec'],
                                             **accounts.TG_ACCOUNT[0])
@@ -93,7 +95,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
                 msg('post id = {} dt = {}'.format(res_unit['sn_post_id'], res_unit['last_date']))
-                cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
+                #cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
 
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_GROUP_ACTIVITY:
             #    msg('dt = {}'.format(res_unit['dt']))
@@ -146,7 +148,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
 
             elif res_unit['result_type'] in (scraper.ScrapeResult.RESULT_TYPE_POST, scraper.ScrapeResult.RESULT_TYPE_REPLY, scraper.ScrapeResult.RESULT_TYPE_REPLY_TO_REPLY):
                 msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['sn_id']) + ' ' + res_unit['url'])
-                cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
+                #cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
     pass
                                   
 
@@ -196,5 +198,7 @@ TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
 cass_db.create_project(ID_PROJECT_main)
 
 tg_crawl_messages_start(ID_PROJECT_main)
+
+pass
 
 
