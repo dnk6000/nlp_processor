@@ -22,10 +22,10 @@ gvars = GlobVars(GD)
 DEBUG_MODE = True
 
 ####### begin: for PY environment only #############
-step_name = '_crawl_groups'
-step_name = '_crawl_subscribers'
-step_name = '_crawl_wall'
+step_name = 'crawl_groups'
+step_name = 'crawl_subscribers'
 step_name = 'debug'
+step_name = 'crawl_wall'
 ID_PROJECT_main = 4
 
 if const.PY_ENVIRONMENT:
@@ -52,10 +52,22 @@ if const.PY_ENVIRONMENT:
 def tg_crawl_messages(id_project, id_group, id_queue, 
                   project_params,
                   attempts_counter = 0, 
-                  critical_error_counter = {'counter': 0}
-                  ):
+                  critical_error_counter = {'counter': 0},
+                  queue = None):
     
-    dt_start = date.date_now_str()
+    id_group = 'govoritfursov'  #DEBUG CROP ID
+
+    if queue is not None:
+        queue.reg_start()
+
+    wall_processed = False
+    CriticalErrorsLimit = 3
+    #dt_start = date.date_now_str()
+
+    if id_queue is not None:
+        res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
+        if not res[0]['Success']:
+            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
 
@@ -91,7 +103,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             
             if res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS:
                 msg(res_unit['num_subscribers'])
-                #cass_db.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), **res_unit)
+                #cass_db.update_sn_num_subscribers(TG_SOURCE_ID, **res_unit)
             
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
             #    cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
@@ -102,11 +114,11 @@ def tg_crawl_messages(id_project, id_group, id_queue,
 
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_GROUP_ACTIVITY:
             #    msg('dt = {}'.format(res_unit['dt']))
-            #    cass_db.upsert_sn_activity(gvars.get('VK_SOURCE_ID'), id_project, id_group_str, '', res_unit['dt'], dt_start)
+            #    cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, id_group_str, '', res_unit['dt'], dt_start)
             
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_HTML:
             #    #msg('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-            #    res = cass_db.upsert_data_html(url = res_unit['url'], content = res_unit['content'], id_project = id_project, id_www_sources = gvars.get('VK_SOURCE_ID'))
+            #    res = cass_db.upsert_data_html(url = res_unit['url'], content = res_unit['content'], id_project = id_project, id_www_sources = TG_SOURCE_ID)
             #    id_data_html = res['id_modified']
             
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_NOT_FOUND:
@@ -152,43 +164,41 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             elif res_unit['result_type'] in (scraper.ScrapeResult.RESULT_TYPE_POST, scraper.ScrapeResult.RESULT_TYPE_REPLY, scraper.ScrapeResult.RESULT_TYPE_REPLY_TO_REPLY):
                 msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['sn_id']) + ' ' + res_unit['url'])
                 #cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
-    pass
+    
+    if queue is not None:
+        queue.reg_finish()
                                   
 
-def tg_crawl_messages_start(id_project):
+def tg_crawl_messages_start(id_project, queue):
 
     critical_error_counter = {'counter': 0}
 
-    project_params = cass_db.get_project_params(id_project)[0]          #DEBUG
-    tg_crawl_messages(id_project = id_project,                          #DEBUG
-                    id_group = 'govoritfursov',
-                    id_queue = 0,
-                    project_params = project_params,
-                    critical_error_counter = critical_error_counter)
+    #project_params = cass_db.get_project_params(id_project)[0]          #DEBUG
+    #tg_crawl_messages(id_project = id_project,                          #DEBUG
+    #                id_group = 'govoritfursov',
+    #                id_queue = 0,
+    #                project_params = project_params,
+    #                critical_error_counter = critical_error_counter)
 
 
-    return #DEBUG
+    #return #DEBUG
 
     portion_counter = 0
 
     while True:
         project_params = cass_db.get_project_params(id_project)[0]  #temporarily in the loop to adjust the pause 
 
-        queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
-
-        portion_counter += 1
-        plpy.notice('GET QUEUE PORTION № {}'.format(portion_counter));
-
-        if len(queue_portion) == 0:
+        if not queue.read_portion(portion_size = 1):
             break
 
-        for elem in queue_portion:
+
+        for elem in queue.portion_elements():
             tg_crawl_messages(id_project = id_project, 
                           id_group = elem['sn_id'], 
-                          id_queue = elem['id'], 
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
-                          critical_error_counter = critical_error_counter)
+                          critical_error_counter = critical_error_counter,
+                          queue = queue)
 
 def msg(msgstr):
     if DEBUG_MODE:
@@ -200,7 +210,46 @@ TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
 
 cass_db.create_project(ID_PROJECT_main)
 
-tg_crawl_messages_start(ID_PROJECT_main)
+
+
+#--0-- debug
+if step_name == 'debug':
+    #clear_tables_by_project(ID_PROJECT_main)
+    #vk_crawling_wall_group(ID_PROJECT_main, id_group = '87721351')                       #debug group
+    #vk_crawling_wall_group(ID_PROJECT_main, id_group = '87721351', id_post = '2359271')  #debug post
+    pass
+
+#--0-- clear
+if step_name == 'clear_all':
+    #for i in range(1,20):
+    #    clear_tables_by_project(i)
+    #clear_tables_by_project(ID_PROJECT_main)
+    pass
+
+#--1--
+if step_name == 'crawl_groups':
+    #cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+    #vk_crawl_groups(ID_PROJECT_main)
+    pass
+
+#--2--
+if step_name == 'crawl_subscribers':
+    #cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+    #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT_main));
+    #cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT_main)
+    #cass_db.queue_generate(TG_SOURCE_ID, ID_PROJECT_main)
+    #vk_crawl_wall_subscribers(ID_PROJECT_main)
+    pass
+
+#--3--
+if step_name == 'crawl_wall':
+    cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+
+    queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
+    queue.regenerate()
+    tg_crawl_messages_start(ID_PROJECT_main, queue)
+
+
 
 pass
 
