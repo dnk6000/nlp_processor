@@ -408,6 +408,7 @@ class ScrapeResult(list, common.CommonFunc):
 
 	def __init__(self, *args, clear_result = True, **kwargs):
 		super().__init__(*args, **kwargs)
+		common.CommonFunc.__init__(self, *args, **kwargs)
 
 		self.clear_result = clear_result #clear result after converting to json
 		self.base_res_element = dict(res_type = '')
@@ -452,6 +453,31 @@ class ScrapeResult(list, common.CommonFunc):
 
 		super().append(res_element)
 
+	def add_result_error(self, result_type, err_type, err_description, stop_process, **kwargs):
+		res_element = self.base_res_element.copy()
+
+		res_element['result_type']	   = result_type
+		res_element['err_type']		   = err_type
+		res_element['err_description'] = err_description
+		res_element['datetime']		   = date.date_now_str()
+		res_element['stop_process']	   = stop_process
+
+		super().append(res_element)
+
+		self.debug_msg(res_element['result_type'])
+		self.debug_msg(res_element['err_type'])
+		self.debug_msg(res_element['err_description'])
+
+	def add_result_critical_error(self, raised_exeption, stop_process, **kwargs):
+
+		_cw_url = kwargs['url'] if 'url' in kwargs else ''
+		_descr = exceptions.get_err_description(raised_exeption, _cw_url = _cw_url)
+
+		self.add_result_error(result_type = const.CW_RESULT_TYPE_CRITICAL_ERROR, 
+						 err_type = str(raised_exeption), 
+						 err_description = _descr, 
+						 stop_process = stop_process, 
+						 **kwargs)
 
 	def to_json(self):
 		json_result = json.dumps(self)

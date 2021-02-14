@@ -8,6 +8,7 @@ from telethon import connection
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
+from telethon.errors.rpcerrorlist import MsgIdInvalidError
 
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
@@ -32,6 +33,11 @@ class CrawlerCommon(common.CommonFunc):
 		self.need_stop_checker = need_stop_cheker
 		self.requests_pauser = pauser.IntervalPauser(delay_seconds = requests_delay_sec)
 		self.request_error_pauser = request_error_pauser
+
+	def check_user_interrupt(self):
+		if self.need_stop_checker is None:
+			return False
+		self.need_stop_checker.need_stop()
 
 class Telegram(CrawlerCommon):
 	def __init__(self, username, api_id, api_hash, **kwargs):
@@ -79,35 +85,21 @@ class TelegramMessagesCrawler(Telegram):
 			'hash': 0
 			}
 
-		for step_result in self._crawling(req_group_params, id_group):
-			yield step_result
-		return
+		#for step_result in self._crawling(req_group_params, id_group):
+		#	yield step_result
+		#return
 
 		try:
-			for step_result in self._crawling(req_group_params):
+			for step_result in self._crawling(req_group_params, id_group):
 				yield step_result
-		#except requests.exceptions.RequestException as e:
-		#	#TODO
-		#	_descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
-		#	self._cw_add_to_result_critical_error(str(e), _descr)
-		#	yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
-		#	return
 		except exceptions.UserInterruptByDB as e:
-			#TODO
-			self.debug_msg('UserInterruptByDB Exception')
-			yield [{'result_type': 'UserInterruptByDB Exception'}]
-			#_descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
-			#self._cw_add_to_result_critical_error(str(e), _descr, stop_process = True)
-			#yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
+			self.scrape_result.add_result_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
+			yield self.scrape_result.to_json()  
 			return
 		except Exception as e:
-			#TODO
-			self.debug_msg('Unknown Exception')
-			yield [{'result_type': 'Unknown Exception'}]
-			#_descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
-			#self._cw_add_to_result_critical_error(str(e), _descr)
-			#yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
-			return
+			self.scrape_result.add_result_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
+			yield self.scrape_result.to_json()  
+			return 
 
 	def _crawling(self, req_message_params, id_group):
 		def debug_msg_local_1(): #DEBUG
@@ -129,6 +121,7 @@ class TelegramMessagesCrawler(Telegram):
 
 		self.activity_registrator.initialize(id_group)
 		req_reply_params = req_message_params.copy()
+		req_message_params['offset_id'] = 0
 		self.stop_by_date_deep = False
 		crawled_post_encounter = False
 
@@ -136,6 +129,7 @@ class TelegramMessagesCrawler(Telegram):
 		while True:
 			debug_msg_local_1()									#DEBUG
 
+			self.check_user_interrupt()
 			self.requests_pauser.smart_sleep()
 			history_posts = self.client(GetHistoryRequest(**req_message_params))
 
@@ -201,24 +195,36 @@ class TelegramMessagesCrawler(Telegram):
 		first_request = True
 		crawled_reply_encounter = False
 		req_reply_params['msg_id'] = id_message
+		req_reply_params['offset_id'] = 0
 		offset_reply = 0
 
 		while True:
+			self.check_user_interrupt()
 			self.requests_pauser.smart_sleep()
 
 			debug_msg_local_1()									#DEBUG
 
-			history_repl = self.client(GetRepliesRequest(**req_reply_params))
+			try: 
+				history_repl = self.client(GetRepliesRequest(**req_reply_params))
+			except MsgIdInvalidError as e:
+				self.debug_msg('ERROR INVALID ID') #TODO
+				#ignoring, perhaps it was a temporary promotional message 
+				break
+			except Exception as e:
+				raise
+
 			if not history_repl.messages:
 				break
 
 			for reply in history_repl.messages:
 				debug_msg_local_2()								#DEBUG
 
-				if self._sn_recrawler_checker.is_reply_out_of_upd_date(id_message, reply.date):
+				if self._sn_recrawler_checker.is_reply_out_of_upd_date(str(id_message), reply.date):
 					crawled_reply_encounter = True
 					break
 
+
+				#reply.reply_to_msg_id - this field contains the id of the reply to which the response is being sent #TODO
 				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message, req_reply_params['peer']),  id_group, id_message)
 				if first_request:
 					self.activity_registrator.registrate(id_message, reply.date)
@@ -228,6 +234,9 @@ class TelegramMessagesCrawler(Telegram):
 
 			if crawled_reply_encounter:
 				break
+
+	def get_group_url(self):
+		return self._url+'/'+str(self.id_group)
 
 	def get_message_url(self, id_message, url_group):
 		return url_group+'/'+str(id_message)

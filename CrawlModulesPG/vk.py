@@ -704,7 +704,7 @@ class CrawlerVkWall(CrawlerVk):
             _descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
-            return
+            return 
             
     def _crawl_wall(self, group_id):
         self._cw_num_subscribers = 0

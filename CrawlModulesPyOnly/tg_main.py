@@ -57,6 +57,8 @@ def tg_crawl_messages(id_project, id_group, id_queue,
     
     dt_start = date.date_now_str()
 
+    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 TG_SOURCE_ID, 
                                                 id_project, 
@@ -69,6 +71,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 
                                             id_group = id_group,
+                                            need_stop_cheker = need_stop_cheker,
                                             sn_recrawler_checker = sn_recrawler_checker,
                                             date_deep = project_params['date_deep'],
                                             requests_delay_sec = project_params['requests_delay_sec'],
@@ -128,10 +131,10 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             #            raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
                 
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-            #    cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
-            #    wall_processed = False
-            #    critical_error_counter['counter'] += 1
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
+                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+                wall_processed = False
+                critical_error_counter['counter'] += 1
 
             #    if False and id_queue is not None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
             #        attempts_counter += 1
