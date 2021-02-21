@@ -134,29 +134,29 @@ class MainDB:
         return convert_select_result(res)
 
     def log_trace(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_TRACE, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_TRACE, record_type, id_project, description)
 
     def log_debug(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_DEBUG, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_DEBUG, record_type, id_project, description)
 
     def log_info(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_INFO, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_INFO, record_type, id_project, description)
 
     def log_warn(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_WARN, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_WARN, record_type, id_project, description)
 
     def log_error(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_ERROR, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_ERROR, record_type, id_project, description)
 
     def log_fatal(self, record_type, id_project, description):
-        self._log_write(const.CW_LOG_LEVEL_FATAL, record_type, id_project, description)
+        self._log_write(const.LOG_LEVEL_FATAL, record_type, id_project, description)
 
     def _log_write(self, log_level, record_type, id_project, description):
-        plan_id = 'plan_log_write_'+const.CW_LOG_LEVEL_FUNC[log_level]
+        plan_id = 'plan_log_write_'+const.LOG_LEVEL_FUNC[log_level]
         with self.plpy.subtransaction():
             if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
                 pg_func = 'select git999_log.write($1, $2, $3, $4, $5);'
-                pg_func = pg_func.replace('write', const.CW_LOG_LEVEL_FUNC[log_level])
+                pg_func = pg_func.replace('write', const.LOG_LEVEL_FUNC[log_level])
 
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"])
 

@@ -24,6 +24,7 @@ ERROR_REQUEST_GET           = 'Get-request failed'
 ERROR_REQUEST_POST          = 'Post-request failed'
 ERROR_REQUEST_READ_TIMEOUT  = 'Read time-out error'
 ERROR_DATE_RECOGNIZE        = 'Date not recognize'
+ERROR_CONNECTION            = 'Connection error'
 
 LOG_INFO_REQUEST_PAUSE      = 'Request pause'
 
@@ -47,13 +48,13 @@ CG_RESULT_TYPE_ERROR            = 'ERROR'
 CG_RESULT_TYPE_CRITICAL_ERROR   = 'CRITICAL ERROR'
 CG_RESULT_TYPE_DB_ERROR         = 'ERROR DB WRITE\READ'
 
-CW_LOG_LEVEL_FUNC = ['trace', 'debug', 'info', 'warn', 'error', 'fatal']
-CW_LOG_LEVEL_TRACE = 0
-CW_LOG_LEVEL_DEBUG = 1
-CW_LOG_LEVEL_INFO  = 2
-CW_LOG_LEVEL_WARN  = 3
-CW_LOG_LEVEL_ERROR = 4
-CW_LOG_LEVEL_FATAL = 5
+LOG_LEVEL_FUNC = ['trace', 'debug', 'info', 'warn', 'error', 'fatal']
+LOG_LEVEL_TRACE = 0
+LOG_LEVEL_DEBUG = 1
+LOG_LEVEL_INFO  = 2
+LOG_LEVEL_WARN  = 3
+LOG_LEVEL_ERROR = 4
+LOG_LEVEL_FATAL = 5
 
 HTTP_STATUS_CODE_200 = 200
 

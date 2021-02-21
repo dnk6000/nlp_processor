@@ -4,11 +4,12 @@ import json
 
 from telethon.sync import TelegramClient
 from telethon import connection
+from telethon.errors.rpcerrorlist import MsgIdInvalidError
+from telethon.errors.rpcerrorlist import UsernameNotOccupiedError
 
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
-from telethon.errors.rpcerrorlist import MsgIdInvalidError
 
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
@@ -33,11 +34,35 @@ class CrawlerCommon(common.CommonFunc):
 		self.need_stop_checker = need_stop_cheker
 		self.requests_pauser = pauser.IntervalPauser(delay_seconds = requests_delay_sec)
 		self.request_error_pauser = request_error_pauser
+		self.request_tries = 5
+		self.scrape_result = None
 
 	def check_user_interrupt(self):
 		if self.need_stop_checker is None:
 			return False
 		self.need_stop_checker.need_stop()
+
+	def request(self, connect_func, url, *args, **kwargs):
+		request_attempt = self.request_tries
+		while True:
+			try:
+				result = connect_func(*args, **kwargs)
+				if self.request_error_pauser is not None:
+					self.request_error_pauser.reset()
+				yield result
+				break
+			except ConnectionError:
+				request_attempt -= 1
+				if request_attempt == 0:
+					raise
+				else:
+					#self.check_user_interrupt()
+					if self.scrape_result is not None:
+						self.scrape_result.add_noncritical_error(const.ERROR_CONNECTION, description = url)
+					yield None
+			except:
+				raise
+		return
 
 class Telegram(CrawlerCommon):
 	def __init__(self, username, api_id, api_hash, **kwargs):
@@ -93,11 +118,14 @@ class TelegramMessagesCrawler(Telegram):
 			for step_result in self._crawling(req_group_params, id_group):
 				yield step_result
 		except exceptions.UserInterruptByDB as e:
-			self.scrape_result.add_result_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
+			self.scrape_result.add_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
 			yield self.scrape_result.to_json()  
 			return
 		except Exception as e:
-			self.scrape_result.add_result_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
+			if isinstance(e, ValueError) and isinstance(e.__cause__, UsernameNotOccupiedError):
+				self.scrape_result.add_finish_not_found(url = self.get_group_url())
+			else:
+				self.scrape_result.add_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
 			yield self.scrape_result.to_json()  
 			return 
 
@@ -131,7 +159,11 @@ class TelegramMessagesCrawler(Telegram):
 
 			self.check_user_interrupt()
 			self.requests_pauser.smart_sleep()
-			history_posts = self.client(GetHistoryRequest(**req_message_params))
+			#history_posts = self.client(GetHistoryRequest(**req_message_params))
+			for request_result in self.request(self.client, self.get_group_url(), GetHistoryRequest(**req_message_params)):
+				if request_result is None: # 'None' = Connection error
+					yield self.scrape_result.to_json()
+				history_posts = request_result
 
 			if not history_posts.messages:
 				break
@@ -171,6 +203,7 @@ class TelegramMessagesCrawler(Telegram):
 			if crawled_post_encounter:
 				self.debug_msg('STOP BY CRAWLED POST ENCOUNTER')
 				break
+		self.scrape_result.add_finish_success(self.get_group_url())
 		return
 
 	def _crawling_replies(self, req_reply_params, id_group, id_message):
@@ -255,7 +288,7 @@ class ScrapeResultTG(scraper.ScrapeResult):
 
 	def add_message(self, message, url, group_id):
 
-		super().add_result_type_POST(
+		super().add_type_POST(
 			url = url,
 			#sn_id = group_id,
 			sn_id = group_id[0:12], #DEBUG  CROP ID !!!
@@ -267,7 +300,7 @@ class ScrapeResultTG(scraper.ScrapeResult):
 	
 	def add_reply(self, reply, url, group_id, message_id):
 
-		super().add_result_type_REPLY(
+		super().add_type_REPLY(
 			url = url,
 			#sn_id = group_id,
 			sn_id = group_id[0:12], #DEBUG
@@ -303,6 +336,6 @@ class ActivityRegistrator(dict, common.CommonFunc):
 
 	def move_to_scrape_result(self, scrape_result):
 		for sn_post_id in self:
-			scrape_result.add_result_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
-		scrape_result.add_result_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
+			scrape_result.add_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
+		scrape_result.add_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
 		self.clear()

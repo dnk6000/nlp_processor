@@ -10,6 +10,7 @@ import CrawlModulesPyOnly.plpyemul as plpyemul
 import CrawlModulesPG.accounts as accounts
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
+import CrawlModulesPG.pauser as pauser
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
@@ -49,7 +50,7 @@ if const.PY_ENVIRONMENT:
 ####### end: for PY environment only #############
 
 
-def tg_crawl_messages(id_project, id_group, id_queue, 
+def tg_crawl_messages(id_project, id_group,  
                   project_params,
                   attempts_counter = 0, 
                   critical_error_counter = {'counter': 0},
@@ -59,17 +60,16 @@ def tg_crawl_messages(id_project, id_group, id_queue,
 
     if queue is not None:
         queue.reg_start()
+        dt_start = queue.date_start_str
+    else:
+        dt_start = date.date_now_str()
 
     wall_processed = False
     CriticalErrorsLimit = 3
-    #dt_start = date.date_now_str()
-
-    if id_queue is not None:
-        res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
-        if not res[0]['Success']:
-            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+    
+    request_error_pauser = pauser.ExpPauser()
 
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 TG_SOURCE_ID, 
@@ -87,6 +87,7 @@ def tg_crawl_messages(id_project, id_group, id_queue,
                                             sn_recrawler_checker = sn_recrawler_checker,
                                             date_deep = project_params['date_deep'],
                                             requests_delay_sec = project_params['requests_delay_sec'],
+                                            request_error_pauser = request_error_pauser,
                                             **accounts.TG_ACCOUNT[0])
     tg_crawler.connect()
 
@@ -110,63 +111,50 @@ def tg_crawl_messages(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
                 msg('post id = {} dt = {}'.format(res_unit['sn_post_id'], res_unit['last_date']))
-                #cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
+                cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
 
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_GROUP_ACTIVITY:
-            #    msg('dt = {}'.format(res_unit['dt']))
-            #    cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, id_group_str, '', res_unit['dt'], dt_start)
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_NOT_FOUND:
+                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                wall_processed = True
             
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_HTML:
-            #    #msg('Add HTML to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['id']) + ' ' + res_unit['name'])
-            #    res = cass_db.upsert_data_html(url = res_unit['url'], content = res_unit['content'], id_project = id_project, id_www_sources = TG_SOURCE_ID)
-            #    id_data_html = res['id_modified']
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_SUCCESS:
+                cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
+                wall_processed = True
             
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_NOT_FOUND:
-            #    cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_WARNING:
+                cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+                if 'wall_processed' in res_unit:
+                    wall_processed = res_unit['wall_processed']
             
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_SUCCESS:
-            #    cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
-            #    wall_processed = True
-            
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_WARNING:
-            #    cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
-            #    if 'wall_processed' in res_unit:
-            #        wall_processed = res_unit['wall_processed']
-            
-            #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-            #    cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
-            #    msg(res_unit['err_type'])
-            #    if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
-            #        plpy.notice('Request error: pause before repeating...') #DEBUG
-            #        cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
-            #        if not request_error_pauser.sleep():
-            #            raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
-
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
+                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+                msg(res_unit['err_type'])
+                if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
+                    msg('Request error: pause before repeating...') #DEBUG
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    if not request_error_pauser.sleep():
+                        raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
                 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
-            #    if False and id_queue is not None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
-            #        attempts_counter += 1
-            #        date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
-            #        res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
-            #        if not res[0]['Success']:
-            #            cass_db.log_error(scraper.ScrapeResult.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
+                if queue is not None:  #this mechanism will be required when a problem is detected - one vk page is loaded, the other is not
+                    queue.suspend(suspend_time_min=30)
 
-            #    if res_unit['stop_process']:
-            #        raise exceptions.StopProcess()
+                if res_unit['stop_process']:
+                    raise exceptions.StopProcess()
 
-            #    if critical_error_counter['counter'] >= CriticalErrorsLimit:  
-            #        raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
+                if critical_error_counter['counter'] >= CriticalErrorsLimit:  
+                    raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
 
             elif res_unit['result_type'] in (scraper.ScrapeResult.RESULT_TYPE_POST, scraper.ScrapeResult.RESULT_TYPE_REPLY, scraper.ScrapeResult.RESULT_TYPE_REPLY_TO_REPLY):
                 msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['sn_id']) + ' ' + res_unit['url'])
-                #cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
+                cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
     
     if queue is not None:
-        queue.reg_finish()
+        queue.reg_finish(wall_processed)
                                   
 
 def tg_crawl_messages_start(id_project, queue):

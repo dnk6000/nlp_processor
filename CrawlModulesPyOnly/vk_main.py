@@ -115,7 +115,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if id_queue is not None:
         res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
         if not res[0]['Success']:
-            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
+            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 gvars.get('VK_SOURCE_ID'), 
@@ -210,7 +210,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                     date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
                     res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
                     if not res[0]['Success']:
-                        cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
+                        cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
 
                 if res_unit['stop_process']:
                     raise exceptions.StopProcess()
@@ -225,7 +225,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if id_queue is not None:
         res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = date.date_now_str())
         if not res[0]['Success']:
-            cass_db.log_error(const.CW_LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
+            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 
 def vk_crawl_wall_subscribers(id_project):
     select_result = cass_db.select_groups_id(id_project = id_project)

@@ -21,6 +21,7 @@ import CrawlModulesPG.const as const
 import CrawlModulesPG.date as date
 import CrawlModulesPG.common as common
 
+from CrawlModulesPG.scraper import ScrapeResult
 
 class HREFParser(HTMLParser):  
 
@@ -278,11 +279,11 @@ class QueueManager(common.CommonFunc):
 		self.date_start = None
 
 	def clear(self):
-		self.msg_debug('CLEARING QUEUE id_project = {}'.format(self.id_project));
+		self.debug_msg('CLEARING QUEUE id_project = {}'.format(self.id_project))
 		self.db.clear_table_by_project('git200_crawl.queue', self.id_project)
 
 	def generate(self):
-		self.msg_debug('GENERATE QUEUE id_project = {}'.format(self.id_project));
+		self.debug_msg('GENERATE QUEUE id_project = {}'.format(self.id_project));
 		self.db.queue_generate(self.id_source, self.id_project, self.min_subscribers, self.max_subscribers)
 
 	def regenerate(self):
@@ -291,31 +292,47 @@ class QueueManager(common.CommonFunc):
 
 	def read_portion(self, portion_size):
 		self.portion_counter += 1
-		self.msg_debug('GET QUEUE PORTION № {}'.format(self.portion_counter));
+		self.debug_msg('GET QUEUE PORTION № {}'.format(self.portion_counter));
 		self.portion = self.db.queue_select(self.id_source, self.id_project, number_records = portion_size)
-		return len(queue_portion) != 0
+		return len(self.portion) != 0
 
 	def portion_elements(self):
-		for elem in portion_elements:
+		for elem in self.portion:
 			self.curr_portion_elem = elem
 			yield elem
 
 	def reg_start(self):
 		self.date_start_str = date.date_now_str()
-		res = self.db.queue_update(self.curr_portion_elem['id_queue'], date_start_process = self.date_start_str)
+		res = self.db.queue_update(self.curr_portion_elem['id'], 
+                                   date_start_process = self.date_start_str)
 		if not res[0]['Success']:
-			db.log_error(const.CW_LOG_LEVEL_ERROR, self.id_project, 
+			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
 						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
-							 'date_start_process', self.id_project, self.curr_portion_elem['id_queue'])
+							 'date_start_process', self.id_project, self.curr_portion_elem['id'])
 						 )
 	def reg_finish(self, is_process):
 		self.date_end_process = date.date_now_str()
-		res = self.db.queue_update(self.curr_portion_elem['id_queue'], is_process = wall_processed, date_end_process = self.date_end_process)
+		res = self.db.queue_update(self.curr_portion_elem['id'], 
+                             is_process = is_process, 
+                             date_end_process = self.date_end_process)
 		if not res[0]['Success']:
-			db.log_error(const.CW_LOG_LEVEL_ERROR, self.id_project, 
+			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
 						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
-							 'date_end_process', self.id_project, self.curr_portion_elem['id_queue'])
+							 'date_end_process', self.id_project, self.curr_portion_elem['id'])
 						 )
+
+	def suspend(self, suspend_time_min = 30):
+		date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=suspend_time_min)
+		self.curr_portion_elem['attempts_counter'] += 1
+
+		res = self.db.queue_update(self.curr_portion_elem['id'], 
+							  self.curr_portion_elem['attempts_counter'], 
+							  date_deferred = date.date_to_str(date_deferred))
+		if not res[0]['Success']:
+			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
+						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
+							 'attempts_counter', self.id_project, self.curr_portion_elem['id']))
+
 
 def RemoveEmojiSymbols(text):
 
