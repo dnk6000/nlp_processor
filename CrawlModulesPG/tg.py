@@ -9,6 +9,7 @@ from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedE
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
+from telethon.tl.functions.contacts import SearchRequest
 
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
@@ -73,14 +74,65 @@ class Telegram(CrawlerCommon):
 		self.api_id = api_id
 		self.api_hash = api_hash
 
+		self._url = r'https://t.me/'
 
 	def connect(self):
 		self.client = TelegramClient(session = self.username, api_id = self.api_id, api_hash = self.api_hash)
 		self.client.start()
 
+class TelegramChannelsCrawler(Telegram):
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
+		self.scrape_result = ScrapeResultTG(**kwargs)
+
+		self.id_cash = []
+
+	def crawling(self):
+		for step_result in self._crawling(): #DEBUG
+			yield step_result
+		return
+
+		#try:
+		#	for step_result in self._crawling(req_group_params, id_group):
+		#		yield step_result
+		#except exceptions.UserInterruptByDB as e:
+		#	self.scrape_result.add_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
+		#	yield self.scrape_result.to_json()  
+		#	return
+		#except Exception as e:
+		#	if isinstance(e, ValueError) and isinstance(e.__cause__, UsernameNotOccupiedError):
+		#		self.scrape_result.add_finish_not_found(url = self.get_group_url())
+		#	else:
+		#		self.scrape_result.add_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
+		#	yield self.scrape_result.to_json()  
+		#	return 
+
+	def _crawling(self):
+
+		while True:
+			self.check_user_interrupt()
+			self.requests_pauser.smart_sleep()
+
+
+			search = 'москв'
+			result = self.client(SearchRequest(q=search,limit=10000))
+			print(result.stringify())
+
+			#history_posts = self.client(GetHistoryRequest(**req_message_params))
+			#for request_result in self.request(self.client, self.get_group_url(), GetHistoryRequest(**req_message_params)):
+			#	if request_result is None: # 'None' = Connection error
+			#		yield self.scrape_result.to_json()
+			#	history_posts = request_result
+
+		self.scrape_result.add_finish_success(self.get_group_url())
+		yield self.scrape_result.to_json()
+		return
+
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, date_deep, sn_recrawler_checker = None, **kwargs):
+	def __init__(self, id_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 
@@ -88,14 +140,14 @@ class TelegramMessagesCrawler(Telegram):
 
 		self.scrape_result = ScrapeResultTG(**kwargs)
 
-		self._url = r'https://t.me/'
-
 		self.activity_registrator = ActivityRegistrator()
 
 		if sn_recrawler_checker is None:
 			self._sn_recrawler_checker = crawler.SnRecrawlerCheker() 
 		else:
 			self._sn_recrawler_checker = sn_recrawler_checker
+
+		self.debug_id_post = str(debug_id_post)
 
 	def crawling(self, id_group):
 		req_group_params = { 
@@ -171,6 +223,8 @@ class TelegramMessagesCrawler(Telegram):
 			for message in history_posts.messages:
 				if message.message is None:
 					continue
+				if self.check_debug_post_id(message.id):
+					continue
 				self.check_date_deep(message.date)
 				if self.stop_by_date_deep:
 					break
@@ -193,10 +247,12 @@ class TelegramMessagesCrawler(Telegram):
 
 			if crawled_post_encounter:
 				for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
+					if self.check_debug_post_id(post_for_recrawl_reply):
+						continue
 					for _ in self._crawling_replies(req_reply_params, id_group, int(post_for_recrawl_reply)):
 						pass
 
-			self.activity_registrator.move_to_scrape_result(self.scrape_result)		
+			self.activity_registrator.move_to_scrape_result(self.scrape_result, move_common_date = self.debug_id_post == '')		
 			yield self.scrape_result.to_json() #return result per one post-request
 			if self.stop_by_date_deep:
 				self.debug_msg('STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE	STOP BY DEEP DATE')
@@ -204,6 +260,9 @@ class TelegramMessagesCrawler(Telegram):
 			if crawled_post_encounter:
 				self.debug_msg('STOP BY CRAWLED POST ENCOUNTER')
 				break
+			if self.debug_id_post != '':
+				break # debug_id_post processed
+
 		self.scrape_result.add_finish_success(self.get_group_url())
 		yield self.scrape_result.to_json()
 		return
@@ -288,6 +347,15 @@ class TelegramMessagesCrawler(Telegram):
 		if self.date_deep != const.EMPTY_DATE and dt <= self.date_deep:
 			self.stop_by_date_deep = True
 
+	def check_debug_post_id(self, message_id):
+		need_skip = True
+		if not self.debug_mode:
+			return not need_skip
+		if self.debug_id_post == '':
+			return not need_skip
+		if self.debug_id_post != str(message_id):
+			return need_skip
+		return not need_skip
 
 class ScrapeResultTG(scraper.ScrapeResult):
 	def __init__(self, *args, **kwargs):
@@ -341,9 +409,9 @@ class ActivityRegistrator(dict, common.CommonFunc):
 		if self.common_last_date < dt:
 			self.common_last_date = dt
 
-	def move_to_scrape_result(self, scrape_result):
+	def move_to_scrape_result(self, scrape_result, move_common_date = True):
 		for sn_post_id in self:
 			scrape_result.add_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
-		if self.common_last_date != self.EMPTY_DATE:
+		if move_common_date and self.common_last_date != self.EMPTY_DATE:
 			scrape_result.add_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
 		self.clear()

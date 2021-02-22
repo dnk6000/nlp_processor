@@ -11,6 +11,7 @@ import CrawlModulesPG.accounts as accounts
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
 import CrawlModulesPG.pauser as pauser
+import CrawlModulesPG.exceptions as exceptions
 
 from CrawlModulesPG.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
@@ -21,12 +22,13 @@ gvars = GlobVars(GD)
 
 
 DEBUG_MODE = True
+CHANNEL_SEARCH_KEYS = ['Челябинск']
 
 ####### begin: for PY environment only #############
-step_name = 'crawl_groups'
 step_name = 'crawl_subscribers'
 step_name = 'debug'
 step_name = 'crawl_wall'
+step_name = 'crawl_groups'
 ID_PROJECT_main = 4
 
 if const.PY_ENVIRONMENT:
@@ -50,11 +52,68 @@ if const.PY_ENVIRONMENT:
 ####### end: for PY environment only #############
 
 
+def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
+
+    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
+
+    request_error_pauser = pauser.ExpPauser()
+
+    tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
+                                            msg_func = plpy.notice, 
+                                            need_stop_cheker = need_stop_cheker,
+                                            channel_search_keys = CHANNEL_SEARCH_KEYS, 
+                                            request_error_pauser = request_error_pauser,
+                                            **accounts.TG_ACCOUNT[0])
+    
+    tg_crawler.connect()
+
+    select_result = cass_db.select_groups_id(id_project)
+    
+    tg_crawler.id_cash = list(i['account_id'] for i in select_result)
+
+    CriticalErrorsLimit = 3
+
+    for _res_unit in tg_crawler.crawling():
+        res_unit = json.loads(_res_unit)
+
+        msg(res_unit['result_type'])
+
+        if res_unit['result_type'] == const.CG_RESULT_TYPE_GROUPS_LIST:
+            n = len(res_unit['groups_list'])
+            c = 0
+            msg('Add groups to DB: ' + str(n))
+
+            for gr in res_unit['groups_list']:
+                c += 1
+                msg('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
+                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK,
+                                 gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
+        
+        elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
+            cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+            msg(res_unit['err_type'])
+            if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
+                plpy.notice('Request error: pause before repeating...')
+                if not request_error_pauser.sleep():
+                    raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
+                
+        elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
+            cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+            critical_error_counter['counter'] += 1
+
+            if res_unit['stop_process']:
+                raise exceptions.StopProcess()
+
+            if critical_error_counter['counter'] >= CriticalErrorsLimit:
+                raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
+
+
 def tg_crawl_messages(id_project, id_group,  
                   project_params,
                   attempts_counter = 0, 
                   critical_error_counter = {'counter': 0},
-                  queue = None):
+                  queue = None,
+                  debug_id_post = ''):
     
     id_group = 'govoritfursov'  #DEBUG CROP ID
 
@@ -83,6 +142,7 @@ def tg_crawl_messages(id_project, id_group,
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 
                                             id_group = id_group,
+                                            debug_id_post = debug_id_post,
                                             need_stop_cheker = need_stop_cheker,
                                             sn_recrawler_checker = sn_recrawler_checker,
                                             date_deep = project_params['date_deep'],
@@ -163,14 +223,6 @@ def tg_crawl_messages_start(id_project, queue):
     critical_error_counter = {'counter': 0}
 
     #project_params = cass_db.get_project_params(id_project)[0]          #DEBUG
-    #tg_crawl_messages(id_project = id_project,                          #DEBUG
-    #                id_group = 'govoritfursov',
-    #                id_queue = 0,
-    #                project_params = project_params,
-    #                critical_error_counter = critical_error_counter)
-
-
-    #return #DEBUG
 
     portion_counter = 0
 
@@ -182,13 +234,18 @@ def tg_crawl_messages_start(id_project, queue):
 
 
         for elem in queue.portion_elements():
-            pass
             tg_crawl_messages(id_project = id_project, 
                           id_group = elem['sn_id'], 
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
                           critical_error_counter = critical_error_counter,
                           queue = queue)
+
+def tg_crawl_messages_channel(id_project, id_group, id_post = ''):
+
+    project_params = cass_db.get_project_params(id_project)[0]
+
+    tg_crawl_messages(id_project = id_project, id_group = id_group, project_params = project_params, debug_id_post = id_post)
 
 def msg(msgstr):
     if DEBUG_MODE:
@@ -205,8 +262,9 @@ cass_db.create_project(ID_PROJECT_main)
 #--0-- debug
 if step_name == 'debug':
     #clear_tables_by_project(ID_PROJECT_main)
-    #vk_crawling_wall_group(ID_PROJECT_main, id_group = '87721351')                       #debug group
-    #vk_crawling_wall_group(ID_PROJECT_main, id_group = '87721351', id_post = '2359271')  #debug post
+    #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+    #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+    tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfurso', id_post = '480')
     pass
 
 #--0-- clear
@@ -219,7 +277,7 @@ if step_name == 'clear_all':
 #--1--
 if step_name == 'crawl_groups':
     #cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
-    #vk_crawl_groups(ID_PROJECT_main)
+    tg_crawl_groups(ID_PROJECT_main)
     pass
 
 #--2--
