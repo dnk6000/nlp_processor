@@ -134,7 +134,8 @@ def tg_crawl_messages(id_project, id_group,
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
-                
+                    #tg_crawler.connect()
+
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
                 wall_processed = False
@@ -181,6 +182,7 @@ def tg_crawl_messages_start(id_project, queue):
 
 
         for elem in queue.portion_elements():
+            pass
             tg_crawl_messages(id_project = id_project, 
                           id_group = elem['sn_id'], 
                           attempts_counter = elem['attempts_counter'], 
@@ -232,6 +234,9 @@ if step_name == 'crawl_subscribers':
 #--3--
 if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+
+    cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+    cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
     queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
     queue.regenerate()

@@ -489,7 +489,7 @@ class ScrapeResult(list, common.CommonFunc):
 	def add_finish_success(self, url, **kwargs):
 		res_element = self.base_res_element.copy()
 
-		res_element['result_type']      = self.CW_RESULT_TYPE_FINISH_SUCCESS
+		res_element['result_type']      = self.RESULT_TYPE_FINISH_SUCCESS
 		res_element['datetime']			= date.date_now_str()
 		res_element['event_description']= 'url: '+url
 

@@ -3,9 +3,8 @@ import datetime
 import json
 
 from telethon.sync import TelegramClient
-from telethon import connection
-from telethon.errors.rpcerrorlist import MsgIdInvalidError
-from telethon.errors.rpcerrorlist import UsernameNotOccupiedError
+#from telethon import connection
+from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError
 
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
@@ -46,6 +45,8 @@ class CrawlerCommon(common.CommonFunc):
 		request_attempt = self.request_tries
 		while True:
 			try:
+				if request_attempt < self.request_tries:
+					res = connect_func.connect() #reconnect needed
 				result = connect_func(*args, **kwargs)
 				if self.request_error_pauser is not None:
 					self.request_error_pauser.reset()
@@ -83,8 +84,6 @@ class TelegramMessagesCrawler(Telegram):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 
-		self.repeats = 20 #DEBUG
-
 		self.date_deep = date.date_as_utc(date_deep)
 
 		self.scrape_result = ScrapeResultTG(**kwargs)
@@ -110,7 +109,7 @@ class TelegramMessagesCrawler(Telegram):
 			'hash': 0
 			}
 
-		#for step_result in self._crawling(req_group_params, id_group):
+		#for step_result in self._crawling(req_group_params, id_group): #DEBUG
 		#	yield step_result
 		#return
 
@@ -189,11 +188,13 @@ class TelegramMessagesCrawler(Telegram):
 
 				#Replyes
 				if message.replies is not None and message.replies.replies > 0:
-					self._crawling_replies(req_reply_params, id_group, message.id)
+					for _ in self._crawling_replies(req_reply_params, id_group, message.id):
+						pass
 
 			if crawled_post_encounter:
 				for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
-					self._crawling_replies(req_reply_params, id_group, int(post_for_recrawl_reply))
+					for _ in self._crawling_replies(req_reply_params, id_group, int(post_for_recrawl_reply)):
+						pass
 
 			self.activity_registrator.move_to_scrape_result(self.scrape_result)		
 			yield self.scrape_result.to_json() #return result per one post-request
@@ -204,6 +205,7 @@ class TelegramMessagesCrawler(Telegram):
 				self.debug_msg('STOP BY CRAWLED POST ENCOUNTER')
 				break
 		self.scrape_result.add_finish_success(self.get_group_url())
+		yield self.scrape_result.to_json()
 		return
 
 	def _crawling_replies(self, req_reply_params, id_group, id_message):
@@ -238,7 +240,11 @@ class TelegramMessagesCrawler(Telegram):
 			debug_msg_local_1()									#DEBUG
 
 			try: 
-				history_repl = self.client(GetRepliesRequest(**req_reply_params))
+				#history_repl = self.client(GetRepliesRequest(**req_reply_params))
+				for request_result in self.request(self.client, self.get_group_url(), GetRepliesRequest(**req_reply_params)):
+					if request_result is None: # 'None' = Connection error
+						yield self.scrape_result.to_json()
+					history_repl = request_result
 			except MsgIdInvalidError as e:
 				self.debug_msg('ERROR INVALID ID') #TODO
 				#ignoring, perhaps it was a temporary promotional message 
@@ -250,11 +256,11 @@ class TelegramMessagesCrawler(Telegram):
 				break
 
 			for reply in history_repl.messages:
-				debug_msg_local_2()								#DEBUG
-
 				if self._sn_recrawler_checker.is_reply_out_of_upd_date(str(id_message), reply.date):
 					crawled_reply_encounter = True
 					break
+
+				debug_msg_local_2()								#DEBUG
 
 
 				#reply.reply_to_msg_id - this field contains the id of the reply to which the response is being sent #TODO
@@ -267,6 +273,7 @@ class TelegramMessagesCrawler(Telegram):
 
 			if crawled_reply_encounter:
 				break
+		return
 
 	def get_group_url(self):
 		return self._url+'/'+str(self.id_group)
@@ -337,5 +344,6 @@ class ActivityRegistrator(dict, common.CommonFunc):
 	def move_to_scrape_result(self, scrape_result):
 		for sn_post_id in self:
 			scrape_result.add_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
-		scrape_result.add_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
+		if self.common_last_date != self.EMPTY_DATE:
+			scrape_result.add_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
 		self.clear()
