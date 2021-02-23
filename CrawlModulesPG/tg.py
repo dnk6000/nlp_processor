@@ -82,53 +82,61 @@ class Telegram(CrawlerCommon):
 
 class TelegramChannelsCrawler(Telegram):
 
-	def __init__(self, **kwargs):
+	def __init__(self, search_keys = [], **kwargs):
 		super().__init__(**kwargs)
 
 		self.scrape_result = ScrapeResultTG(**kwargs)
 
 		self.id_cash = []
 
+		self.search_keys = crawler.SearchKeysGenerator(search_keys = search_keys, **kwargs)
+
 	def crawling(self):
-		for step_result in self._crawling(): #DEBUG
-			yield step_result
-		return
 
-		#try:
-		#	for step_result in self._crawling(req_group_params, id_group):
-		#		yield step_result
-		#except exceptions.UserInterruptByDB as e:
-		#	self.scrape_result.add_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
-		#	yield self.scrape_result.to_json()  
-		#	return
-		#except Exception as e:
-		#	if isinstance(e, ValueError) and isinstance(e.__cause__, UsernameNotOccupiedError):
-		#		self.scrape_result.add_finish_not_found(url = self.get_group_url())
-		#	else:
-		#		self.scrape_result.add_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
-		#	yield self.scrape_result.to_json()  
-		#	return 
+		for search_key in self.search_keys.search_keys_iter():
+			#for step_result in self._crawling(search_key): #DEBUG
+			#	yield step_result
+			#return
 
-	def _crawling(self):
+			try:
+				for step_result in self._crawling(search_key):
+					yield step_result
+			except exceptions.UserInterruptByDB as e:
+				self.scrape_result.add_critical_error(self, expt = e, stop_process = True)
+				yield self.scrape_result.to_json()  
+				return
+			except Exception as e:
+				self.scrape_result.add_critical_error(self, expt = e, stop_process = False)
+				yield self.scrape_result.to_json()  
+				return 
 
-		while True:
-			self.check_user_interrupt()
-			self.requests_pauser.smart_sleep()
-
-
-			search = 'москв'
-			result = self.client(SearchRequest(q=search,limit=10000))
-			print(result.stringify())
-
-			#history_posts = self.client(GetHistoryRequest(**req_message_params))
-			#for request_result in self.request(self.client, self.get_group_url(), GetHistoryRequest(**req_message_params)):
-			#	if request_result is None: # 'None' = Connection error
-			#		yield self.scrape_result.to_json()
-			#	history_posts = request_result
-
-		self.scrape_result.add_finish_success(self.get_group_url())
 		yield self.scrape_result.to_json()
 		return
+
+	def _crawling(self, search_key):
+
+		self.check_user_interrupt()
+		self.requests_pauser.smart_sleep()
+
+		self.debug_msg('Search key: '+search_key)
+
+		#result = self.client(SearchRequest(q=search_key,limit=100))
+		for request_result in self.request(self.client, '', SearchRequest(q=search_key,limit=100)):
+			if request_result is None: # 'None' = Connection error
+				yield self.scrape_result.to_json()
+			search_result = request_result
+
+		for channel in search_result.to_dict()['chats']:
+			if not str(channel['id']) in self.id_cash:
+				self.scrape_result.add_type_ACCOUNT(account_id=channel['id'],
+													account_name=channel['username'],
+													account_screen_name=channel['title'],
+													account_closed=False,
+													num_subscribers=channel['participants_count'])
+
+		yield self.scrape_result.to_json()
+		return		
+
 
 class TelegramMessagesCrawler(Telegram):
 

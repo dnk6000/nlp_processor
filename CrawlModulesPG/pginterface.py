@@ -83,7 +83,7 @@ class MainDB:
         return None if res is None else res[0]
 
     def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
-                                 account_screen_name, account_closed, num_subscribers = None):
+                                 account_screen_name, account_closed, num_subscribers = None, **kwargs):
         plan_id = 'plan_upsert_sn_accounts'
         with self.plpy.subtransaction():
             if not plan_id in gvars.GD or gvars.GD[plan_id] is None:

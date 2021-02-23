@@ -405,6 +405,7 @@ class ScrapeResult(list, common.CommonFunc):
 	RESULT_TYPE_ERROR			= 'ERROR'
 	RESULT_TYPE_CRITICAL_ERROR  = 'CRITICAL ERROR'
 	RESULT_TYPE_DB_ERROR		= 'ERROR DB WRITE\READ'
+	RESULT_TYPE_ACCOUNT		    = 'ACCOUNT'
 
 	def __init__(self, *args, clear_result = True, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -412,6 +413,18 @@ class ScrapeResult(list, common.CommonFunc):
 
 		self.clear_result = clear_result #clear result after converting to json
 		self.base_res_element = dict(res_type = '')
+
+	def add_type_ACCOUNT(self,account_id='',account_name='',account_screen_name='',account_closed=False,num_subscribers=0):
+		res_element = self.base_res_element.copy()
+		res_element['result_type']         = self.RESULT_TYPE_ACCOUNT
+		res_element['account_id']          = account_id
+		res_element['account_name']        = account_name
+		res_element['account_screen_name'] = account_screen_name
+		res_element['account_closed']	   = account_closed
+		res_element['num_subscribers']	   = num_subscribers
+
+		super().append(res_element)
+
 
 	def add_type_content(self, result_type, url = '', sn_id = '', sn_post_id = '', sn_post_parent_id = '', author = '', content_date = const.EMPTY_DATE, content_header = '', content = ''):
 		res_element = self.base_res_element.copy()

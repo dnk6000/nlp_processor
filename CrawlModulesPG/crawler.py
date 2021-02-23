@@ -195,6 +195,39 @@ class Crawler(object):
         pass
 
 
+class SearchKeysGenerator(common.CommonFunc):
+	def __init__(self, *args, search_keys = [], **kwargs):
+		super().__init__(**kwargs)
+
+		self.search_keys = search_keys
+
+		#russian sequence to iterate
+		ia = ord('а')
+		ii = ord('й')
+		iz = ord('я')
+		self.alphabets = [''.join([chr(i) for i in range(ia,ii)]+[chr(i) for i in range(ii+1,iz+1)])]  #без букв й , ё
+		#alph_str = ''.join([chr(i) for i in range(a,a+6)] + [chr(a+33)] + [chr(i) for i in range(a+6,a+32)]) # с буквами й , ё
+		#self.alphabets[0] += '\\'
+
+		#english sequence to iterate
+		a = ord('a')
+		self.alphabets.append(''.join([chr(i) for i in range(a,a+26)]))
+
+		self.keys_sequence = []
+		self.generate_simple_sequence()
+
+	def generate_simple_sequence(self):
+		for search_key in self.search_keys:
+			for alphabet in self.alphabets:
+			    for letter in alphabet:
+			        self.keys_sequence.append(search_key+' '+letter)
+
+
+	def search_keys_iter(self):
+		for search_key in self.keys_sequence:
+			yield search_key
+	
+
 class SnRecrawlerCheker:
     def __init__(self, cass_db = None, 
                        id_www_sources = None, 

@@ -22,7 +22,7 @@ gvars = GlobVars(GD)
 
 
 DEBUG_MODE = True
-CHANNEL_SEARCH_KEYS = ['Челябинск']
+CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челябин']
 
 ####### begin: for PY environment only #############
 step_name = 'crawl_subscribers'
@@ -61,7 +61,7 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
     tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = plpy.notice, 
                                             need_stop_cheker = need_stop_cheker,
-                                            channel_search_keys = CHANNEL_SEARCH_KEYS, 
+                                            search_keys = CHANNEL_SEARCH_KEYS, 
                                             request_error_pauser = request_error_pauser,
                                             **accounts.TG_ACCOUNT[0])
     
@@ -73,39 +73,38 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
 
     CriticalErrorsLimit = 3
 
-    for _res_unit in tg_crawler.crawling():
-        res_unit = json.loads(_res_unit)
+    for res_list in tg_crawler.crawling():
+        _res_list = json.loads(res_list)
+        n = len(_res_list)
+        msg('Add groups to DB: ' + str(n))
 
-        msg(res_unit['result_type'])
+        for res_unit in _res_list:
 
-        if res_unit['result_type'] == const.CG_RESULT_TYPE_GROUPS_LIST:
-            n = len(res_unit['groups_list'])
-            c = 0
-            msg('Add groups to DB: ' + str(n))
+            msg(res_unit['result_type'])
 
-            for gr in res_unit['groups_list']:
-                c += 1
-                msg('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
-                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK,
-                                 gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
+            if res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ACCOUNT:
+                msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
+                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
         
-        elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-            cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
-            msg(res_unit['err_type'])
-            if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
-                plpy.notice('Request error: pause before repeating...')
-                if not request_error_pauser.sleep():
-                    raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
-                
-        elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-            cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
-            critical_error_counter['counter'] += 1
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
+                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+                msg(res_unit['err_type'])
+                if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
+                    msg('Request error: pause before repeating...') #DEBUG
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    if not request_error_pauser.sleep():
+                        raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
-            if res_unit['stop_process']:
-                raise exceptions.StopProcess()
+            elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
+                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+                wall_processed = False
+                critical_error_counter['counter'] += 1
 
-            if critical_error_counter['counter'] >= CriticalErrorsLimit:
-                raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
+                if res_unit['stop_process']:
+                    raise exceptions.StopProcess()
+
+                if critical_error_counter['counter'] >= CriticalErrorsLimit:  
+                    raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
 
 
 def tg_crawl_messages(id_project, id_group,  
@@ -194,7 +193,6 @@ def tg_crawl_messages(id_project, id_group,
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
-                    #tg_crawler.connect()
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
                 cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
