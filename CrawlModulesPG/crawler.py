@@ -10,6 +10,8 @@ import urllib.request
 
 import unicodedata
 
+from itertools import combinations
+
 import requests
 
 import re
@@ -22,6 +24,8 @@ import CrawlModulesPG.date as date
 import CrawlModulesPG.common as common
 
 from CrawlModulesPG.scraper import ScrapeResult
+
+
 
 class HREFParser(HTMLParser):  
 
@@ -214,7 +218,7 @@ class SearchKeysGenerator(common.CommonFunc):
 		self.alphabets.append(''.join([chr(i) for i in range(a,a+26)]))
 
 		self.keys_sequence = []
-		self.generate_simple_sequence()
+		#self.generate_simple_sequence()
 
 	def generate_simple_sequence(self):
 		for search_key in self.search_keys:
@@ -222,6 +226,13 @@ class SearchKeysGenerator(common.CommonFunc):
 			    for letter in alphabet:
 			        self.keys_sequence.append(search_key+' '+letter)
 
+	def generate_double_sequence(self):
+		alphabet_union = ''.join(a for a in self.alphabets)
+		extra_sequence = combinations(alphabet_union, 2)
+
+		for search_key in self.search_keys:
+			for seq in extra_sequence:
+				self.keys_sequence.append(search_key+' '+seq[0]+' '+seq[1])
 
 	def search_keys_iter(self):
 		for search_key in self.keys_sequence:

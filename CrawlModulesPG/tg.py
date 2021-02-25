@@ -8,7 +8,7 @@ from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedE
 
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch
+from telethon.tl.types import Channel, ChannelParticipantsSearch
 from telethon.tl.functions.contacts import SearchRequest
 
 # класс для работы с сообщениями
@@ -90,6 +90,7 @@ class TelegramChannelsCrawler(Telegram):
 		self.id_cash = []
 
 		self.search_keys = crawler.SearchKeysGenerator(search_keys = search_keys, **kwargs)
+		self.search_keys.generate_double_sequence()
 
 	def crawling(self):
 
@@ -127,12 +128,14 @@ class TelegramChannelsCrawler(Telegram):
 			search_result = request_result
 
 		for channel in search_result.to_dict()['chats']:
-			if not str(channel['id']) in self.id_cash:
-				self.scrape_result.add_type_ACCOUNT(account_id=channel['id'],
-													account_name=channel['username'],
-													account_screen_name=channel['title'],
-													account_closed=False,
-													num_subscribers=channel['participants_count'])
+			_id = str(channel['id'])
+			if not _id in self.id_cash:
+				self.id_cash.append(_id)
+				self.scrape_result.add_type_ACCOUNT(account_id   = _id,
+													account_name = channel['username'],
+													account_screen_name = channel['title'],
+													account_closed = False,
+													num_subscribers = channel['participants_count'])
 
 		yield self.scrape_result.to_json()
 		return		
@@ -143,6 +146,7 @@ class TelegramMessagesCrawler(Telegram):
 	def __init__(self, id_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
+		self.name_group = ''
 
 		self.date_deep = date.date_as_utc(date_deep)
 
@@ -157,23 +161,34 @@ class TelegramMessagesCrawler(Telegram):
 
 		self.debug_id_post = str(debug_id_post)
 
-	def crawling(self, id_group):
-		req_group_params = { 
-			'peer': self._url + id_group, 
-			'offset_id': 0,
-			'offset_date': None, 
-			'add_offset': 0,
-			'limit': 0, 
-			'max_id': 0, 
-			'min_id': 0,
-			'hash': 0
-			}
+	def get_peer_entity(self):
+		peer = self.client.get_entity(int(self.id_group))
+		self.name_group = peer.username
+		return peer
 
+	def crawling(self, id_group):
+
+		self.id_group = id_group
 		#for step_result in self._crawling(req_group_params, id_group): #DEBUG
 		#	yield step_result
 		#return
 
 		try:
+			req_group_params = { 
+				#'peer': self._url + id_group, 
+				'peer': self.get_peer_entity(), 
+				'offset_id': 0,
+				'offset_date': None, 
+				'add_offset': 0,
+				'limit': 0, 
+				'max_id': 0, 
+				'min_id': 0,
+				'hash': 0
+				}
+			if isinstance(req_group_params['peer'], Channel):
+				self.scrape_result.add_finish_not_found(url = self.get_group_url())
+				yield self.scrape_result.to_json()  
+				return
 			for step_result in self._crawling(req_group_params, id_group):
 				yield step_result
 		except exceptions.UserInterruptByDB as e:
@@ -182,6 +197,8 @@ class TelegramMessagesCrawler(Telegram):
 			return
 		except Exception as e:
 			if isinstance(e, ValueError) and isinstance(e.__cause__, UsernameNotOccupiedError):
+				self.scrape_result.add_finish_not_found(url = self.get_group_url())
+			elif 'Cannot find any entity corresponding to' in str(e):
 				self.scrape_result.add_finish_not_found(url = self.get_group_url())
 			else:
 				self.scrape_result.add_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
@@ -242,7 +259,7 @@ class TelegramMessagesCrawler(Telegram):
 
 				debug_msg_local_2()									#DEBUG
 
-				self.scrape_result.add_message(message, self.get_message_url(message.id, req_message_params['peer']),  id_group)
+				self.scrape_result.add_message(message, self.get_message_url(message.id),  id_group)
 				#_message.sender_id
 				#_message.views
 				
@@ -331,7 +348,7 @@ class TelegramMessagesCrawler(Telegram):
 
 
 				#reply.reply_to_msg_id - this field contains the id of the reply to which the response is being sent #TODO
-				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message, req_reply_params['peer']),  id_group, id_message)
+				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message),  id_group, id_message)
 				if first_request:
 					self.activity_registrator.registrate(id_message, reply.date)
 					first_request = False
@@ -343,13 +360,13 @@ class TelegramMessagesCrawler(Telegram):
 		return
 
 	def get_group_url(self):
-		return self._url+'/'+str(self.id_group)
+		return self._url+'/'+str(self.name_group)
 
-	def get_message_url(self, id_message, url_group):
-		return url_group+'/'+str(id_message)
+	def get_message_url(self, id_message):
+		return self.get_group_url()+'/'+str(id_message)
 
-	def get_reply_url(self, id_reply, id_message, url_group):
-		return self.get_message_url(id_message, url_group) + '?comment=' + str(id_reply)
+	def get_reply_url(self, id_reply, id_message):
+		return self.get_message_url(id_message) + '?comment=' + str(id_reply)
 
 	def check_date_deep(self, dt):
 		if self.date_deep != const.EMPTY_DATE and dt <= self.date_deep:
@@ -374,7 +391,7 @@ class ScrapeResultTG(scraper.ScrapeResult):
 		super().add_type_POST(
 			url = url,
 			#sn_id = group_id,
-			sn_id = group_id[0:12], #DEBUG  CROP ID !!!
+			sn_id = group_id,#[0:12], #DEBUG  CROP ID !!!
 			sn_post_id = str(message.id),
 			author = str(message.sender_id),
 			content_date = date.date_to_str(message.date),
@@ -386,7 +403,7 @@ class ScrapeResultTG(scraper.ScrapeResult):
 		super().add_type_REPLY(
 			url = url,
 			#sn_id = group_id,
-			sn_id = group_id[0:12], #DEBUG
+			sn_id = group_id,#[0:12], #DEBUG CROP ID
 			sn_post_id = str(reply.id),
 			sn_post_parent_id = str(message_id),
 			author = str(reply.sender_id),
@@ -419,7 +436,7 @@ class ActivityRegistrator(dict, common.CommonFunc):
 
 	def move_to_scrape_result(self, scrape_result, move_common_date = True):
 		for sn_post_id in self:
-			scrape_result.add_type_activity(self.sn_id[0:12], str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!!
+			scrape_result.add_type_activity(self.sn_id, str(sn_post_id), self[sn_post_id])  #DEBUG  CROP ID !!![0:12]
 		if move_common_date and self.common_last_date != self.EMPTY_DATE:
-			scrape_result.add_type_activity(self.sn_id[0:12], '', self.common_last_date)				#DEBUG  CROP ID !!!
+			scrape_result.add_type_activity(self.sn_id, '', self.common_last_date)				#DEBUG  CROP ID !!![0:12]
 		self.clear()

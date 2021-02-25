@@ -27,8 +27,8 @@ CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челяб�
 ####### begin: for PY environment only #############
 step_name = 'crawl_subscribers'
 step_name = 'debug'
-step_name = 'crawl_wall'
 step_name = 'crawl_groups'
+step_name = 'crawl_wall'
 ID_PROJECT_main = 4
 
 if const.PY_ENVIRONMENT:
@@ -114,7 +114,7 @@ def tg_crawl_messages(id_project, id_group,
                   queue = None,
                   debug_id_post = ''):
     
-    id_group = 'govoritfursov'  #DEBUG CROP ID
+    #id_group = 'govoritfursov'  #DEBUG CROP ID
 
     if queue is not None:
         queue.reg_start()
@@ -132,7 +132,7 @@ def tg_crawl_messages(id_project, id_group,
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 TG_SOURCE_ID, 
                                                 id_project, 
-                                                sn_id = id_group[0:12], #DEBUG CROP ID
+                                                sn_id = id_group,#[0:12], #DEBUG CROP ID
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
                                                 recrawl_days_reply = project_params['recrawl_days_reply'],
                                                 plpy = plpy,
@@ -148,6 +148,7 @@ def tg_crawl_messages(id_project, id_group,
                                             requests_delay_sec = project_params['requests_delay_sec'],
                                             request_error_pauser = request_error_pauser,
                                             **accounts.TG_ACCOUNT[0])
+    msg(id_group)
     tg_crawler.connect()
 
     for res_list in tg_crawler.crawling(id_group):
@@ -291,11 +292,11 @@ if step_name == 'crawl_subscribers':
 if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
 
-    cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-    cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+    #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+    #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
     queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
-    queue.regenerate()
+    #queue.regenerate()
     tg_crawl_messages_start(ID_PROJECT_main, queue)
 
 
