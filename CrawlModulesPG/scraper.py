@@ -499,6 +499,19 @@ class ScrapeResult(list, common.CommonFunc):
                          stop_process = False,
 						 **kwargs)
 
+	def add_warning(self, event_description, **kwargs):
+		res_element = self.base_res_element.copy()
+
+		res_element['result_type']	   = self.RESULT_TYPE_WARNING
+		res_element['event_description'] = event_description
+		res_element['datetime']		   = date.date_now_str()
+
+		super().append(res_element)
+
+		self.debug_msg(res_element['result_type'])
+		self.debug_msg(res_element['event_description'])
+
+
 	def add_finish_success(self, url, **kwargs):
 		res_element = self.base_res_element.copy()
 

@@ -112,7 +112,8 @@ def tg_crawl_messages(id_project, id_group,
                   attempts_counter = 0, 
                   critical_error_counter = {'counter': 0},
                   queue = None,
-                  debug_id_post = ''):
+                  debug_id_post = '',
+                  tg_client = { 'client': None }):
     
     #id_group = 'govoritfursov'  #DEBUG CROP ID
 
@@ -149,7 +150,11 @@ def tg_crawl_messages(id_project, id_group,
                                             request_error_pauser = request_error_pauser,
                                             **accounts.TG_ACCOUNT[0])
     msg(id_group)
-    tg_crawler.connect()
+    if tg_client['client'] is None:
+        tg_crawler.connect()
+        tg_client['client'] = tg_crawler.client
+    else:
+        tg_crawler.client = tg_client['client']
 
     for res_list in tg_crawler.crawling(id_group):
         _res_list = json.loads(res_list)
@@ -224,6 +229,7 @@ def tg_crawl_messages_start(id_project, queue):
     #project_params = cass_db.get_project_params(id_project)[0]          #DEBUG
 
     portion_counter = 0
+    tg_client = { 'client': None }
 
     while True:
         project_params = cass_db.get_project_params(id_project)[0]  #temporarily in the loop to adjust the pause 
@@ -238,7 +244,8 @@ def tg_crawl_messages_start(id_project, queue):
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
                           critical_error_counter = critical_error_counter,
-                          queue = queue)
+                          queue = queue,
+                          tg_client = tg_client)
 
 def tg_crawl_messages_channel(id_project, id_group, id_post = ''):
 

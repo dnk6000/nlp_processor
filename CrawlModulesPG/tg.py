@@ -4,7 +4,7 @@ import json
 
 from telethon.sync import TelegramClient
 #from telethon import connection
-from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError
+from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError, ChannelPrivateError
 
 # классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
@@ -185,14 +185,21 @@ class TelegramMessagesCrawler(Telegram):
 				'min_id': 0,
 				'hash': 0
 				}
+			self.debug_msg(type(req_group_params['peer']))
 			if isinstance(req_group_params['peer'], Channel):
 				self.scrape_result.add_finish_not_found(url = self.get_group_url())
+				self.client.session.close()
 				yield self.scrape_result.to_json()  
 				return
 			for step_result in self._crawling(req_group_params, id_group):
 				yield step_result
 		except exceptions.UserInterruptByDB as e:
 			self.scrape_result.add_critical_error(self, expt = e, stop_process = True, url = self.get_group_url())
+			yield self.scrape_result.to_json()  
+			return
+		except ChannelPrivateError as e:
+			self.scrape_result.add_warning('Channel is private. id = '+ id_group) #TODO update field is_closed to True in sn_accounts table
+			self.scrape_result.add_finish_not_found(url = id_group)
 			yield self.scrape_result.to_json()  
 			return
 		except Exception as e:
