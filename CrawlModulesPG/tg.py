@@ -185,12 +185,6 @@ class TelegramMessagesCrawler(Telegram):
 				'min_id': 0,
 				'hash': 0
 				}
-			self.debug_msg(type(req_group_params['peer']))
-			if isinstance(req_group_params['peer'], Channel):
-				self.scrape_result.add_finish_not_found(url = self.get_group_url())
-				self.client.session.close()
-				yield self.scrape_result.to_json()  
-				return
 			for step_result in self._crawling(req_group_params, id_group):
 				yield step_result
 		except exceptions.UserInterruptByDB as e:
@@ -251,7 +245,7 @@ class TelegramMessagesCrawler(Telegram):
 			if not history_posts.messages:
 				break
 
-			req_message_params['offset_id'] = history_posts.messages[len(history_posts.messages) - 1].id #for next request
+			req_message_params['offset_id'] = history_posts.messages[-1].id #for next request
 			for message in history_posts.messages:
 				if message.message is None:
 					continue
@@ -360,7 +354,7 @@ class TelegramMessagesCrawler(Telegram):
 					self.activity_registrator.registrate(id_message, reply.date)
 					first_request = False
 			
-			req_reply_params['offset_id'] = history_repl.messages[len(history_repl.messages) - 1].id
+			req_reply_params['offset_id'] = history_repl.messages[-1].id
 
 			if crawled_reply_encounter:
 				break

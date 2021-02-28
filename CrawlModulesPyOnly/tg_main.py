@@ -299,11 +299,11 @@ if step_name == 'crawl_subscribers':
 if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
 
-    #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-    #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+    cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+    cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
     queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
-    #queue.regenerate()
+    queue.regenerate()
     tg_crawl_messages_start(ID_PROJECT_main, queue)
 
 
