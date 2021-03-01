@@ -26,9 +26,9 @@ CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челяб�
 
 ####### begin: for PY environment only #############
 step_name = 'crawl_subscribers'
-step_name = 'debug'
 step_name = 'crawl_groups'
 step_name = 'crawl_wall'
+step_name = 'debug'
 ID_PROJECT_main = 4
 
 if const.PY_ENVIRONMENT:
@@ -137,6 +137,7 @@ def tg_crawl_messages(id_project, id_group,
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
                                                 recrawl_days_reply = project_params['recrawl_days_reply'],
                                                 plpy = plpy,
+                                                msg_func = plpy.notice,
                                                 tzinfo = datetime.timezone.utc)
 
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
@@ -270,7 +271,8 @@ if step_name == 'debug':
     #clear_tables_by_project(ID_PROJECT_main)
     #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
     #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
-    tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfurso', id_post = '480')
+    #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
+    tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1261066742', id_post = '')
     pass
 
 #--0-- clear

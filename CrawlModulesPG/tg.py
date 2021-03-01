@@ -6,12 +6,10 @@ from telethon.sync import TelegramClient
 #from telethon import connection
 from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError, ChannelPrivateError
 
-# классы для работы с каналами
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import Channel, ChannelParticipantsSearch
 from telethon.tl.functions.contacts import SearchRequest
 
-# класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
 import CrawlModulesPG.crawler as crawler
@@ -162,8 +160,16 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post = str(debug_id_post)
 
 	def get_peer_entity(self):
-		peer = self.client.get_entity(int(self.id_group))
-		self.name_group = peer.username
+		if self.id_group.isdigit():
+			id_group = int(self.id_group)
+			peer = self.client.get_entity(int(self.id_group))
+			self.name_group = peer.username
+		else:
+			self.name_group = self.id_group
+			peer = self.client.get_entity(self.name_group)
+			self.id_group = peer.id
+			self.debug_msg(f'{self.name_group} id = {self.id_group}')
+
 		return peer
 
 	def crawling(self, id_group):
