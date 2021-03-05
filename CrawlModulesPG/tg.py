@@ -158,6 +158,7 @@ class TelegramMessagesCrawler(Telegram):
 			self._sn_recrawler_checker = sn_recrawler_checker
 
 		self.debug_id_post = str(debug_id_post)
+		self.debug_id_post_processed = False
 
 	def get_peer_entity(self):
 		if self.id_group.isdigit():
@@ -226,7 +227,9 @@ class TelegramMessagesCrawler(Telegram):
 				return
 			nonlocal message
 			self.debug_msg('______________MESSAGE MESSAGE_____________________________')
-			self.debug_msg('ID = '+str(message.id)+'	'+crawler.RemoveEmojiSymbols(message.message))
+			self.debug_msg('ID group = '+str(self.id_group)+'	ID message = '+str(message.id)+
+				           '	'+crawler.remove_empty_symbols(crawler.RemoveEmojiSymbols(message.message)))
+			self.debug_msg(self.get_message_url(message.id))
 			self.debug_msg(str(message.date))
 			self.debug_msg(str(message.replies))
 
@@ -281,8 +284,11 @@ class TelegramMessagesCrawler(Telegram):
 				for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
 					if self.check_debug_post_id(post_for_recrawl_reply):
 						continue
-					for _ in self._crawling_replies(req_reply_params, id_group, int(post_for_recrawl_reply)):
-						pass
+					id_message = int(post_for_recrawl_reply)
+					message = self.client.get_messages(req_message_params['peer'], ids=id_message)
+					if message is not None and message.replies is not None and message.replies.replies > 0:
+						for _ in self._crawling_replies(req_reply_params, id_group, id_message):
+							pass
 
 			self.activity_registrator.move_to_scrape_result(self.scrape_result, move_common_date = self.debug_id_post == '')		
 			yield self.scrape_result.to_json() #return result per one post-request
@@ -292,8 +298,8 @@ class TelegramMessagesCrawler(Telegram):
 			if crawled_post_encounter:
 				self.debug_msg('STOP BY CRAWLED POST ENCOUNTER')
 				break
-			if self.debug_id_post != '':
-				break # debug_id_post processed
+			if self.debug_id_post != '' and self.debug_id_post_processed:
+				break
 
 		self.scrape_result.add_finish_success(self.get_group_url())
 		yield self.scrape_result.to_json()
@@ -311,9 +317,12 @@ class TelegramMessagesCrawler(Telegram):
 		def debug_msg_local_2(): #DEBUG
 			if not self.debug_mode:
 				return
-			nonlocal reply
+			nonlocal reply, id_message
 			self.debug_msg('________________REPLY REPLY___________________________')
-			self.debug_msg('ID = '+str(reply.id)+'	Reply to ID = ' + str(reply.reply_to_msg_id) + '	' + crawler.RemoveEmojiSymbols(reply.message))
+			self.debug_msg('ID group = '+str(self.id_group)+'	ID message = '+str(id_message)+
+						   '	ID reply = '+str(reply.id)+'	Reply to ID = ' + str(reply.reply_to_msg_id) + 
+						   '	' + crawler.remove_empty_symbols(crawler.RemoveEmojiSymbols(reply.message)))
+			self.debug_msg(self.get_reply_url(reply.id, id_message))
 			self.debug_msg(str(reply.date))
 			self.debug_msg(str(reply.replies))
 
@@ -337,7 +346,7 @@ class TelegramMessagesCrawler(Telegram):
 						yield self.scrape_result.to_json()
 					history_repl = request_result
 			except MsgIdInvalidError as e:
-				self.debug_msg('ERROR INVALID ID') #TODO
+				self.debug_msg('ERROR INVALID ID. Group = ' + self.get_group_url() + '	Message ID = '+self.get_message_url(id_message)) #TODO
 				#ignoring, perhaps it was a temporary promotional message 
 				break
 			except Exception as e:
@@ -367,7 +376,7 @@ class TelegramMessagesCrawler(Telegram):
 		return
 
 	def get_group_url(self):
-		return self._url+'/'+str(self.name_group)
+		return self._url+str(self.name_group)
 
 	def get_message_url(self, id_message):
 		return self.get_group_url()+'/'+str(id_message)
@@ -387,6 +396,7 @@ class TelegramMessagesCrawler(Telegram):
 			return not need_skip
 		if self.debug_id_post != str(message_id):
 			return need_skip
+		self.debug_id_post_processed = True
 		return not need_skip
 
 class ScrapeResultTG(scraper.ScrapeResult):
