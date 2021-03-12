@@ -6,7 +6,6 @@ import CrawlModulesPG.const as const
 import CrawlModulesPG.date as date
 import CrawlModulesPG.tg as tg
 import CrawlModulesPG.pginterface as pginterface
-import CrawlModulesPyOnly.plpyemul as plpyemul
 import CrawlModulesPG.accounts as accounts
 import CrawlModulesPG.crawler as crawler
 import CrawlModulesPG.scraper as scraper
@@ -29,7 +28,7 @@ step_name = 'crawl_subscribers'
 step_name = 'crawl_groups'
 step_name = 'crawl_wall'
 step_name = 'debug'
-ID_PROJECT_main = 5
+ID_PROJECT_main = 6
 
 if const.PY_ENVIRONMENT:
     import CrawlModulesPyOnly.plpyemul as plpyemul

@@ -9,6 +9,7 @@ import traceback
 from itertools import combinations_with_replacement
 from itertools import combinations
 from itertools import product
+import json
 
 import requests
 import requests_html
@@ -188,7 +189,7 @@ class CrawlerSocialNet:
 
 
     def crawl_groups(self):
-        res_for_pg = scraper.LocalScrapeResult()
+        res_for_pg = LocalScrapeResult()
 
         while len(self.search_list) > 0:
             search_elem = self.search_list.pop(0)
@@ -622,6 +623,7 @@ class CrawlerVkWall(CrawlerVk):
             self._write_file_func = kwargs['write_file_func']
         else:
             self._write_file_func = None
+        self._cw_url = ''
 
     def _cw_define_tags(self):
 
@@ -714,7 +716,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_post_repl_list = []  # first level replies
         self._cw_post_repl2_list = [] # second level replies = href 'Показать предыдущие комментарии'
         self._cw_scrape_result = []
-        self._cw_res_for_pg = scraper.LocalScrapeResult()
+        self._cw_res_for_pg = LocalScrapeResult()
         self._cw_fetch_post_counter = 0
         self._cw_noncritical_error_counter = {}
         self._cw_last_dates_activity = {}

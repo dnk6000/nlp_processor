@@ -298,11 +298,11 @@ def msg(msgstr):
 
 def clear_tables_by_project(id_project):
     tables = [
+        'git300_scrap.data_text',
         'git200_crawl.data_html',
         'git200_crawl.queue',
-        'git200_crawl.sn_accounts',
         'git200_crawl.sn_activity',
-        'git300_scrap.data_text',
+        'git200_crawl.sn_accounts',
         'git999_log.log'
         ]
     for t in tables:
@@ -323,8 +323,8 @@ cass_db.create_project(ID_TEST_PROJECT)
 
 #--0-- debug
 if step_name == 'debug':
-    clear_tables_by_project(ID_TEST_PROJECT)
-    vk_crawling_wall_group(ID_TEST_PROJECT, id_group = '87721351')                       #debug group
+    #clear_tables_by_project(ID_TEST_PROJECT)
+    vk_crawling_wall_group(ID_TEST_PROJECT, id_group = '15158721')                       #debug group
     #vk_crawling_wall_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
 
 #--0-- clear
@@ -350,10 +350,21 @@ if step_name == 'crawl_subscribers':
 #--3--
 if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_TEST_PROJECT,'')
+    
     plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
     cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
-    cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 10001)
-    #vk_crawling(ID_TEST_PROJECT)
+    
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 10001)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 5000, 10000)
+    cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 1000, 5000)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 500, 1000)
+    
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 5000, 9999999)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 10, 5000)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 50, 100)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 0, 9)
+
+    vk_crawling(ID_TEST_PROJECT)
 
 
 #vk_crawl_wall(5, 52233236, subscribers_only = True)

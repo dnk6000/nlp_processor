@@ -235,7 +235,11 @@ class TelegramMessagesCrawler(Telegram):
 
 		self.activity_registrator.initialize(id_group)
 		req_reply_params = req_message_params.copy()
-		req_message_params['offset_id'] = 0
+		if self.debug_mode and self.debug_id_post != '':
+			req_message_params['offset_id'] = int(self.debug_id_post)+1
+		else:
+			req_message_params['offset_id'] = 0
+
 		self.stop_by_date_deep = False
 		crawled_post_encounter = False
 

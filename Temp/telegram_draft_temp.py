@@ -20,6 +20,129 @@ import time
 
 import CrawlModulesPG.crawler as crawler
 
+import typing 
+
+class MyTelegramClient(TelegramClient):
+
+    def start(
+            self: 'TelegramClient',
+            phone: typing.Callable[[], str] = lambda: input('cass Please enter your phone (or bot token): '),
+            password: typing.Callable[[], str] = lambda: getpass.getpass('cass Please enter your password: '),
+            *,
+            bot_token: str = None,
+            force_sms: bool = False,
+            code_callback: typing.Callable[[], typing.Union[str, int]] = None,
+            first_name: str = 'New User',
+            last_name: str = '',
+            max_attempts: int = 3) -> 'TelegramClient':
+        """
+        Starts the client (connects and logs in if necessary).
+
+        By default, this method will be interactive (asking for
+        user input if needed), and will handle 2FA if enabled too.
+
+        If the phone doesn't belong to an existing account (and will hence
+        `sign_up` for a new one),  **you are agreeing to Telegram's
+        Terms of Service. This is required and your account
+        will be banned otherwise.** See https://telegram.org/tos
+        and https://core.telegram.org/api/terms.
+
+        If the event loop is already running, this method returns a
+        coroutine that you should await on your own code; otherwise
+        the loop is ran until said coroutine completes.
+
+        Arguments
+            phone (`str` | `int` | `callable`):
+                The phone (or callable without arguments to get it)
+                to which the code will be sent. If a bot-token-like
+                string is given, it will be used as such instead.
+                The argument may be a coroutine.
+
+            password (`str`, `callable`, optional):
+                The password for 2 Factor Authentication (2FA).
+                This is only required if it is enabled in your account.
+                The argument may be a coroutine.
+
+            bot_token (`str`):
+                Bot Token obtained by `@BotFather <https://t.me/BotFather>`_
+                to log in as a bot. Cannot be specified with ``phone`` (only
+                one of either allowed).
+
+            force_sms (`bool`, optional):
+                Whether to force sending the code request as SMS.
+                This only makes sense when signing in with a `phone`.
+
+            code_callback (`callable`, optional):
+                A callable that will be used to retrieve the Telegram
+                login code. Defaults to `input()`.
+                The argument may be a coroutine.
+
+            first_name (`str`, optional):
+                The first name to be used if signing up. This has no
+                effect if the account already exists and you sign in.
+
+            last_name (`str`, optional):
+                Similar to the first name, but for the last. Optional.
+
+            max_attempts (`int`, optional):
+                How many times the code/password callback should be
+                retried or switching between signing in and signing up.
+
+        Returns
+            This `TelegramClient`, so initialization
+            can be chained with ``.start()``.
+
+        Example
+            .. code-block:: python
+
+                client = TelegramClient('anon', api_id, api_hash)
+
+                # Starting as a bot account
+                await client.start(bot_token=bot_token)
+
+                # Starting as a user account
+                await client.start(phone)
+                # Please enter the code you received: 12345
+                # Please enter your password: *******
+                # (You are now logged in)
+
+                # Starting using a context manager (this calls start()):
+                with client:
+                    pass
+        """
+        self.session.filename = 'TG111session\Cassandra.session'
+
+        if code_callback is None:
+            def code_callback():
+                return input('Please enter the code you received: ')
+        elif not callable(code_callback):
+            raise ValueError(
+                'The code_callback parameter needs to be a callable '
+                'function that returns the code you received by Telegram.'
+            )
+
+        if not phone and not bot_token:
+            raise ValueError('No phone number or bot token provided.')
+
+        if phone and bot_token and not callable(phone):
+            raise ValueError('Both a phone and a bot token provided, '
+                             'must only provide one of either')
+
+        coro = self._start(
+            phone=phone,
+            password=password,
+            bot_token=bot_token,
+            force_sms=force_sms,
+            code_callback=code_callback,
+            first_name=first_name,
+            last_name=last_name,
+            max_attempts=max_attempts
+        )
+        return (
+            coro if self.loop.is_running()
+            else self.loop.run_until_complete(coro)
+        )
+
 class Telegram:
 	def __init__(self, username, api_id, api_hash, 
 			        msg_func = None,
@@ -35,7 +158,7 @@ class Telegram:
 		self.debug_mode = debug_mode
 
 	def connect(self):
-		self.client = TelegramClient(session = self.username, api_id = self.api_id, api_hash = self.api_hash)
+		self.client = MyTelegramClient(session = self.username, api_id = self.api_id, api_hash = self.api_hash)
 		self.client.start()
 		
 	def msg(self, message):
@@ -233,7 +356,7 @@ async def main():
 	pass
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" or True:
 
 	#with open('TextFile5.txt',encoding = 'UTF-8') as f:
 	#	t = f.read()

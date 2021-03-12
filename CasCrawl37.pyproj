@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CrawlModulesPyOnly\tg_main.py</StartupFile>
+    <StartupFile>Temp\telegram_draft_temp.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -43,10 +43,13 @@
     <Compile Include="CrawlModulesPyOnly\tg_main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Temp\tg_key_generate.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Test\tg_async.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\telegram_draft_temp.py">
+    <Compile Include="Temp\telegram_draft_temp.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlModulesPG\pauser.py">
