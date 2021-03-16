@@ -1,13 +1,15 @@
 import time
 import datetime
 import json
+import os
 
 from telethon.sync import TelegramClient
+from telethon.sessions import StringSession
 #from telethon import connection
-from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError, ChannelPrivateError
+from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError, ChannelPrivateError, UsernameInvalidError
 
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import Channel, ChannelParticipantsSearch
+from telethon.tl.types import Channel, ChannelParticipantsSearch, InputPeerChat, InputPeerChannel
 from telethon.tl.functions.contacts import SearchRequest
 
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
@@ -74,9 +76,53 @@ class Telegram(CrawlerCommon):
 
 		self._url = r'https://t.me/'
 
+		self.session_file_name = const.TOKEN_FOLDER + 'tg_session_'+self.username+'.txt'
+
 	def connect(self):
-		self.client = TelegramClient(session = self.username, api_id = self.api_id, api_hash = self.api_hash)
+		session, its_new_session = self.get_session()  #for cache in string
+		#session = self.username  #for cache in sqlite3
+		#its_new_session = False
+		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash)
 		self.client.start()
+		if its_new_session:
+			self.save_session()
+
+	def save_session(self):
+		with open(self.session_file_name, 'w') as f:
+			psw = f.write(self.client.session.save())
+			self.debug_msg('Session file saved: '+self.session_file_name)
+
+	def get_session(self):
+		if os.path.isfile(self.session_file_name):
+			with open(self.session_file_name, 'r') as f:
+				session_str = f.read()
+				if len(session_str) > 0 and not session_str.isspace():
+					its_new_session = False
+					return StringSession(session_str), its_new_session
+		
+		its_new_session = True
+		return StringSession(), its_new_session
+
+	def get_peer_entity(self, name_group):
+		peer = self.client.get_entity(name_group)
+		return peer
+
+	@staticmethod
+	def key_generate_only():
+		import CrawlModulesPG.accounts as accounts
+
+		try: 
+			msg_func = plpy.notice
+		except:
+			msg_func = print
+
+		tg_crawler = Telegram(**accounts.TG_ACCOUNT[0], msg_func = msg_func, debug_mode = True)
+		tg_crawler.connect()
+
+
+
+
+#Session Files https://github.com/LonamiWebs/Telethon/blob/master/readthedocs/concepts/sessions.rst
 
 class TelegramChannelsCrawler(Telegram):
 
@@ -138,13 +184,21 @@ class TelegramChannelsCrawler(Telegram):
 		yield self.scrape_result.to_json()
 		return		
 
+	def direct_add_group(self, name_group):
+		peer = self.get_peer_entity(name_group)
+		self.scrape_result.add_type_ACCOUNT(account_id   = peer.id,
+											account_name = peer.username,
+											account_screen_name = peer.title,
+											account_closed = False,
+											num_subscribers = 999999)  #TODO get num subscribers correctly
+		return self.scrape_result.to_json()
 
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
+	def __init__(self, id_group, name_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
-		self.name_group = ''
+		self.name_group = name_group
 
 		self.date_deep = date.date_as_utc(date_deep)
 
@@ -161,15 +215,20 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post_processed = False
 
 	def get_peer_entity(self):
-		if self.id_group.isdigit():
-			id_group = int(self.id_group)
-			peer = self.client.get_entity(int(self.id_group))
-			self.name_group = peer.username
-		else:
-			self.name_group = self.id_group
-			peer = self.client.get_entity(self.name_group)
+		peer = self.client.get_entity(self.name_group)
+		if self.id_group == '':
 			self.id_group = peer.id
-			self.debug_msg(f'{self.name_group} id = {self.id_group}')
+		#if self.id_group.isdigit():
+		#	id_group = int(self.id_group)
+		#	#peer = self.client.get_input_entity(id_group)
+		#	#peer = InputPeerChannel(id_group)
+		#	peer = self.client.get_entity(id_group)
+		#	self.name_group = peer.username
+		#else:
+		#	self.name_group = self.id_group
+		#	peer = self.client.get_entity(self.name_group)
+		#	self.id_group = peer.id
+		#	self.debug_msg(f'{self.name_group} id = {self.id_group}')
 
 		return peer
 
@@ -181,6 +240,7 @@ class TelegramMessagesCrawler(Telegram):
 		#return
 
 		try:
+			self.requests_pauser.smart_sleep()
 			req_group_params = { 
 				#'peer': self._url + id_group, 
 				'peer': self.get_peer_entity(), 
@@ -199,14 +259,20 @@ class TelegramMessagesCrawler(Telegram):
 			yield self.scrape_result.to_json()  
 			return
 		except ChannelPrivateError as e:
-			self.scrape_result.add_warning('Channel is private. id = '+ id_group) #TODO update field is_closed to True in sn_accounts table
+			self.scrape_result.add_warning('Channel is private. id = '+ self.id_group + ' name = ' + self.name_group) #TODO update field is_closed to True in sn_accounts table
 			self.scrape_result.add_finish_not_found(url = id_group)
+			yield self.scrape_result.to_json()  
+			return
+		except UsernameInvalidError as e:
+			self.scrape_result.add_warning('Channel name is broken. id = '+ self.id_group + ' name = ' + self.name_group) #TODO update field is_broken to True in sn_accounts table
+			self.scrape_result.add_finish_not_found(url = id_group)  
 			yield self.scrape_result.to_json()  
 			return
 		except Exception as e:
 			if isinstance(e, ValueError) and isinstance(e.__cause__, UsernameNotOccupiedError):
 				self.scrape_result.add_finish_not_found(url = self.get_group_url())
-			elif 'Cannot find any entity corresponding to' in str(e):
+			elif 'Cannot find any entity corresponding to' in str(e) \
+			  or 'Could not find the input entity for' in str(e):
 				self.scrape_result.add_finish_not_found(url = self.get_group_url())
 			else:
 				self.scrape_result.add_critical_error(self, expt = e, stop_process = False, url = self.get_group_url())
@@ -233,7 +299,7 @@ class TelegramMessagesCrawler(Telegram):
 			self.debug_msg(str(message.date))
 			self.debug_msg(str(message.replies))
 
-		self.activity_registrator.initialize(id_group)
+		self.activity_registrator.initialize(self.id_group)
 		req_reply_params = req_message_params.copy()
 		if self.debug_mode and self.debug_id_post != '':
 			req_message_params['offset_id'] = int(self.debug_id_post)+1
@@ -254,7 +320,7 @@ class TelegramMessagesCrawler(Telegram):
 				if request_result is None: # 'None' = Connection error
 					yield self.scrape_result.to_json()
 				history_posts = request_result
-
+			
 			if not history_posts.messages:
 				break
 
@@ -273,7 +339,7 @@ class TelegramMessagesCrawler(Telegram):
 
 				debug_msg_local_2()									#DEBUG
 
-				self.scrape_result.add_message(message, self.get_message_url(message.id),  id_group)
+				self.scrape_result.add_message(message, self.get_message_url(message.id),  self.id_group)
 				#_message.sender_id
 				#_message.views
 				
@@ -281,7 +347,7 @@ class TelegramMessagesCrawler(Telegram):
 
 				#Replyes
 				if message.replies is not None and message.replies.replies > 0:
-					for _ in self._crawling_replies(req_reply_params, id_group, message.id):
+					for _ in self._crawling_replies(req_reply_params, self.id_group, message.id):
 						pass
 
 			if crawled_post_encounter:
@@ -291,7 +357,7 @@ class TelegramMessagesCrawler(Telegram):
 					id_message = int(post_for_recrawl_reply)
 					message = self.client.get_messages(req_message_params['peer'], ids=id_message)
 					if message is not None and message.replies is not None and message.replies.replies > 0:
-						for _ in self._crawling_replies(req_reply_params, id_group, id_message):
+						for _ in self._crawling_replies(req_reply_params, self.id_group, id_message):
 							pass
 
 			self.activity_registrator.move_to_scrape_result(self.scrape_result, move_common_date = self.debug_id_post == '')		

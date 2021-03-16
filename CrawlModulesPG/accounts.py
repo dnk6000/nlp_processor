@@ -13,7 +13,7 @@ TG_ACCOUNT = [
     #--0--
     { 'api_id': '3756968',
       'api_hash': '6f685fcaf0056c27f8b5d77ef1265f04',
-      'username': '_tg_api_key',
+      'username': 'tg_api_key',
       'phone': '+79253701963'
      }
     ]

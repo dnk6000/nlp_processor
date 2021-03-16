@@ -68,3 +68,8 @@ if PG_ENVIRONMENT:
     TOKEN_FOLDER = '/opt2/pgpython/modules/Tokens/'
 else:
     TOKEN_FOLDER = 'C:\\Temp\\'
+
+if PG_ENVIRONMENT:
+    LOG_FOLDER = '/opt2/pgpython/modules/Logs/'
+else:
+    LOG_FOLDER = '.\\Logs\\'

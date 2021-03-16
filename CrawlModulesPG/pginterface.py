@@ -63,10 +63,8 @@ class MainDB:
             if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
                 gvars.GD[plan_id] = self.plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
                 ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_sn_id","dmn.git_sn_id","dmn.git_sn_id"])
-
             res = self._execute(plan_id, [id_data_html, id_project, id_www_sources, content, content_header, content_date,
                                                 sn_id, sn_post_id, sn_post_parent_id], id_project)
-
         self.plpy.commit()
         return None if res is None else res[0]
 

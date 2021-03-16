@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Temp\telegram_draft_temp.py</StartupFile>
+    <StartupFile>CrawlModulesPyOnly\tg_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -108,12 +108,14 @@
     <Folder Include="CrawlModulesPG\" />
     <Folder Include="Temp\" />
     <Folder Include="Test\" />
+    <Folder Include="Logs\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Documentation\Cassandra. Algorithms of Crawling and Scraping.docx" />
     <Content Include="Documentation\Cassandra. Front-end.docx" />
     <Content Include="Documentation\Cassandra. Рефакторинг Улучшения.docx" />
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
+    <Content Include="Logs\tg_crawl.log" />
     <Content Include="Temp\CheckScraping_Log.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
