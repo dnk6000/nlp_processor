@@ -115,6 +115,7 @@
     <Content Include="Documentation\Cassandra. Front-end.docx" />
     <Content Include="Documentation\Cassandra. Рефакторинг Улучшения.docx" />
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
+    <Content Include="Documentation\Cassandra. Parsing. Концепт ТЗ по тональности.doc" />
     <Content Include="Logs\tg_crawl.log" />
     <Content Include="Temp\CheckScraping_Log.txt" />
   </ItemGroup>
