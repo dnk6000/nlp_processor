@@ -4,7 +4,8 @@ import json
 import os
 
 from telethon.sync import TelegramClient
-from telethon.sessions import StringSession
+from telethon.sessions import StringSession #, SQLiteSession
+from telethon.sessions.sqlite import EXTENSION as SQLiteSession_EXTENSION
 #from telethon import connection
 from telethon.errors.rpcerrorlist import MsgIdInvalidError, UsernameNotOccupiedError, ChannelPrivateError, UsernameInvalidError
 
@@ -79,20 +80,28 @@ class Telegram(CrawlerCommon):
 		self.session_file_name = const.TOKEN_FOLDER + 'tg_session_'+self.username+'.txt'
 
 	def connect(self):
-		session, its_new_session = self.get_session()  #for cache in string
+		#session, its_new_session = self.get_session()  #for cache in string
+		#session = SQLiteSession(self.username)
 		#session = self.username  #for cache in sqlite3
 		#its_new_session = False
+		
+		session = const.TOKEN_FOLDER + self.username + SQLiteSession_EXTENSION #for cache in sqlite3
+		session = self.username
+		
 		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash)
 		self.client.start()
-		if its_new_session:
-			self.save_session()
+		
+		#if its_new_session:
+		#	self.save_session()
 
 	def save_session(self):
+		''' save StringSession to file '''
 		with open(self.session_file_name, 'w') as f:
 			psw = f.write(self.client.session.save())
 			self.debug_msg('Session file saved: '+self.session_file_name)
 
 	def get_session(self):
+		''' get StringSession from file '''
 		if os.path.isfile(self.session_file_name):
 			with open(self.session_file_name, 'r') as f:
 				session_str = f.read()
@@ -105,6 +114,7 @@ class Telegram(CrawlerCommon):
 
 	def get_peer_entity(self, name_group):
 		peer = self.client.get_entity(name_group)
+		#peer = InputPeerChannel(id_group)  #hash needed
 		return peer
 
 	@staticmethod
@@ -215,20 +225,22 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post_processed = False
 
 	def get_peer_entity(self):
-		peer = self.client.get_entity(self.name_group)
+		return ''
 		if self.id_group == '':
+			peer = self.client.get_entity(self.name_group)
+			if self.id_group == '':
+				self.id_group = peer.id
+		elif self.id_group.isdigit():
+			id_group = int(self.id_group)
+			#peer = self.client.get_input_entity(id_group)
+			#peer = InputPeerChannel(id_group)
+			peer = self.client.get_entity(id_group)
+			self.name_group = peer.username  #TODO username can change - update it in the database 
+		else:
+			self.name_group = self.id_group
+			peer = self.client.get_entity(self.name_group)
 			self.id_group = peer.id
-		#if self.id_group.isdigit():
-		#	id_group = int(self.id_group)
-		#	#peer = self.client.get_input_entity(id_group)
-		#	#peer = InputPeerChannel(id_group)
-		#	peer = self.client.get_entity(id_group)
-		#	self.name_group = peer.username
-		#else:
-		#	self.name_group = self.id_group
-		#	peer = self.client.get_entity(self.name_group)
-		#	self.id_group = peer.id
-		#	self.debug_msg(f'{self.name_group} id = {self.id_group}')
+			self.debug_msg(f'{self.name_group} id = {self.id_group}')
 
 		return peer
 
@@ -242,8 +254,8 @@ class TelegramMessagesCrawler(Telegram):
 		try:
 			self.requests_pauser.smart_sleep()
 			req_group_params = { 
-				#'peer': self._url + id_group, 
-				'peer': self.get_peer_entity(), 
+				'peer': self._url + self.name_group, 
+				#'peer': self.get_peer_entity(), 
 				'offset_id': 0,
 				'offset_date': None, 
 				'add_offset': 0,

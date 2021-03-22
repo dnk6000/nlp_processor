@@ -299,13 +299,15 @@ if step_name == 'debug':
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
 	
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1101702832', id_post = '')
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'afk_che', id_post = '') #1378397816
+	tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '')
 	
 	#tg_add_group(id_project = 10, name_group = 'meduzalive')
 	#tg_add_group(id_project = 10, name_group = 'breakingmash')
-	tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
 	pass
 
 #--0-- clear
