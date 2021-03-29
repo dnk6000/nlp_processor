@@ -81,12 +81,9 @@ class Telegram(CrawlerCommon):
 
 	def connect(self):
 		#session, its_new_session = self.get_session()  #for cache in string
-		#session = SQLiteSession(self.username)
-		#session = self.username  #for cache in sqlite3
-		#its_new_session = False
 		
 		session = const.TOKEN_FOLDER + self.username + SQLiteSession_EXTENSION #for cache in sqlite3
-		session = self.username
+		#its_new_session = False
 		
 		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash)
 		self.client.start()
@@ -112,9 +109,15 @@ class Telegram(CrawlerCommon):
 		its_new_session = True
 		return StringSession(), its_new_session
 
-	def get_peer_entity(self, name_group):
-		peer = self.client.get_entity(name_group)
-		#peer = InputPeerChannel(id_group)  #hash needed
+	def get_peer_entity(self, id = None, name_group = None, hash = None):
+		if id is not None and hash is not None:
+			peer = InputPeerChannel(self.id_group, int(hash))
+		elif id is not None:
+			peer = self.client.get_entity(id)
+		elif name_group is not None:
+			peer = self.client.get_entity(name_group)
+		else:
+			peer = None
 		return peer
 
 	@staticmethod
@@ -189,13 +192,14 @@ class TelegramChannelsCrawler(Telegram):
 													account_name = channel['username'],
 													account_screen_name = channel['title'],
 													account_closed = False,
-													num_subscribers = channel['participants_count'])
+													num_subscribers = channel['participants_count'],
+													account_extra_1 = str(channel['access_hash']))
 
 		yield self.scrape_result.to_json()
 		return		
 
 	def direct_add_group(self, name_group):
-		peer = self.get_peer_entity(name_group)
+		peer = self.get_peer_entity(name_group = name_group)
 		self.scrape_result.add_type_ACCOUNT(account_id   = peer.id,
 											account_name = peer.username,
 											account_screen_name = peer.title,
@@ -205,10 +209,11 @@ class TelegramChannelsCrawler(Telegram):
 
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, name_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
+	def __init__(self, id_group, name_group, hash_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 		self.name_group = name_group
+		self.hash_group = hash_group
 
 		self.date_deep = date.date_as_utc(date_deep)
 
@@ -224,29 +229,9 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post = str(debug_id_post)
 		self.debug_id_post_processed = False
 
-	def get_peer_entity(self):
-		return ''
-		if self.id_group == '':
-			peer = self.client.get_entity(self.name_group)
-			if self.id_group == '':
-				self.id_group = peer.id
-		elif self.id_group.isdigit():
-			id_group = int(self.id_group)
-			#peer = self.client.get_input_entity(id_group)
-			#peer = InputPeerChannel(id_group)
-			peer = self.client.get_entity(id_group)
-			self.name_group = peer.username  #TODO username can change - update it in the database 
-		else:
-			self.name_group = self.id_group
-			peer = self.client.get_entity(self.name_group)
-			self.id_group = peer.id
-			self.debug_msg(f'{self.name_group} id = {self.id_group}')
-
-		return peer
-
 	def crawling(self, id_group):
 
-		self.id_group = id_group
+		self.id_group = int(id_group)
 		#for step_result in self._crawling(req_group_params, id_group): #DEBUG
 		#	yield step_result
 		#return
@@ -254,8 +239,8 @@ class TelegramMessagesCrawler(Telegram):
 		try:
 			self.requests_pauser.smart_sleep()
 			req_group_params = { 
-				'peer': self._url + self.name_group, 
-				#'peer': self.get_peer_entity(), 
+				#'peer': self._url + self.name_group, 
+				'peer': self.get_peer_entity(self.id_group, self.name_group, self.hash_group), 
 				'offset_id': 0,
 				'offset_date': None, 
 				'add_offset': 0,

@@ -414,7 +414,12 @@ class ScrapeResult(list, common.CommonFunc):
 		self.clear_result = clear_result #clear result after converting to json
 		self.base_res_element = dict(res_type = '')
 
-	def add_type_ACCOUNT(self,account_id='',account_name='',account_screen_name='',account_closed=False,num_subscribers=0):
+	def add_type_ACCOUNT(self, account_id='', 
+                               account_name='',
+                               account_screen_name='',
+                               account_closed=False,
+                               num_subscribers=0,
+                               account_extra_1=''):
 		res_element = self.base_res_element.copy()
 		res_element['result_type']         = self.RESULT_TYPE_ACCOUNT
 		res_element['account_id']          = account_id
@@ -422,6 +427,7 @@ class ScrapeResult(list, common.CommonFunc):
 		res_element['account_screen_name'] = account_screen_name
 		res_element['account_closed']	   = account_closed
 		res_element['num_subscribers']	   = num_subscribers
+		res_element['account_extra_1']	   = account_extra_1
 
 		super().append(res_element)
 
