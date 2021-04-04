@@ -110,9 +110,9 @@ class Telegram(CrawlerCommon):
 		return StringSession(), its_new_session
 
 	def get_peer_entity(self, id = None, name_group = None, hash = None):
-		if id is not None and hash is not None:
+		if id is not None and hash is not None and type(hash) == str and hash != '':
 			peer = InputPeerChannel(self.id_group, int(hash))
-		elif id is not None:
+		elif id is not None and str(id).isdigit():
 			peer = self.client.get_entity(id)
 		elif name_group is not None:
 			peer = self.client.get_entity(name_group)
@@ -200,11 +200,12 @@ class TelegramChannelsCrawler(Telegram):
 
 	def direct_add_group(self, name_group):
 		peer = self.get_peer_entity(name_group = name_group)
-		self.scrape_result.add_type_ACCOUNT(account_id   = peer.id,
+		self.scrape_result.add_type_ACCOUNT(account_id   = str(peer.id),
 											account_name = peer.username,
 											account_screen_name = peer.title,
 											account_closed = False,
-											num_subscribers = 999999)  #TODO get num subscribers correctly
+											num_subscribers = 999999,   #TODO get num subscribers correctly
+											account_extra_1 = str(peer.access_hash))  
 		return self.scrape_result.to_json()
 
 class TelegramMessagesCrawler(Telegram):
@@ -231,7 +232,10 @@ class TelegramMessagesCrawler(Telegram):
 
 	def crawling(self, id_group):
 
-		self.id_group = int(id_group)
+		if str(id_group).isdigit():
+			self.id_group = int(id_group)
+		else:
+			self.id_group = ''
 		#for step_result in self._crawling(req_group_params, id_group): #DEBUG
 		#	yield step_result
 		#return
@@ -256,12 +260,12 @@ class TelegramMessagesCrawler(Telegram):
 			yield self.scrape_result.to_json()  
 			return
 		except ChannelPrivateError as e:
-			self.scrape_result.add_warning('Channel is private. id = '+ self.id_group + ' name = ' + self.name_group) #TODO update field is_closed to True in sn_accounts table
+			self.scrape_result.add_warning('Channel is private. id = '+ str(self.id_group) + ' name = ' + self.name_group) #TODO update field is_closed to True in sn_accounts table
 			self.scrape_result.add_finish_not_found(url = id_group)
 			yield self.scrape_result.to_json()  
 			return
 		except UsernameInvalidError as e:
-			self.scrape_result.add_warning('Channel name is broken. id = '+ self.id_group + ' name = ' + self.name_group) #TODO update field is_broken to True in sn_accounts table
+			self.scrape_result.add_warning('Channel name is broken. id = '+ str(self.id_group) + ' name = ' + self.name_group) #TODO update field is_broken to True in sn_accounts table
 			self.scrape_result.add_finish_not_found(url = id_group)  
 			yield self.scrape_result.to_json()  
 			return

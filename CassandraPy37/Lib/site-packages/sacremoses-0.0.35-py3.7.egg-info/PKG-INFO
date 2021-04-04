@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: sacremoses
+Version: 0.0.35
+Summary: SacreMoses
+Home-page: https://github.com/alvations/sacremoses
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: LGPL MosesTokenizer in Python
+Platform: UNKNOWN

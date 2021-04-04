@@ -26,9 +26,9 @@ CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челяб�
 
 ####################################################
 ####### begin: for PY environment only #############
-step_name = 'debug'
 step_name = 'crawl_subscribers'
 step_name = 'crawl_groups'
+step_name = 'debug'
 step_name = 'crawl_wall'
 ID_PROJECT_main = 11
 
@@ -257,11 +257,11 @@ def tg_crawl_messages_start(id_project, queue):
                           queue = queue,
                           tg_client = tg_client)
 
-def tg_crawl_messages_channel(id_project, id_group, name_group, id_post = ''):
+def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', id_post = ''):
 
     project_params = cass_db.get_project_params(id_project)[0]
 
-    tg_crawl_messages(id_project = id_project, id_group = id_group, name_group = name_group, project_params = project_params, debug_id_post = id_post)
+    tg_crawl_messages(id_project = id_project, id_group = id_group, name_group = name_group, hash_group = hash_group, project_params = project_params, debug_id_post = id_post)
 
 def tg_add_group(id_project, name_group):
 
@@ -326,8 +326,8 @@ if step_name == 'debug':
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '')
-	#tg_add_group(id_project = 10, name_group = 'meduzalive')
-	#tg_add_group(id_project = 10, name_group = 'breakingmash')
+	#tg_add_group(id_project = 11, name_group = 'meduzalive')
+	#tg_add_group(id_project = 11, name_group = 'breakingmash')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
 
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1156431022', name_group = 'Ali_boroda_74', id_post = '')
@@ -371,7 +371,7 @@ if step_name == 'crawl_wall':
     #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
     queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
-    #queue.regenerate()
+    queue.regenerate()
 
     try:
         tg_crawl_messages_start(ID_PROJECT_main, queue)
