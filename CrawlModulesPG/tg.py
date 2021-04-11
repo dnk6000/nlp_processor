@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 
+import telethon.version as telethon_version
 from telethon.sync import TelegramClient
 from telethon.sessions import StringSession #, SQLiteSession
 from telethon.sessions.sqlite import EXTENSION as SQLiteSession_EXTENSION
