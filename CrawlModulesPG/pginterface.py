@@ -269,6 +269,61 @@ class MainDB:
         self.plpy.commit()
         return convert_select_result(res)
 
+    def data_text_select_unprocess(self, id_www_source, id_project, number_records = 100):
+        plan_id = 'plan_data_text_select_unprocess'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            pg_func = 'select * from git300_scrap.data_text_select_unprocess($1, $2, $3);'
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records])
+
+        return convert_select_result(res)
+
+    def data_text_set_is_process(self, id):
+        plan_id = 'plan_data_text_set_is_process'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git300_scrap.data_text_set_is_process($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id])
+        self.plpy.commit()
+
+    def token_upsert_sentence(self, id_www_source, id_project, id_data_text, sentences_array):
+        plan_id = 'plan_token_upsert_sentence'
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_sentence($1, $2, $3, $4)''', 
+                                ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []"])
+
+            res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, sentences_array])
+        self.plpy.commit()
+
+    def sentiment_upsert_sentence(self, id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type, **kwargs):
+        plan_id = 'plan_sentiment_upsert_sentence'
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git450_sentim.upsert_sentence($1, $2, $3, $4, $5)''', 
+                                            ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
+
+            res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type])
+
+        self.plpy.commit()
+        return None if res is None else res[0]
+
+    def sentiment_upsert_text(self, id_www_source, id_project, id_data_text, id_rating_type, **kwargs):
+        plan_id = 'plan_sentiment_upsert_text'
+        with self.plpy.subtransaction():
+            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git450_sentim.upsert_text($1, $2, $3, $4)''', 
+                                            ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
+
+            res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_rating_type])
+
+        self.plpy.commit()
+        return None if res is None else res[0]
 
     #def Select(self):
     #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
@@ -359,7 +414,8 @@ if __name__ == "__main__":
 
     #res = cass_db.get_www_source_id('vk')
 
-    res = cass_db.log_error('Ошибка 555', 7, '555 Длинное описание')
+    #res = cass_db.log_error('Ошибка 555', 7, '555 Длинное описание')
+    res = cass_db.data_text_select_unprocess(4,10,15)
 
     #res = cass_db.queue_generate(3, 5)  #res[0]['Success']
     #res = cass_db.queue_update(1, is_process = True)  #res[0]['Success']

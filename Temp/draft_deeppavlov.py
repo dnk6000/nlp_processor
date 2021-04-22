@@ -16,8 +16,7 @@
 #deep.main()    
 #########################################################
 
-
-
+#### Named Entity Recognition
 
 #from deeppavlov import configs, build_model
 
@@ -28,12 +27,37 @@
 
 #print(res)
 
+##########################################################################################
+#### SENTIMENT
 
-from deeppavlov import configs, build_model
 
-ner_model = build_model(configs.ner.rusentiment_elmo_twitter_cnn, download=True)
+#from deeppavlov import configs, build_model
 
-#res = ner_model(['Bob Ross lived in Florida'])
-res = ner_model(['Иван Петров живет в Пензе'])
+#ner_model = build_model(configs.classifiers.rusentiment_elmo_twitter_cnn, download=False)
+###tree['classifiers']['rusentiment_elmo_twitter_cnn']
+##res = ner_model(['Bob Ross lived in Florida'])
+
+#sentenses = ['Иван Петров живет в Пензе',
+#                 'Семен Семенович хороший человек',
+#                 'Вася много курит',
+#                 'Он хороший человек, но выпил плохой кофе',
+#                 'Он хороший человек, но выпил плохой, точнее отвратительный, кофе',
+#                 'Он хороший человек, но выпил плохой, точнее отвратительный, кофе и неожиданно выздоровел',
+#                 'Я вышел из лесу, был сильный мороз',
+#                 'Но были люди в наше время, не то что нынешнее племя'
+#                 ]
+
+#res = ner_model(sentenses)
+
+#print(res)
+
+##########################################################################################
+#### Sentence Tokenizer
+
+from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
+
+RST = RuSentTokenizer()
+
+res = RST(['Эта шоколадка за 400р. ничего из себя не представляла. Артём решил больше не ходить в этот магазин'])
 
 print(res)
