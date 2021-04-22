@@ -1,4 +1,4 @@
-import CrawlModulesPG.const as const
+import Common.const as const
 
 VK_ACCOUNT = [
     #--0--
@@ -20,7 +20,7 @@ TG_ACCOUNT = [
 
 
 if const.PY_ENVIRONMENT:
-    import CrawlModulesPyOnly.self_psw as self_psw
+    import CrawlingPyOnly.self_psw as self_psw
 
     VK_ACCOUNT[0] = { 'login': '89273824101',
                       'password': self_psw.get_psw_vk_mtyurin(),

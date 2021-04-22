@@ -2,18 +2,18 @@ import time
 import datetime
 import json
 
-import CrawlModulesPG.vk as vk
+import Crawling.vk as vk
 
-import CrawlModulesPG.pginterface as pginterface
-import CrawlModulesPG.const as const
-import CrawlModulesPG.crawler as crawler
-import CrawlModulesPG.scraper as scraper
-import CrawlModulesPG.exceptions as exceptions
-import CrawlModulesPG.date as date
-import CrawlModulesPG.accounts as accounts
-import CrawlModulesPG.pauser as pauser
+import Common.pginterface as pginterface
+import Common.const as const
+import Crawling.crawler as crawler
+import Crawling.scraper as scraper
+import Crawling.exceptions as exceptions
+import Crawling.date as date
+import Crawling.accounts as accounts
+import Crawling.pauser as pauser
 
-from CrawlModulesPG.globvars import GlobVars
+from Crawling.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 
@@ -31,8 +31,8 @@ step_name = 'debug'
 ID_TEST_PROJECT = 10
 
 if const.PY_ENVIRONMENT:
-    import CrawlModulesPyOnly.plpyemul as plpyemul
-    import CrawlModulesPyOnly.self_psw as self_psw
+    import CrawlingPyOnly.plpyemul as plpyemul
+    import CrawlingPyOnly.self_psw as self_psw
 
     cassandra_db_conn_par = {
         'database': 'cassandra_new', 

@@ -1,8 +1,8 @@
-import CrawlModulesPG.const as const
-import CrawlModulesPG.exceptions as exceptions
-import CrawlModulesPG.date as date
+import Common.const as const
+import Crawling.exceptions as exceptions
+import Crawling.date as date
 
-from CrawlModulesPG.globvars import GlobVars
+from Crawling.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
 gvars = None
 
@@ -378,14 +378,14 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
         
 
 if __name__ == "__main__":
-    import CrawlModulesPyOnly.self_psw as self_psw
-    from CrawlModulesPG.globvars import GlobVars
+    import CrawlingPyOnly.self_psw as self_psw
+    from Crawling.globvars import GlobVars
     if const.PY_ENVIRONMENT: 
         GD = None
     else: 
         GD = {}
     if const.PY_ENVIRONMENT:
-        import CrawlModulesPyOnly.plpyemul as plpyemul
+        import CrawlingPyOnly.plpyemul as plpyemul
 
         def get_psw_db_mtyurin():
             with open('C:\Temp\mypsw.txt', 'r') as f:

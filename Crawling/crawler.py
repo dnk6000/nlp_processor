@@ -19,11 +19,11 @@ import re
 import time
 import datetime
 
-import CrawlModulesPG.const as const
-import CrawlModulesPG.date as date
-import CrawlModulesPG.common as common
+import Common.const as const
+import Crawling.date as date
+import Common.common as common
 
-from CrawlModulesPG.scraper import ScrapeResult
+from Crawling.scraper import ScrapeResult
 
 
 

@@ -6,7 +6,7 @@
 VK_SOURCE_ID - id VK in table www_sources
 '''
 
-import CrawlModulesPG.const as const
+import Common.const as const
 
 GDpy = dict()
 

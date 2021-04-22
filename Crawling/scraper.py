@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import CrawlModulesPG.const as const
-import CrawlModulesPG.crawler as crawler
-import CrawlModulesPG.exceptions as exceptions
-import CrawlModulesPG.common as common
-import CrawlModulesPG.date as date
+import Common.const as const
+import Crawling.crawler as crawler
+import Crawling.exceptions as exceptions
+import Common.common as common
+import Crawling.date as date
 
 import re
 from html.parser import HTMLParser  

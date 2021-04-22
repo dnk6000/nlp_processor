@@ -12,11 +12,11 @@ from telethon.tl.types import ChannelParticipantsSearch
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
-import CrawlModulesPG.crawler as crawler
-import CrawlModulesPG.exceptions as exceptions
-import CrawlModulesPG.const as const
-import CrawlModulesPG.date as date
-import CrawlModulesPG.pauser as pauser
+import Crawling.crawler as crawler
+import Crawling.exceptions as exceptions
+import Common.const as const
+import Crawling.date as date
+import Crawling.pauser as pauser
 
 class CommonFunc:
     def __init__(self, debug_mode = True, msg_func = None, **kwargs):

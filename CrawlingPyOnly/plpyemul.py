@@ -3,7 +3,10 @@ from psycopg2.extras import RealDictCursor
 import re
 import time
 
-import CrawlModulesPG.pauser as pauser
+import Common.const as const
+import Crawling.pauser as pauser
+
+import CrawlingPyOnly.self_psw as self_psw
 
 #Хранимые процедуры на Python в PostgreSQL https://tproger.ru/articles/stored-procedures-on-python-in-postgresql/
 #Миллион строк в секунду из Postgres с помощью Python https://habr.com/ru/post/317394/
@@ -169,3 +172,14 @@ class PlPy(object):
         #print('__del__')
         if self.connection is not None:
             self.connection.close()
+
+def get_plpy():
+
+    cassandra_db_conn_par = {
+        'database': 'cassandra_new', 
+        'host'   : '192.168.60.46', 
+        'port': '5432', 
+        'user': 'm.tyurin', 
+        'password': self_psw.get_psw_db_mtyurin()
+    }
+    return PlPy(**cassandra_db_conn_par)

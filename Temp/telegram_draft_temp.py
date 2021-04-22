@@ -14,11 +14,11 @@ from telethon.tl.types import ChannelParticipantsSearch
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
-import CrawlModulesPG.accounts as accounts
+import Crawling.accounts as accounts
 
 import time
 
-import CrawlModulesPG.crawler as crawler
+import Crawling.crawler as crawler
 
 import typing 
 

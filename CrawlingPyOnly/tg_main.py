@@ -2,18 +2,19 @@ import datetime
 import time
 import json
 
-import CrawlModulesPG.const as const
-import CrawlModulesPG.date as date
-import CrawlModulesPG.tg as tg
-import CrawlModulesPG.pginterface as pginterface
-import CrawlModulesPG.accounts as accounts
-import CrawlModulesPG.common as common
-import CrawlModulesPG.crawler as crawler
-import CrawlModulesPG.scraper as scraper
-import CrawlModulesPG.pauser as pauser
-import CrawlModulesPG.exceptions as exceptions
+import Common.const as const
+import Common.common as common
+import Common.pginterface as pginterface
 
-from CrawlModulesPG.globvars import GlobVars
+import Crawling.date as date
+import Crawling.tg as tg
+import Crawling.accounts as accounts
+import Crawling.crawler as crawler
+import Crawling.scraper as scraper
+import Crawling.pauser as pauser
+import Crawling.exceptions as exceptions
+
+from Crawling.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 
@@ -33,8 +34,8 @@ step_name = 'crawl_wall'
 ID_PROJECT_main = 12
 
 if const.PY_ENVIRONMENT:
-    import CrawlModulesPyOnly.plpyemul as plpyemul
-    import CrawlModulesPyOnly.self_psw as self_psw
+    import CrawlingPyOnly.plpyemul as plpyemul
+    import CrawlingPyOnly.self_psw as self_psw
 
     cassandra_db_conn_par = {
         'database': 'cassandra_new', 

@@ -3,7 +3,7 @@
 import re
 import datetime
 
-import CrawlModulesPG.const as const
+import Common.const as const
 
 class StrToDate:
     '''re_patterns - 're'-patterns str or list with  str:

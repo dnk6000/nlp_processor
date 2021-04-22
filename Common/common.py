@@ -1,6 +1,6 @@
 import logging
 
-import CrawlModulesPG.const as const
+import Common.const as const
 
 class CommonFunc:
 	def __init__(self, *args, debug_mode = True, msg_func = None, **kwargs):

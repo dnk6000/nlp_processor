@@ -1,7 +1,7 @@
 import time
 from datetime import (datetime, timedelta)
 
-import CrawlModulesPG.const as const
+import Common.const as const
 
 class IntervalPauser:
     '''Each subsequent pause is counted from the previous one 

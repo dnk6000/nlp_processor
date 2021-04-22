@@ -16,13 +16,13 @@ from telethon.tl.functions.contacts import SearchRequest
 
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
-import CrawlModulesPG.crawler as crawler
-import CrawlModulesPG.exceptions as exceptions
-import CrawlModulesPG.const as const
-import CrawlModulesPG.date as date
-import CrawlModulesPG.pauser as pauser
-import CrawlModulesPG.scraper as scraper
-import CrawlModulesPG.common as common
+import Crawling.crawler as crawler
+import Crawling.exceptions as exceptions
+import Common.const as const
+import Crawling.date as date
+import Crawling.pauser as pauser
+import Crawling.scraper as scraper
+import Common.common as common
 
 class CrawlerCommon(common.CommonFunc):
 	def __init__(self, 
@@ -123,7 +123,7 @@ class Telegram(CrawlerCommon):
 
 	@staticmethod
 	def key_generate_only():
-		import CrawlModulesPG.accounts as accounts
+		import Crawling.accounts as accounts
 
 		try: 
 			msg_func = plpy.notice

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CrawlModulesPG\pginterface.py</StartupFile>
+    <StartupFile>Parsing\token.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -26,23 +26,26 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="CrawlModulesPG\crawler.py" />
-    <Compile Include="CrawlModulesPG\exceptions.py">
+    <Compile Include="Crawling\crawler.py" />
+    <Compile Include="Crawling\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\date.py">
+    <Compile Include="Crawling\date.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\accounts.py">
+    <Compile Include="Crawling\accounts.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\common.py">
+    <Compile Include="Common\common.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\tg.py">
+    <Compile Include="Crawling\tg.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPyOnly\tg_main.py">
+    <Compile Include="CrawlingPyOnly\tg_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Parsing\token.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Temp\draft_deeppavlov.py">
@@ -57,19 +60,19 @@
     <Compile Include="Temp\telegram_draft_temp.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\pauser.py">
+    <Compile Include="Crawling\pauser.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPyOnly\vk_main.py">
+    <Compile Include="CrawlingPyOnly\vk_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\const.py">
+    <Compile Include="Common\const.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPG\globvars.py">
+    <Compile Include="Crawling\globvars.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPyOnly\self_psw.py">
+    <Compile Include="CrawlingPyOnly\self_psw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Temp\async_example_1.py">
@@ -84,7 +87,7 @@
     <Compile Include="Test\pg_test.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlModulesPyOnly\plpyemul.py">
+    <Compile Include="CrawlingPyOnly\plpyemul.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Temp\модуль1временно.py" />
@@ -92,9 +95,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Test\z_ParserAddressByNatasha.py" />
-    <Compile Include="CrawlModulesPG\pginterface.py" />
-    <Compile Include="CrawlModulesPG\scraper.py" />
-    <Compile Include="CrawlModulesPG\vk.py" />
+    <Compile Include="Common\pginterface.py" />
+    <Compile Include="Crawling\scraper.py" />
+    <Compile Include="Crawling\vk.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="CassandraPy37\">
@@ -109,8 +112,10 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Documentation\" />
-    <Folder Include="CrawlModulesPyOnly\" />
-    <Folder Include="CrawlModulesPG\" />
+    <Folder Include="CrawlingPyOnly\" />
+    <Folder Include="Crawling\" />
+    <Folder Include="Common\" />
+    <Folder Include="Parsing\" />
     <Folder Include="Temp\" />
     <Folder Include="Test\" />
     <Folder Include="Logs\" />

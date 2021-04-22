@@ -4,8 +4,8 @@
 
 #client.start()
 
-import CrawlModulesPG.tg as tg
-#import CrawlModulesPG.accounts as accounts
+import Crawling.tg as tg
+#import Crawling.accounts as accounts
 
 #try: 
 #    msg_func = plpy.notice
