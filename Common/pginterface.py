@@ -2,7 +2,7 @@ import Common.const as const
 import Crawling.exceptions as exceptions
 import Crawling.date as date
 
-from Crawling.globvars import GlobVars
+from Common.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
 gvars = None
 
@@ -379,7 +379,7 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
 
 if __name__ == "__main__":
     import CrawlingPyOnly.self_psw as self_psw
-    from Crawling.globvars import GlobVars
+    from Common.globvars import GlobVars
     if const.PY_ENVIRONMENT: 
         GD = None
     else: 

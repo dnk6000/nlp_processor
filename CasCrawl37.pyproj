@@ -69,7 +69,7 @@
     <Compile Include="Common\const.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Crawling\globvars.py">
+    <Compile Include="Common\globvars.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlingPyOnly\self_psw.py">

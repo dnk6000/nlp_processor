@@ -14,7 +14,7 @@ import Crawling.scraper as scraper
 import Crawling.pauser as pauser
 import Crawling.exceptions as exceptions
 
-from Crawling.globvars import GlobVars
+from Common.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 

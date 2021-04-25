@@ -13,7 +13,7 @@ import Crawling.date as date
 import Crawling.accounts as accounts
 import Crawling.pauser as pauser
 
-from Crawling.globvars import GlobVars
+from Common.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 
