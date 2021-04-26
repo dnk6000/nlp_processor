@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Parsing\token.py</StartupFile>
+    <StartupFile>Parsing\processor.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -43,6 +43,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CrawlingPyOnly\tg_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Parsing\processor.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Parsing\sentiment.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Parsing\token.py">

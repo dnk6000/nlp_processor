@@ -58,11 +58,18 @@ LOG_LEVEL_FATAL = 5
 
 HTTP_STATUS_CODE_200 = 200
 
+SN_GROUP_MARK = 'G'
+SN_USER_MARK = 'U'
+
+#PARSING SECTION
+
+SENTIM_RATE = {'negative':1,'neutral':2,'positive':3,'skip':4,'speech':5}
+
+#COMMON SECTION
+
 EMPTY_DATE = datetime(1,1,1)
 EMPTY_DATE_UTC = datetime(1,1,1,tzinfo = timezone.utc)
 
-SN_GROUP_MARK = 'G'
-SN_USER_MARK = 'U'
 
 if PG_ENVIRONMENT:
     TOKEN_FOLDER = '/opt2/pgpython/modules/Tokens/'

@@ -6,9 +6,9 @@ from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
 
 class Tokenizer(common.CommonFunc):
     def __init__(self, *args,
-                 db,
-                 id_project,
-                 id_www_source,
+                 db = None,
+                 id_project = None,
+                 id_www_source = None,
                  need_stop_cheker = None,
                  **kwargs):
         
@@ -33,29 +33,51 @@ class Tokenizer(common.CommonFunc):
     def save_result(self):
         pass
 
+    def check_user_interrupt(self):
+        if self.need_stop_checker is None:
+            return False
+        self.need_stop_checker.need_stop()
 
 class SentenceTokenizer(Tokenizer):
     def __init__(self, *args, 
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.tokenizer = RuSentTokenizer()
+        self.debug_num_portions = 3 #number portions to stop process
 
     def get_text_portion(self):
-        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = 50)
+        if self.id_www_source is not None and self.id_project is not None:
+            self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = 50)
+        else:
+            self.raw_text = {}
+
+    def tokenize(self, list_text_only):
+        return self.tokenizer(list_text_only)
 
     def process(self):
+        portion_counter = 1
         self.get_text_portion()
 
-        text_only = [i['content'] for i in self.raw_text]
+        while len(self.raw_text) > 0:
+            self.check_user_interrupt()
+
+            text_only = [i['content'] for i in self.raw_text]
         
-        res = self.tokenizer(text_only)
+            res = self.tokenize(text_only)
 
-        for txt_token in zip(self.raw_text, res):
-            self.debug_msg('Upsert sentence token: id = {}  SENT: {}'.format(txt_token[0]['id'], txt_token[1]))
+            for txt_token in zip(self.raw_text, res):
+                self.debug_msg('Upsert sentence token: id = {}  SENT: {}'.format(txt_token[0]['id'], txt_token[1]))
+                self.save_result(txt_token[0]['id'], txt_token[1])
 
-            self.db.token_upsert_sentence(self.id_www_source, self.id_project, txt_token[0]['id'], txt_token[1])
+            if self.debug_mode and portion_counter >= self.debug_num_portions:
+                break
 
-        pass
+            portion_counter += 1
+            self.get_text_portion()
+
+    def save_result(self, id_data_text, sentence_tokens):
+        if self.db is not None:
+            self.db.token_upsert_sentence(self.id_www_source, self.id_project, id_data_text, sentence_tokens)
 
 if __name__ == "__main__":
     if const.PY_ENVIRONMENT:
