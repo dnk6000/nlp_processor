@@ -138,6 +138,10 @@ class PlPy(object):
         self._connect()
         return self.connection.commit(*args, **kwargs)
 
+    def rollback(self, *args, **kwargs):
+        self._connect()
+        return self.connection.rollback(*args, **kwargs)
+
     def prepare(self, pgstatement, params):
         ''' example params: ["text", "text", "integer", "text", "text", "boolean", "integer"]
             sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)

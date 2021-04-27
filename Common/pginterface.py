@@ -44,6 +44,12 @@ class MainDB:
             self._check_db_error_limit(e)
             return None
 
+    def commit(self, autocommit = True):
+        if autocommit:
+            self.plpy.commit()
+
+    def rollback(self):
+        self.plpy.rollback()
 
 
     def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, is_broken = False, broken_status_code = '', **kwargs):
@@ -279,7 +285,7 @@ class MainDB:
 
         return convert_select_result(res)
 
-    def data_text_set_is_process(self, id):
+    def data_text_set_is_process(self, id, autocommit = True):
         plan_id = 'plan_data_text_set_is_process'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
             gvars.GD[plan_id] = self.plpy.prepare(
@@ -289,40 +295,38 @@ class MainDB:
                 ["dmn.git_pk"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id])
-        self.plpy.commit()
+        self.commit(autocommit)
 
-    def token_upsert_sentence(self, id_www_source, id_project, id_data_text, sentences_array):
+    def token_upsert_sentence(self, id_www_source, id_project, id_data_text, sentences_array, autocommit = True):
         plan_id = 'plan_token_upsert_sentence'
-        with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_sentence($1, $2, $3, $4)''', 
-                                ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []"])
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_sentence($1, $2, $3, $4)''', 
+                            ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []"])
 
-            res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, sentences_array])
-        self.plpy.commit()
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, sentences_array])
+        self.commit(autocommit)
+        return None if res is None else res
 
-    def sentiment_upsert_sentence(self, id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type, **kwargs):
+    def sentiment_upsert_sentence(self, id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_sentence'
-        with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git450_sentim.upsert_sentence($1, $2, $3, $4, $5)''', 
-                                            ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git700_rate.upsert_sentence($1, $2, $3, $4, $5)''', 
+                                        ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
 
-            res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type])
+        res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type])
 
-        self.plpy.commit()
+        self.commit(autocommit)
         return None if res is None else res[0]
 
-    def sentiment_upsert_text(self, id_www_source, id_project, id_data_text, id_rating_type, **kwargs):
+    def sentiment_upsert_text(self, id_www_source, id_project, id_data_text, id_rating_type, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_text'
-        with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git450_sentim.upsert_text($1, $2, $3, $4)''', 
-                                            ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git700_rate.upsert_text($1, $2, $3, $4)''', 
+                                        ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
 
-            res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_rating_type])
+        res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_rating_type])
 
-        self.plpy.commit()
+        self.commit(autocommit)
         return None if res is None else res[0]
 
     #def Select(self):
@@ -332,7 +336,7 @@ class MainDB:
     #    for row in rows:  
     #       print(row)
     #       print("\n")
-    pass
+
 
 class NeedStopChecker:
     def __init__(self, cass_db, id_project, func_name, state = None):
@@ -405,60 +409,10 @@ if __name__ == "__main__":
     #CassDB.Connect()
     print("Database opened successfully")
 
-    #cass_db.clear_table_by_project('git200_crawl.data_html', 6)
-    #res = cass_db.select_groups_id(id_project = 5)
-    #res2 = list(i['account_id'] for i in res)
-    #res = CassDB.select_groups_id(0)
+    #res = cass_db.test_sentiment_upsert_sentence(id_www_source = 1, id_project = 2, id_data_text = 3, id_token_sentence = 4, id_rating_type = 5)
+    res = cass_db.token_upsert_sentence(id_www_source = 1, id_project = 2, id_data_text = 3,  sentences_array = ['ghtlk 1','предл 2'], autocommit = False)
+    #cass_db.test_commit()
+    #cass_db.test_rollback()
 
-    #res = cass_db.upsert_sn_accounts(3, 10, 'G', 112774, 'test TEST', 'test33', False, 112)
-
-    #res = cass_db.get_www_source_id('vk')
-
-    #res = cass_db.log_error('Ошибка 555', 7, '555 Длинное описание')
-    res = cass_db.data_text_select_unprocess(4,10,15)
-
-    #res = cass_db.queue_generate(3, 5)  #res[0]['Success']
-    #res = cass_db.queue_update(1, is_process = True)  #res[0]['Success']
-    #import scraper
-    #import datetime
-
-    #res = cass_db.queue_update(1, date_deferred = scraper.date_to_str(datetime.datetime.now()))  #res[0]['Success']
-    #res = cass_db.queue_update(1, attempts_counter = 11)  #res[0]['Success']
-    #
-    #res = cass_db.get_sn_activity(3, 6, 16758516, 90)
-    #res = cass_db.get_project_params(0)
-    #res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
-    #res = cass_db.set_config_param('stop_func_crawl_wall', str(0))  #res[0]['result']
-    #res = cass_db.need_stop_func('crawl_wall', str(7))  #res[0]['result']
-    
-    #res = cass_db.upsert_data_html(url = 'TST', content = 'TEST 03/12/2020', id_project = 10, id_www_sources = 3)
-    #print(res) #res['id_modified']
-    
-    a = 1
-
-    #res = cass_db.add_to_db_sn_accounts(0, "vk", "group", 6274356, '13-14 Февраля ♥ Valentine\'s days @ Jesus in Furs ♥ Презентация новой коллекции', "Тест группа 1212121212", True)
-
-    #CassDB.update_sn_num_subscribers('vk', 0, 16758516, 444)
-
-    #cass_db.upsert_data_text( 
-    #                        url = 'test', 
-    #                        content = 'test text', 
-    #                        gid_data_html = 0, 
-    #                        content_header = 'test head', 
-    #                        content_date = datetime.today(), 
-    #                        id_project = 0, 
-    #                        sn_network = 3, 
-    #                        sn_id = 111, 
-    #                        sn_post_id = 222, 
-    #                        sn_post_parent_id = 333)
-
-    #print(CassDB.select_groups_id(0))
-
-    print("Record added")
-
-
-    #CassDB.Select()
-
-    #CassDB.CloseConnection()
     f=1
 
