@@ -4,6 +4,7 @@ import Common.common as common
 import Parsing.token as token
 import Parsing.sentiment as sentiment
 
+import Crawling.exceptions as exceptions
 
 class DataProcessor(common.CommonFunc):
     def __init__(self, *args,
@@ -11,6 +12,7 @@ class DataProcessor(common.CommonFunc):
                  id_project,
                  id_www_source,
                  need_stop_cheker = None,
+                 portion_size = 50,
                  **kwargs):
         
         super().__init__(*args, **kwargs)
@@ -19,6 +21,7 @@ class DataProcessor(common.CommonFunc):
         self.need_stop_checker = need_stop_cheker
         self.id_project = id_project
         self.id_www_source = id_www_source
+        self.portion_size = portion_size
 
         self.raw_text = {}
 
@@ -28,10 +31,20 @@ class DataProcessor(common.CommonFunc):
         self.debug_num_portions = 3 #number portions to stop process
 
     def get_text_portion(self):
-        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = 50)
+        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
     def process(self):
+        try:
+            self._process()
+        except exceptions.UserInterruptByDB as e:
+            self.log_critical_error(e)
+        except Exception as e:
+            self.log_critical_error(e)
+        pass
+
+    def _process(self):
         portion_counter = 1
+        self.db.log_trace('Get portion for DataProcess', self.id_project, 'Portion: {}'.format(portion_counter))
         self.get_text_portion()
 
         while len(self.raw_text) > 0:
@@ -106,6 +119,7 @@ class DataProcessor(common.CommonFunc):
                 break
 
             portion_counter += 1
+            self.db.log_trace('Get portion for DataProcess', self.id_project, 'Portion: {}'.format(portion_counter))
             self.get_text_portion()
         pass
 
@@ -129,6 +143,11 @@ class DataProcessor(common.CommonFunc):
             return False
         self.need_stop_checker.need_stop()
 
+    def log_critical_error(self, raised_exeption):
+        err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
+
+        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+
 
 if __name__ == "__main__":
     if const.PY_ENVIRONMENT:
@@ -151,7 +170,10 @@ if __name__ == "__main__":
                  id_www_source = 4,
                  need_stop_cheker = need_stop_cheker,
                  debug_mode = True,
-                 msg_func = plpy.notice)
+                 msg_func = plpy.notice,
+                 portion_size = 100)
+
+    dp.debug_num_portions = 10
 
     dp.process()
     pass
