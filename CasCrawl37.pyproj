@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Parsing\processor.py</StartupFile>
+    <StartupFile>ModulesTemp\draft_deeppavlov.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,7 +14,8 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterPath>C:\Work\Python\CasCrawl37\CassandraPy37\Scripts\python.exe</InterpreterPath>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <CommandLineArguments>interact rusentiment_elmo_twitter_cnn -d</CommandLineArguments>
+    <CommandLineArguments>
+    </CommandLineArguments>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -26,84 +27,90 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Crawling\crawler.py" />
-    <Compile Include="Crawling\exceptions.py">
+    <Compile Include="Modules\Crawling\crawler.py" />
+    <Compile Include="Modules\Crawling\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Crawling\date.py">
+    <Compile Include="Modules\Crawling\date.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Crawling\accounts.py">
+    <Compile Include="Modules\Crawling\accounts.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Common\common.py">
+    <Compile Include="Modules\Common\common.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Crawling\tg.py">
+    <Compile Include="Modules\Crawling\tg.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlingPyOnly\tg_main.py">
+    <Compile Include="ModulesPyOnly\tg_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Parsing\processor.py">
+    <Compile Include="Modules\Parsing\processor.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Parsing\sentiment.py">
+    <Compile Include="Modules\Parsing\sentiment.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Parsing\token.py">
+    <Compile Include="Modules\Parsing\token.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\draft_deeppavlov.py">
+    <Compile Include="ModulesTemp\draft_deeppavlov.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\tg_key_generate.py">
+    <Compile Include="ModulesTemp\dependants.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Test\tg_async.py">
+    <Compile Include="ModulesTemp\requrements.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\telegram_draft_temp.py">
+    <Compile Include="ModulesTemp\tg_key_generate.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Crawling\pauser.py">
+    <Compile Include="ModulesTest\tg_async.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlingPyOnly\vk_main.py">
+    <Compile Include="ModulesTemp\telegram_draft_temp.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Common\const.py">
+    <Compile Include="Modules\Crawling\pauser.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Common\globvars.py">
+    <Compile Include="ModulesPyOnly\vk_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlingPyOnly\self_psw.py">
+    <Compile Include="Modules\Common\const.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\async_example_1.py">
+    <Compile Include="Modules\Common\globvars.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\async_example_2.py">
+    <Compile Include="ModulesPyOnly\self_psw.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\async_example_3.py">
+    <Compile Include="ModulesTemp\async_example_1.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Test\pg_test.py">
+    <Compile Include="ModulesTemp\async_example_2.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CrawlingPyOnly\plpyemul.py">
+    <Compile Include="ModulesTemp\async_example_3.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Temp\модуль1временно.py" />
-    <Compile Include="Test\z_test_tmp.py">
+    <Compile Include="ModulesTest\pg_test.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Test\z_ParserAddressByNatasha.py" />
-    <Compile Include="Common\pginterface.py" />
-    <Compile Include="Crawling\scraper.py" />
-    <Compile Include="Crawling\vk.py" />
+    <Compile Include="ModulesPyOnly\plpyemul.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ModulesTemp\модуль1временно.py" />
+    <Compile Include="ModulesTest\z_test_tmp.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ModulesTest\z_ParserAddressByNatasha.py" />
+    <Compile Include="Modules\Common\pginterface.py" />
+    <Compile Include="Modules\Crawling\scraper.py" />
+    <Compile Include="Modules\Crawling\vk.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="CassandraPy37\">
@@ -118,13 +125,16 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Documentation\" />
-    <Folder Include="CrawlingPyOnly\" />
-    <Folder Include="Crawling\" />
-    <Folder Include="Common\" />
-    <Folder Include="Parsing\" />
-    <Folder Include="Temp\" />
-    <Folder Include="Test\" />
+    <Folder Include="Modules\Crawling\" />
+    <Folder Include="Modules\Common\" />
+    <Folder Include="Config\" />
+    <Folder Include="Modules\" />
+    <Folder Include="ModulesPyOnly\" />
+    <Folder Include="Modules\Parsing\" />
+    <Folder Include="ModulesTemp\" />
+    <Folder Include="ModulesTest\" />
     <Folder Include="Logs\" />
+    <Folder Include="ServiceInfo\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Documentation\Cassandra. Algorithms of Crawling and Scraping.docx" />
@@ -134,8 +144,11 @@
     <Content Include="Documentation\Cassandra. Parsing. Концепт ТЗ по тональности.doc" />
     <Content Include="Documentation\Интерфейс смартфона.pptx" />
     <Content Include="Logs\tg_crawl.log" />
-    <Content Include="Temp\CheckScraping_Log.txt" />
-    <Content Include="Temp\Графики для интерфейса.xlsx" />
+    <Content Include="Config\ner_rus_bert.json" />
+    <Content Include="ModulesTemp\CheckScraping_Log.txt" />
+    <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
+    <Content Include="ServiceInfo\Pg Inheritance.docx" />
+    <Content Include="ServiceInfo\Python Pip.docx" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
