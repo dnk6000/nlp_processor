@@ -23,7 +23,7 @@ import Modules.Common.const as const
 import Modules.Crawling.date as date
 import Modules.Common.common as common
 
-from Crawling.scraper import ScrapeResult
+from Modules.Crawling.scraper import ScrapeResult
 
 
 

@@ -10,6 +10,7 @@ class Tokenizer(common.CommonFunc):
                  id_project = None,
                  id_www_source = None,
                  need_stop_cheker = None,
+                 dict_download = False,
                  **kwargs):
         
         super().__init__(*args, **kwargs)
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         GD = None
     else: 
         GD = {}
-    from Common.globvars import GlobVars
+    from Modules.Common.globvars import GlobVars
     gvars = GlobVars(GD)
 
     import Modules.Common.pginterface as pginterface

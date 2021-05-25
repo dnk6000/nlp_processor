@@ -23,6 +23,12 @@ class MainDB:
         if not gvars.initialized:
             gvars.set('VK_SOURCE_ID', self.get_www_source_id('vk'))
             gvars.set('TG_SOURCE_ID', self.get_www_source_id('tg'))
+
+            ner_ent_types = {}
+            for i in self.ent_type_select_all():
+                ner_ent_types[i['name']] = i['id']
+            gvars.set('NER_ENT_TYPES', ner_ent_types)
+
             gvars.initialize()
 
     def _check_db_error_limit(self, _exception):
@@ -448,7 +454,7 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
 
 if __name__ == "__main__":
     import ModulesPyOnly.self_psw as self_psw
-    from Common.globvars import GlobVars
+    from Modules.Common.globvars import GlobVars
     if const.PY_ENVIRONMENT: 
         GD = None
     else: 

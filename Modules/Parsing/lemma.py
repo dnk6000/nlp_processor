@@ -3,7 +3,7 @@ import Modules.Common.common as common
 
 from deeppavlov import configs, build_model
 
-class SentimentAnalizer(common.CommonFunc):
+class Lemmatizer(common.CommonFunc):
     def __init__(self, *args,
                  db = None,
                  id_project = None,
@@ -19,26 +19,8 @@ class SentimentAnalizer(common.CommonFunc):
         self.id_project = id_project
         self.id_www_source = id_www_source
 
-        self.text_list = {}
-
-        self.ner_model = build_model(configs.classifiers.rusentiment_elmo_twitter_cnn, download=dict_download)
-
-    def get_text_portion(self):
-        pass
-
-    def analize(self, list_text_only):
-        return self.ner_model(list_text_only)
+        self.ner_model = build_model(configs.morpho_tagger.UD2_0.morpho_ru_syntagrus_pymorphy_lemmatize, download=dict_download)
 
 
-    def process(self):
-        pass
-
-    def save_result(self):
-        pass
-
-    def check_user_interrupt(self):
-        if self.need_stop_checker is None:
-            return False
-        self.need_stop_checker.need_stop()
-
-
+    def lemmatize(self, list_sentences):
+        return self.ner_model(list_sentences)

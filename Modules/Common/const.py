@@ -65,6 +65,7 @@ SN_USER_MARK = 'U'
 
 SENTIM_RATE = {'negative':1,'neutral':2,'positive':3,'skip':4,'speech':5, 'error':99}
 
+
 #COMMON SECTION
 
 EMPTY_DATE = datetime(1,1,1)

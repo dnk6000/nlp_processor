@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesTemp\draft_deeppavlov.py</StartupFile>
+    <StartupFile>ModulesPyOnly\sentiment_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -27,6 +27,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ModulesPyOnly\ner_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ModulesPyOnly\sentiment_main.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Modules\Crawling\crawler.py" />
     <Compile Include="Modules\Crawling\exceptions.py">
       <SubType>Code</SubType>
@@ -44,6 +50,15 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\tg_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Modules\Parsing\lemma.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Modules\Parsing\dict_download.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Modules\Parsing\ner.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Modules\Parsing\processor.py">
@@ -147,8 +162,9 @@
     <Content Include="Config\ner_rus_bert.json" />
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
+    <Content Include="ServiceInfo\DP dict import.docx" />
     <Content Include="ServiceInfo\Pg Inheritance.docx" />
-    <Content Include="ServiceInfo\Python Pip.docx" />
+    <Content Include="ServiceInfo\Py Pip.docx" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

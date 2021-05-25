@@ -1,8 +1,8 @@
 import Modules.Common.const as const
 import Modules.Common.common as common
 
-import Modules.Parsing.token as token
-import Modules.Parsing.sentiment as sentiment
+import Modules.Parsing.ner as ner
+import Modules.Parsing.lemma as lemma
 
 import Modules.Crawling.exceptions as exceptions
 
@@ -23,15 +23,6 @@ class DataProcessor(common.CommonFunc):
         self.id_www_source = id_www_source
         self.portion_size = portion_size
 
-        self.raw_text = {}
-
-        self.sent_tokenizer = token.SentenceTokenizer()
-        self.sentim_analizer = sentiment.SentimentAnalizer()
-
-        self.debug_num_portions = 3 #number portions to stop process
-
-    def get_text_portion(self):
-        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
     def process(self):
         try:
@@ -43,8 +34,35 @@ class DataProcessor(common.CommonFunc):
         pass
 
     def _process(self):
+        pass
+
+    def check_user_interrupt(self):
+        if self.need_stop_checker is None:
+            return False
+        self.need_stop_checker.need_stop()
+
+    def log_critical_error(self, raised_exeption):
+        err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
+
+        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+
+class SentimentProcessor(DataProcessor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.raw_text = {}
+
+        self.sent_tokenizer = token.SentenceTokenizer()
+        self.sentim_analizer = sentiment.SentimentAnalizer()
+
+        self.debug_num_portions = 3 #number portions to stop process
+
+    def get_text_portion(self):
+        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
+
+    def _process(self):
         portion_counter = 1
-        self.db.log_trace('Get portion for DataProcess', self.id_project, 'Portion: {}'.format(portion_counter))
+        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
         self.get_text_portion()
 
         while len(self.raw_text) > 0:
@@ -138,43 +156,28 @@ class DataProcessor(common.CommonFunc):
     def save_sentim_sentence(self, id_data_text, id_token_sentence, id_rating):
         self.db.sentiment_upsert_sentence(self.id_www_source, self.id_project, id_data_text, id_token_sentence, id_rating, autocommit = False) 
 
-    def check_user_interrupt(self):
-        if self.need_stop_checker is None:
-            return False
-        self.need_stop_checker.need_stop()
+class NerProcessor(DataProcessor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    def log_critical_error(self, raised_exeption):
-        err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
+        self.raw_sentences = []
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+        self.ner_recognizer = token.NerRecognizer()
+        self.lemmatizer = sentiment.Lemmatizer()
 
+        self.debug_num_portions = 3 #number portions to stop process
 
-if __name__ == "__main__":
-    if const.PY_ENVIRONMENT:
-        import ModulesPyOnly.plpyemul as plpyemul
-        plpy = plpyemul.get_plpy()    
-    if const.PY_ENVIRONMENT: 
-        GD = None
-    else: 
-        GD = {}
-    from Common.globvars import GlobVars
-    gvars = GlobVars(GD)
+    def get_raw_sentences(self):
+        self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
-    import Modules.Common.pginterface as pginterface
+    def _process(self):
+        portion_counter = 1
+        self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
+        self.get_raw_sentences()
 
-    cass_db = pginterface.MainDB(plpy, GD)
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, 10, 'tokenize', state = 'off')
+        self.check_user_interrupt()
 
-    dp = DataProcessor(db = cass_db,
-                 id_project = 10,
-                 id_www_source = 4,
-                 need_stop_cheker = need_stop_cheker,
-                 debug_mode = True,
-                 msg_func = plpy.notice,
-                 portion_size = 100)
+        ner_result = self.ner_recognizer.recognize(self.raw_sentences)
+        lemma_result = self.lemmatizer.lemmatize(self.raw_sentences)
 
-    dp.debug_num_portions = 10
-
-    dp.process()
-    pass
-
+        pass

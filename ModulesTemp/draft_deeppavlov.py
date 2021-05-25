@@ -16,11 +16,36 @@
 #deep.main()    
 #########################################################
 
+#### Lemmatize
+
+from deeppavlov import build_model, configs
+#model = build_model(configs.morpho_tagger.BERT.morpho_ru_syntagrus_bert, download=True)
+ner_model = build_model(configs.ner.ner_rus_bert, download=False)
+model = build_model(configs.morpho_tagger.UD2_0.morpho_ru_syntagrus_pymorphy_lemmatize, download=True)
+
+#sentences = ["Я шёл домой по незнакомой улице.", "Девушка пела в церковном хоре о всех уставших в чужом краю."]
+sentences = ['Иван Петров живет в Российской Федерации в Пензе', 'Давайте встремся у Кинотеатра Современник', 'Иван Петров живет в Российской Пензе','Путешествие в Южную Африку','Путешествие в Африку']
+
+res = ner_model(sentences)
+
+for parse in model(sentences):
+    print(parse)
+
+tokens = res[0]
+ners = res[1]
+
+print('  ') 
+print('NERS:')
+print([f'{i}\n' for i in res[1]])
+
+import sys
+sys.exit()
+
 #### Named Entity Recognition
 
 from deeppavlov import configs, build_model
 from deeppavlov.models.morpho_tagger.lemmatizer import UDPymorphyLemmatizer
-
+#import tensorflow_core.python.pywrap_tensorflow_internal
 
 ner_model = build_model(configs.ner.ner_rus_bert, download=False)
 
