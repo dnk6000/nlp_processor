@@ -42,9 +42,16 @@ class DataProcessor(common.CommonFunc):
         self.need_stop_checker.need_stop()
 
     def log_critical_error(self, raised_exeption):
-        err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
+        pass
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+class DataSetStorage():
+    def __init__(self, *args, **kwargs):
+        set_dict = {}
+        set_num = 0
+        pass
+
+    def add(*args):
+        pass
 
 class SentimentProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -156,14 +163,19 @@ class SentimentProcessor(DataProcessor):
     def save_sentim_sentence(self, id_data_text, id_token_sentence, id_rating):
         self.db.sentiment_upsert_sentence(self.id_www_source, self.id_project, id_data_text, id_token_sentence, id_rating, autocommit = False) 
 
+    def log_critical_error(self, raised_exeption):
+        err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
+
+        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+
 class NerProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.raw_sentences = []
 
-        self.ner_recognizer = token.NerRecognizer()
-        self.lemmatizer = sentiment.Lemmatizer()
+        self.ner_recognizer = ner.NerRecognizer()
+        self.lemmatizer = lemma.Lemmatizer()
 
         self.debug_num_portions = 3 #number portions to stop process
 
@@ -177,7 +189,15 @@ class NerProcessor(DataProcessor):
 
         self.check_user_interrupt()
 
-        ner_result = self.ner_recognizer.recognize(self.raw_sentences)
-        lemma_result = self.lemmatizer.lemmatize(self.raw_sentences)
+        _sentences = [i['txt'] for i in self.raw_sentences]
+
+        ner_result = self.ner_recognizer.recognize(_sentences)
+        lemma_result = self.lemmatizer.lemmatize(_sentences)
 
         pass
+
+    def log_critical_error(self, raised_exeption):
+        err_description = exceptions.get_err_description(raised_exeption, raw_sentences = str(self.raw_sentences))
+
+        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+

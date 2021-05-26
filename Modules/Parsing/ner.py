@@ -19,7 +19,7 @@ class NerRecognizer(common.CommonFunc):
         self.id_project = id_project
         self.id_www_source = id_www_source
 
-        self.ner_model = build_model(configs.classifiers.rusentiment_elmo_twitter_cnn, download=dict_download)
+        self.ner_model = build_model(configs.ner.ner_rus_bert, download=dict_download)
 
 
     def recognize(self, list_sentences):

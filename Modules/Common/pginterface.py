@@ -368,13 +368,13 @@ class MainDB:
         self.commit(autocommit)
         return None if res is None else res[0]
 
-    def token_upsert_word(self, id_www_source, id_project, id_data_text, id_sentence, words_array, autocommit = True):
+    def token_upsert_word(self, id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = True):
         plan_id = 'plan_token_upsert_word'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5)''', 
-                            ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []"])
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5, $6)''', 
+                            ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []", "dmn.git_text []"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, id_sentence, words_array])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array])
         self.commit(autocommit)
         return None if res is None else res
 

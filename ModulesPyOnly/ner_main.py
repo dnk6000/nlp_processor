@@ -23,11 +23,12 @@ gvars = GlobVars(GD)
 
 
 DEBUG_MODE = True
-TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
-VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
 
 cass_db = pginterface.MainDB(plpy, GD)
 need_stop_cheker = pginterface.NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_recognize', state = 'off')
+
+TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
+VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
 
 dp = processor.NerProcessor(db = cass_db,
                 id_project = ID_PROJECT_main,

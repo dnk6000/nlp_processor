@@ -19,8 +19,12 @@ class Lemmatizer(common.CommonFunc):
         self.id_project = id_project
         self.id_www_source = id_www_source
 
-        self.ner_model = build_model(configs.morpho_tagger.UD2_0.morpho_ru_syntagrus_pymorphy_lemmatize, download=dict_download)
+        self.lemm_model = build_model(configs.morpho_tagger.UD2_0.morpho_ru_syntagrus_pymorphy_lemmatize, download=dict_download)
 
 
     def lemmatize(self, list_sentences):
-        return self.ner_model(list_sentences)
+        raw_res = self.lemm_model(list_sentences)
+
+        res = []
+
+        return res
