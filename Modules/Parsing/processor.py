@@ -44,15 +44,6 @@ class DataProcessor(common.CommonFunc):
     def log_critical_error(self, raised_exeption):
         pass
 
-class DataSetStorage():
-    def __init__(self, *args, **kwargs):
-        set_dict = {}
-        set_num = 0
-        pass
-
-    def add(*args):
-        pass
-
 class SentimentProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -144,7 +135,7 @@ class SentimentProcessor(DataProcessor):
                 break
 
             portion_counter += 1
-            self.db.log_trace('Get portion for DataProcess', self.id_project, 'Portion: {}'.format(portion_counter))
+            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
             self.get_text_portion()
         pass
 
@@ -183,16 +174,40 @@ class NerProcessor(DataProcessor):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
     def _process(self):
-        portion_counter = 1
-        self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
-        self.get_raw_sentences()
+        portion_counter = 0
 
-        self.check_user_interrupt()
+        while True:
+            self.check_user_interrupt()
 
-        _sentences = [i['txt'] for i in self.raw_sentences]
+            portion_counter += 1
+            self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
+            self.get_raw_sentences()
 
-        ner_result = self.ner_recognizer.recognize(_sentences)
-        lemma_result = self.lemmatizer.lemmatize(_sentences)
+            _sentences = [i['txt'] for i in self.raw_sentences]
+
+            ner_result = self.ner_recognizer.recognize(_sentences)
+            lemma_result = self.lemmatizer.lemmatize(_sentences)
+
+            for result in zip(self.raw_sentences, ner_result, lemma_result):
+                #запись что предложение обработано
+                self.db.sentence_set_is_process(id, autocommit = False)
+
+
+                #запись токенов слов
+                self.db.token_upsert_word(id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
+
+
+                #добавление в словарь именованных сущностей - при необходимости
+                self.db.ent_type_insert(name, description, autocommit = False)
+
+                #запись именованных сущностей
+                self.db.entity_upsert(id_www_source, id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
+
+
+            self.db.commit()
+
+            if self.debug_mode and portion_counter >= self.debug_num_portions:
+                break
 
         pass
 

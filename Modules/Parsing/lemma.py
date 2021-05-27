@@ -27,4 +27,15 @@ class Lemmatizer(common.CommonFunc):
 
         res = []
 
+        #parsing raw_res
+        raw_res_words = [_res.split('\n') for _res in raw_res]
+
+        for lst_words in raw_res_words:
+            res_word_list = []
+            for wrd in lst_words:
+                wrd_splitting = wrd.split('\t',3)
+                if len(wrd_splitting) >= 3:
+                    res_word_list.append({'word': wrd_splitting[1], 'lemma': wrd_splitting[2]})
+            res.append(res_word_list)
+
         return res
