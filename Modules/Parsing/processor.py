@@ -1,5 +1,6 @@
 import Modules.Common.const as const
 import Modules.Common.common as common
+import Modules.Common.globvars as globvars
 
 import Modules.Parsing.ner as ner
 import Modules.Parsing.lemma as lemma
@@ -170,6 +171,9 @@ class NerProcessor(DataProcessor):
 
         self.debug_num_portions = 3 #number portions to stop process
 
+        self.NER_ENT_TYPES = globvars.GlobVars().get('NER_ENT_TYPES')
+        pass
+
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
@@ -188,20 +192,30 @@ class NerProcessor(DataProcessor):
             ner_result = self.ner_recognizer.recognize(_sentences)
             lemma_result = self.lemmatizer.lemmatize(_sentences)
 
-            for result in zip(self.raw_sentences, ner_result, lemma_result):
+            for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result):
                 #запись что предложение обработано
-                self.db.sentence_set_is_process(id, autocommit = False)
-
+                id_sentence = result[0]['id']
+                self.db.sentence_set_is_process(id = id_sentence, autocommit = False)
 
                 #запись токенов слов
-                self.db.token_upsert_word(id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
+                id_data_text = result[0]['id_data_text']
+                words_array = result[1]                          #get words tokens from ner processor
+                lemms_array = [_['lemma'] for _ in result[3]]
+                if len(words_array) != len(lemms_array):
+                    self.log_error_ner_vs_lemma_mismatch(self, id_data_text, id_sentence, words_array, lemms_array)
+                    words_array = [_['word'] for _ in result[3]] #get words tokens from lemmatizer
 
-
-                #добавление в словарь именованных сущностей - при необходимости
-                self.db.ent_type_insert(name, description, autocommit = False)
+                word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
 
                 #запись именованных сущностей
-                self.db.entity_upsert(id_www_source, id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
+                ners = result[2]
+                ners_id = self.convert_ners_to_id(ners)
+
+                for wrd in zip(word_id_list, ners_id, lemms_array):
+                    id_word = wrd[0]
+                    id_ent_type = wrd[1]
+                    txt_lemm = wrd[2]
+                    self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
 
 
             self.db.commit()
@@ -211,8 +225,24 @@ class NerProcessor(DataProcessor):
 
         pass
 
+    def convert_ners_to_id(self, ner_list):
+        _ner_id_list = []
+        for ner_code in ner_list:
+            if not ner_code in self.NER_ENT_TYPES:
+                new_ent_type_id = self.db.ent_type_insert(ner_code, 'its new entity', autocommit = False)
+                self.NER_ENT_TYPES[ner_code] = new_ent_type_id
+            _ner_id_list.append(self.NER_ENT_TYPES[ner_code]) 
+        
+        return _ner_id_list
+
     def log_critical_error(self, raised_exeption):
         err_description = exceptions.get_err_description(raised_exeption, raw_sentences = str(self.raw_sentences))
 
         self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+
+    def log_error_ner_vs_lemma_mismatch(self, id_data_text, id_sentence, words_array, lemms_array):
+        err_description = "Ner's mismatch Lemma's. id_project = {} id_data_text = {} id_sentence = {}\n words_ner = {}\n lemmas = {}\n".\
+              format(self.id_project, id_data_text, id_sentence, words_array, lemms_array)
+
+        self.db.log_error("Ner's mismatch Lemma's Error", self.id_project, err_description)
 

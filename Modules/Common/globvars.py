@@ -11,11 +11,16 @@ import Modules.Common.const as const
 GDpy = dict()
 
 class GlobVars:
-    def __init__(self, GD):
-        if GD is None:
+    def __init__(self, _GD = None):
+        if const.PY_ENVIRONMENT: 
             self.GD = GDpy
-        else:
+        else: 
             self.GD = GD
+
+        #if GD is None:
+        #    self.GD = GDpy
+        #else:
+        #    self.GD = GD
         self.initialized = 'gvars_init' in self.GD
 
     def initialize(self):
