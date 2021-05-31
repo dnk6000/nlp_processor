@@ -385,6 +385,7 @@ class QueueManager(common.CommonFunc):
 
 def RemoveEmojiSymbols(text):
 
+   #TODO compile once 
    emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs

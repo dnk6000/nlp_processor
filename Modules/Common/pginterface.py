@@ -26,7 +26,7 @@ class MainDB:
 
             ner_ent_types = {}
             for i in self.ent_type_select_all():
-                ner_ent_types[i['name']] = i['id']
+                ner_ent_types[i['name']] = { 'id': i['id'], 'not_entity': i['not_entity'] }
             gvars.set('NER_ENT_TYPES', ner_ent_types)
 
             gvars.initialize()

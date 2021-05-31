@@ -16,6 +16,47 @@
 #deep.main()    
 #########################################################
 
+#TESTING
+#from deeppavlov import build_model, configs
+#ner_model = build_model(configs.ner.ner_rus_bert, download=False)
+
+#sentences = [
+#                [''],
+#                #['Они скажут что ты дилетантка'],
+#                #['Да.'],
+#                #['Они сейчас то смотрят на тебя, типо "ну ты ниче не понимаешь"))))'],
+#                #['Буду травить, как мы тусили'],
+#                #['И я о том же))))'],
+#                #['Бабуличка скажут юличка идите семечки на лавочке жамкайте, что вы нам тут анекдоты рассказываете)))'],
+#                #['Стопудов'],
+#                #['Надо на какой нибудь не интересный фильм'],
+#                ['Я расскажу внукам, когда у них будет туса, лет в 25,я буду клевой бабкой'],
+#                [''],
+#                [')'],
+#                ['']
+#            ]
+
+#sentences = [ '', '', 'fevv','  \n ', ')', '']
+
+#for i in range(len(sentences)-1,-1,-1):
+#    if sentences[i] =='' or sentences[i].isspace():
+#        sentences.pop(i)
+
+
+#for sent in sentences:
+#    try:
+#        res = ner_model(sentences)
+#        print('Ok: '+str(sent))
+#        print('     '+str(res))
+#    except:
+#        print('Error: '+str(sent))
+
+#import sys
+#sys.exit(0)
+
+
+
+
 #### Lemmatize
 
 from deeppavlov import build_model, configs
@@ -39,7 +80,7 @@ print('NERS:')
 print([f'{i}\n' for i in res[1]])
 
 import sys
-sys.exit()
+sys.exit(0)
 
 #### Named Entity Recognition
 

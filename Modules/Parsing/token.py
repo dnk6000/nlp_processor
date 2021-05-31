@@ -53,8 +53,16 @@ class SentenceTokenizer(Tokenizer):
             self.raw_text = {}
 
     def tokenize(self, list_text_only):
-        return self.tokenizer(list_text_only)
+        res = self.tokenizer(list_text_only)
+        self.post_tokenize_process(res)
+        return res
 
+    def post_tokenize_process(self, text_sent_list):
+        for i_txt in range(len(text_sent_list)):
+            for i_sent in range(len(text_sent_list[i_txt])):
+                text_sent_list[i_txt][i_sent] = text_sent_list[i_txt][i_sent].replace('\n',' ')
+                text_sent_list[i_txt][i_sent] = text_sent_list[i_txt][i_sent].strip()
+    
     def process(self):
         portion_counter = 1
         self.get_text_portion()
