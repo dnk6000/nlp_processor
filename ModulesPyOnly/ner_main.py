@@ -5,8 +5,8 @@ import Modules.Parsing.processor as processor
 
 ####################################################
 ####### begin: for PY environment only #############
-step_name = 'process'
 step_name = 'debug'
+step_name = 'process'
 ID_PROJECT_main = 10
 
 if const.PY_ENVIRONMENT:
