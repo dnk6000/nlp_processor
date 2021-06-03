@@ -21,13 +21,13 @@ class SentimentAnalizer(common.CommonFunc):
 
         self.text_list = {}
 
-        self.ner_model = build_model(configs.classifiers.rusentiment_elmo_twitter_cnn, download=dict_download)
+        self.sent_model = build_model(configs.classifiers.rusentiment_elmo_twitter_cnn, download=dict_download)
 
     def get_text_portion(self):
         pass
 
     def analize(self, list_text_only):
-        return self.ner_model(list_text_only)
+        return self.sent_model(list_text_only)
 
 
     def process(self):

@@ -70,7 +70,7 @@ class PlPy(object):
                 if not self._pauser.sleep():
                     raise expt
                 else:
-                    print('Ошибка записи в БД !!! Попытка '+str(attempt))
+                    print('Ошибка чтения/записи в БД !!! Попытка '+str(attempt))
                 #if attempt >= self._number_of_tries:
                 #    raise expt
                 #else:

@@ -390,13 +390,13 @@ class MainDB:
         res = self.plpy.execute(gvars.GD[plan_id], [id])
         self.commit(autocommit)
 
-    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100):
+    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0):
         plan_id = 'plan_sentence_select_unprocess'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-            pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3);'
-            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
+            pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3, $4);'
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records, debug_sentence_id])
 
         return convert_select_result(res)
 

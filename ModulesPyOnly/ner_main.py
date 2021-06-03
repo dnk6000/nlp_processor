@@ -6,6 +6,7 @@ import Modules.Parsing.processor as processor
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'debug'
+step_name = 'debug_sent_list'
 step_name = 'process'
 ID_PROJECT_main = 10
 
@@ -55,6 +56,23 @@ if step_name == 'debug':
     #sys.exit(0)
     pass
 
+if step_name == 'debug_sent_list':
+    debug_id_sent_list = [27678,27679,27680,27681,27682,27683,27684,27685,27686,27687,27688,27689,27690,27691,27692,27693,27694,27695,27696,27697,27698,27699,27700,27701,27702,27703,27704,27705,27706,27707,27708]
+
+    dp = processor.NerProcessor(db = cass_db,
+                    id_project = ID_PROJECT_main,
+                    id_www_source = TG_SOURCE_ID,
+                    need_stop_cheker = need_stop_cheker,
+                    debug_mode = DEBUG_MODE,
+                    msg_func = plpy.notice,
+                    portion_size = 100)
+
+    dp.debug_num_portions = 1
+
+    dp.debug_sentence_id_list(debug_id_sent_list)
+
+
+
 if step_name == 'process':
     dp = processor.NerProcessor(db = cass_db,
                     id_project = ID_PROJECT_main,
@@ -62,9 +80,9 @@ if step_name == 'process':
                     need_stop_cheker = need_stop_cheker,
                     debug_mode = DEBUG_MODE,
                     msg_func = plpy.notice,
-                    portion_size = 10)
+                    portion_size = 100)
 
-    dp.debug_num_portions = 2
+    dp.debug_num_portions = 100
 
     dp.process()
     pass

@@ -176,10 +176,16 @@ class NerProcessor(DataProcessor):
         self.NER_ENT_TYPES = globvars.GlobVars().get('NER_ENT_TYPES')
 
         self.debug_raw_sentences = []
-        pass
+        self.debug_sentence_id = 0
+
+        self.MAX_WORDS_IN_SENTENCE = 150
+        self.MAX_WORD_LEN = 64
 
     def get_raw_sentences(self):
-        self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
+        self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
+                                                               self.id_project, 
+                                                               number_records = self.portion_size,
+                                                               debug_sentence_id = self.debug_sentence_id if self.debug_mode else 0)
         if self.debug_mode and len(self.debug_raw_sentences) > 0:
             for i in range(0,len(self.debug_raw_sentences)-1):
                 if i > len(self.raw_sentences):
@@ -198,45 +204,58 @@ class NerProcessor(DataProcessor):
             self.debug_msg('Get portion for NerProcessor Portion: {}'.format(portion_counter))
             self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
             self.get_raw_sentences()
+            if len(self.raw_sentences) == 0:
+                break
+
             self.remove_empty_sentencess()
 
-            _sentences = [i['txt'] for i in self.raw_sentences]
+            if len(self.raw_sentences) > 0:
 
-            ner_result = self.ner_recognizer.recognize(_sentences)
-            lemma_result = self.lemmatizer.lemmatize(_sentences)
+                _sentences = [i['txt'] for i in self.raw_sentences]
+                if self.debug_sentence_id != 0:
+                    self.debug_msg('    Sentences: '+str(_sentences))
 
-            for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result):
-                #record that the sentence has been processed
-                id_sentence = result[0]['id']
-                self.save_set_is_process(id_sentence)
+                ner_result = self.ner_recognizer.recognize(_sentences)
+                lemma_result = self.lemmatizer.lemmatize(_sentences)
 
-                #record word tokens
-                id_data_text = result[0]['id_data_text']
-                words_array = result[1]                          #get words tokens from ner processor
-                lemms_array = [_['lemma'] for _ in result[3]]
-                if len(words_array) != len(lemms_array):
-                    _lemma_result = self.lemmatizer.lemmatize([' '.join([_ for _ in words_array])])
-                    lemms_array = [_['lemma'] for _ in _lemma_result[0]]
+                for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result):
+                    #record that the sentence has been processed
+                    id_sentence = result[0]['id']
+                    self.save_set_is_process(id_sentence)
+
+                    #record word tokens
+                    id_data_text = result[0]['id_data_text']
+                    words_array = result[1]        #get words tokens from ner processor
+                    lemms_array = [_['lemma'] for _ in result[3]]
+
+                    self.check_words_len(words_array, id_data_text, id_sentence, fix_error = True)
+                    self.check_words_len(lemms_array, id_data_text, id_sentence, fix_error = False)
 
                     if len(words_array) != len(lemms_array):
-                        self.log_error_ner_vs_lemma_mismatch(id_data_text, id_sentence, words_array, lemms_array)
-                        continue
-                        #words_array = [_['word'] for _ in result[3]] #get words tokens from lemmatizer
+                        _lemma_result = self.lemmatizer.lemmatize([' '.join([_ for _ in words_array])])
+                        lemms_array = [_['lemma'] for _ in _lemma_result[0]]
 
-                word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
+                        if len(words_array) != len(lemms_array):
+                            self.log_error_ner_vs_lemma_mismatch(id_data_text, id_sentence, words_array, lemms_array)
+                            continue
+                            #words_array = [_['word'] for _ in result[3]] #get words tokens from lemmatizer
 
-                #record named entities
-                ners = result[2]
-                ners_id = self.convert_ners_to_id(ners)
+                    word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
 
-                for wrd in zip(word_id_list, ners_id, lemms_array):
-                    id_ent_type = wrd[1]
-                    if id_ent_type is None:
-                        continue
-                    id_word = wrd[0]['upsert_word']
-                    txt_lemm = wrd[2]
-                    self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
+                    #record named entities
+                    ners = result[2]
+                    ners_id = self.convert_ners_to_id(ners)
 
+                    for wrd in zip(word_id_list, ners_id, lemms_array):
+                        id_ent_type = wrd[1]
+                        if id_ent_type is None:
+                            continue
+                        id_word = wrd[0]['upsert_word']
+                        txt_lemm = wrd[2]
+                        self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
+                    
+                    pass #end for result in zip(...)
+                pass #end if len(self.raw_sentences) > 0
 
             self.db.commit()
 
@@ -251,6 +270,19 @@ class NerProcessor(DataProcessor):
             if self.raw_sentences[i]['txt'] == '' or self.raw_sentences[i]['txt'].isspace():
                 self.save_set_is_process(self.raw_sentences[i]['id'])
                 self.raw_sentences.pop(i)
+            elif len(self.raw_sentences[i]['txt'].split(' ')) > self.MAX_WORDS_IN_SENTENCE:
+                self.save_set_is_process(self.raw_sentences[i]['id'])
+                self.log_error_too_long_sentence(self.raw_sentences[i]['id_data_text'], self.raw_sentences[i]['id'], self.raw_sentences[i]['txt'])
+                self.raw_sentences.pop(i)
+
+
+    def check_words_len(self, words_list, id_data_text, id_sentence, fix_error = True):
+        for i in range(len(words_list)-1,-1,-1):
+            if len(words_list[i]) > self.MAX_WORD_LEN:
+                if fix_error:
+                    self.log_error_too_long_word(id_data_text, id_sentence, words_list[i])
+                words_list[i] = words_list[i][:self.MAX_WORD_LEN]
+        #return words_list
 
     def save_set_is_process(self,id_sentence):
         self.db.sentence_set_is_process(id = id_sentence, autocommit = False)
@@ -283,3 +315,21 @@ class NerProcessor(DataProcessor):
 
         self.db.log_error("Ner's mismatch Lemma's Error", self.id_project, err_description)
 
+    def log_error_too_long_sentence(self, id_data_text, id_sentence, txt):
+        err_description = "Sentence is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
+              format(self.id_project, id_data_text, id_sentence, txt)
+
+        self.db.log_error("Sentence is too long", self.id_project, err_description)
+
+    def log_error_too_long_word(self, id_data_text, id_sentence, txt):
+        err_description = "Word is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
+              format(self.id_project, id_data_text, id_sentence, txt)
+
+        self.db.log_error("Word is too long", self.id_project, err_description)
+
+
+    def debug_sentence_id_list(self,sentence_id_list):
+        for _sent_id in sentence_id_list:
+            self.debug_msg('DEBUG Sentence id = '+str(_sent_id))
+            self.debug_sentence_id = _sent_id
+            self._process()
