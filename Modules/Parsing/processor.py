@@ -179,7 +179,9 @@ class NerProcessor(DataProcessor):
         self.debug_sentence_id = 0
 
         self.MAX_WORDS_IN_SENTENCE = 150
-        self.MAX_WORD_LEN = 64
+        self.MAX_WORD_LEN = 1000
+
+        self.url_recognizer = ner.UrlRecognizer(*args, **kwargs)
 
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
@@ -207,18 +209,19 @@ class NerProcessor(DataProcessor):
             if len(self.raw_sentences) == 0:
                 break
 
-            self.remove_empty_sentencess()
+            self.remove_empty_sentences()
 
             if len(self.raw_sentences) > 0:
 
                 _sentences = [i['txt'] for i in self.raw_sentences]
+                self.url_recognizer.recognize(_sentences)
                 if self.debug_sentence_id != 0:
                     self.debug_msg('    Sentences: '+str(_sentences))
 
                 ner_result = self.ner_recognizer.recognize(_sentences)
                 lemma_result = self.lemmatizer.lemmatize(_sentences)
 
-                for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result):
+                for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result, self.url_recognizer.result):
                     #record that the sentence has been processed
                     id_sentence = result[0]['id']
                     self.save_set_is_process(id_sentence)
@@ -227,6 +230,8 @@ class NerProcessor(DataProcessor):
                     id_data_text = result[0]['id_data_text']
                     words_array = result[1]        #get words tokens from ner processor
                     lemms_array = [_['lemma'] for _ in result[3]]
+                    ners = result[2]
+                    url_ners_array = result[4]
 
                     self.check_words_len(words_array, id_data_text, id_sentence, fix_error = True)
                     self.check_words_len(lemms_array, id_data_text, id_sentence, fix_error = False)
@@ -240,10 +245,11 @@ class NerProcessor(DataProcessor):
                             continue
                             #words_array = [_['word'] for _ in result[3]] #get words tokens from lemmatizer
 
+                    self.url_recognizer.imitate_to_original(words_array, url_ners_array, ners)
+
                     word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
 
                     #record named entities
-                    ners = result[2]
                     ners_id = self.convert_ners_to_id(ners)
 
                     for wrd in zip(word_id_list, ners_id, lemms_array):
@@ -265,7 +271,7 @@ class NerProcessor(DataProcessor):
         pass
 
 
-    def remove_empty_sentencess(self):
+    def remove_empty_sentences(self):
         for i in range(len(self.raw_sentences)-1,-1,-1):
             if self.raw_sentences[i]['txt'] == '' or self.raw_sentences[i]['txt'].isspace():
                 self.save_set_is_process(self.raw_sentences[i]['id'])
