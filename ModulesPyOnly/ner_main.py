@@ -5,9 +5,9 @@ import Modules.Parsing.processor as processor
 
 ####################################################
 ####### begin: for PY environment only #############
-step_name = 'process'
 step_name = 'debug'
 step_name = 'debug_sent_list'
+step_name = 'process'
 ID_PROJECT_main = 10
 
 if const.PY_ENVIRONMENT:
@@ -97,6 +97,8 @@ if step_name == 'debug_sent_list':
 
 
 if step_name == 'process':
+    clear_tables_by_project(ID_PROJECT_main)
+
     dp = processor.NerProcessor(db = cass_db,
                     id_project = ID_PROJECT_main,
                     id_www_source = TG_SOURCE_ID,
@@ -105,7 +107,7 @@ if step_name == 'process':
                     msg_func = plpy.notice,
                     portion_size = 100)
 
-    dp.debug_num_portions = 100
+    dp.debug_num_portions = 10
 
     dp.process()
     pass

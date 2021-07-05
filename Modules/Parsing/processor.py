@@ -183,6 +183,10 @@ class NerProcessor(DataProcessor):
 
         self.url_recognizer = ner.UrlRecognizer(*args, **kwargs)
 
+        self.loc_consolidator = ner.NerConsolidator(*args, ne_b = 'B-LOC', ne_i = 'I-LOC', ne_r = 'GIT-LOC')
+        self.per_consolidator = ner.NerConsolidator(*args, ne_b = 'B-PER', ne_i = 'I-PER', ne_r = 'GIT-LOC')
+        self.loc_consolidator = ner.NerConsolidator(*args, ne_b = 'B-LOC', ne_i = 'I-LOC', ne_r = 'GIT-LOC')
+
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
