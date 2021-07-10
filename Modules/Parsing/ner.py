@@ -90,10 +90,12 @@ class NerConsolidator(common.CommonFunc):
     def _init_work_lists(self):
         self._res_ner_types_list = []
         self._res_ner_list = []
+        self._res_ner_idx = [] #an array of length equal to the original with indexes of _res_ner_list
         self._ne_b_t_list = []
         self._ne_i_t_list = []
         self._ne_b_list = []
         self._ne_i_list = []
+        self._ne_idx_list = []
 
     def _get_cur_elements(self, i):
         self._ne_t = self._ner_types_list[i]
@@ -111,12 +113,29 @@ class NerConsolidator(common.CommonFunc):
             if (self._cur_ne_type != self._prev_ne_type or the_end) \
               and (len(self._ne_b_list) > 0 or len(self._ne_i_list) > 0):
                 self._res_ner_types_list.append(self._prev_ne_type)
-                self._res_ner_list      .append(" ".join(self._ne_b_list  ) + " ".join(self._ne_i_list  ))
+                cons_ner = " ".join(self._ne_b_list)
+                if len(self._ne_i_list) > 0:
+                    if len(self._ne_b_list) > 0:
+                        cons_ner += " "
+                    cons_ner += " ".join(self._ne_i_list)
+                #self._res_ner_list.append(cons_ner)
+                #idx = len(self._res_ner_list)-1
+                idx = self._add_cons_ner_if_not_exist(cons_ner)
+                num_words_in_ner = len(self._ne_i_list)+len(self._ne_b_list)
+                self._res_ner_idx.extend([idx for _ in range(0, num_words_in_ner)])
                 self._ne_b_t_list.clear()
                 self._ne_i_t_list.clear()
                 self._ne_b_list  .clear()
                 self._ne_i_list  .clear()
         self._prev_ne_type = self._cur_ne_type
+
+    def _add_cons_ner_if_not_exist(self, cons_ner):
+        if cons_ner in self._res_ner_list:
+            return self._res_ner_list.index(cons_ner)
+        else:
+            self._res_ner_list.append(cons_ner)
+            idx = len(self._res_ner_list)-1
+            return idx
 
     def _store_ner_if_necessary(self):
         if self._cur_ne_type != '':
@@ -129,6 +148,8 @@ class NerConsolidator(common.CommonFunc):
                     self._ne_i_t_list.append(self._ne_t)
                     self._ne_i_list.append(self._ne)
                     break
+        else:
+            self._res_ner_idx.append(None)
 
     def consolidate(self, ner_types_list, ner_list):
         self._ner_types_list = ner_types_list
@@ -148,6 +169,6 @@ class NerConsolidator(common.CommonFunc):
         
         self._consolidate_if_necessary(the_end = True)
 
-        return self._res_ner_types_list, self._res_ner_list
+        return self._res_ner_types_list, self._res_ner_list, self._res_ner_idx
 
     

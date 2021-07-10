@@ -57,6 +57,13 @@ class MainDB:
     def rollback(self):
         self.plpy.rollback()
 
+    
+    def custom_simple_request(self, request_txt, autocommit = True, **kwargs):
+        plan_id = 'plan_custom_simple_request'
+        gvars.GD[plan_id] = self.plpy.prepare(request_txt, [])
+        res = self._execute(plan_id,[])
+        self.commit(autocommit)
+        return None if res is None else convert_select_result(res)
 
     def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, is_broken = False, broken_status_code = '', **kwargs):
         plan_id = 'plan_update_sn_num_subscribers'
@@ -350,31 +357,31 @@ class MainDB:
         plan_id = 'plan_ent_type_select_all'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
             pg_func = 'select * from git430_ner.ent_type_select_all();'
-            gvars.GD[plan_id] = self.plpy.prepare(pg_func, None)
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, [])
 
-        res = self.plpy.execute(gvars.GD[plan_id], None)
+        res = self.plpy.execute(gvars.GD[plan_id], [])
 
         return convert_select_result(res)
 
 
-    def entity_upsert(self, id_www_source, id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = True, **kwargs):
+    def entity_upsert(self, id_www_source, id_project, id_data_text, id_sentence, id_ent_type, txt_lemm, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_sentence'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git430_ner.entity_upsert($1, $2, $3, $4, $5, $6, $7)''', 
-                                        ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_string"])
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git430_ner.entity_upsert($1, $2, $3, $4, $5, $6)''', 
+                                        ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk []","dmn.git_string []"])
 
-        res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm])
+        res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_sentence, id_ent_type, txt_lemm])
 
         self.commit(autocommit)
-        return None if res is None else res[0]
+        return None if res is None else convert_select_result(res)
 
-    def token_upsert_word(self, id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = True):
+    def token_upsert_word(self, id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, id_entities_array, autocommit = True):
         plan_id = 'plan_token_upsert_word'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5, $6)''', 
-                            ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []", "dmn.git_text []"])
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5, $6, $7)''', 
+                            ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []", "dmn.git_text []", "dmn.git_pk []"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, id_entities_array])
         self.commit(autocommit)
         return None if res is None else res
 
@@ -485,10 +492,10 @@ if __name__ == "__main__":
 
     #res = cass_db.ent_type_insert(name = 'py name 111', description = 'py descr 222')
     #res = cass_db.ent_type_select_all()
-    #res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = 66, txt_lemm = 'test ttt')
+    res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
-    res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)
+    #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)
     print(res)
     #cass_db.test_commit()
     #cass_db.test_rollback()

@@ -183,9 +183,7 @@ class NerProcessor(DataProcessor):
 
         self.url_recognizer = ner.UrlRecognizer(*args, **kwargs)
 
-        self.loc_consolidator = ner.NerConsolidator(*args, ne_b = 'B-LOC', ne_i = 'I-LOC', ne_r = 'GIT-LOC')
-        self.per_consolidator = ner.NerConsolidator(*args, ne_b = 'B-PER', ne_i = 'I-PER', ne_r = 'GIT-LOC')
-        self.loc_consolidator = ner.NerConsolidator(*args, ne_b = 'B-LOC', ne_i = 'I-LOC', ne_r = 'GIT-LOC')
+        self.loc_consolidator = ner.NerConsolidator(*args, **kwargs)
 
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
@@ -251,19 +249,24 @@ class NerProcessor(DataProcessor):
 
                     self.url_recognizer.imitate_to_original(words_array, url_ners_array, ners)
 
-                    word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, autocommit = False)
+                    ners_cons, lemms_array_cons, _ners_idx_array = self.loc_consolidator.consolidate(ners, lemms_array)
 
                     #record named entities
-                    ners_id = self.convert_ners_to_id(ners)
+                    ners_type_id = self.convert_ners_to_id(ners_cons)
 
-                    for wrd in zip(word_id_list, ners_id, lemms_array):
-                        id_ent_type = wrd[1]
-                        if id_ent_type is None:
-                            continue
-                        id_word = wrd[0]['upsert_word']
-                        txt_lemm = wrd[2]
-                        self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, id_word, id_ent_type, txt_lemm, autocommit = False)
+                    _ners_id = self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, ners_type_id, lemms_array_cons, autocommit = False)
+                    ners_id = [_['id'] for _ in _ners_id]
+
+                    ners_idx_array = []
+                    for i in _ners_idx_array:
+                        if i is None:
+                            ners_idx_array.append(None)
+                        else:
+                            ners_idx_array.append(ners_id[i])
                     
+                    #record words tokens
+                    word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, ners_idx_array, autocommit = False)
+
                     pass #end for result in zip(...)
                 pass #end if len(self.raw_sentences) > 0
 

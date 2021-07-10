@@ -103,7 +103,7 @@ class PlPy(object):
                 #_params_str = ', '.join(_params)
                 #result = self._execute('execute %s (%s)' % (_plan_name, _params_str) , **kwargs)
                 
-                if args[1] is None: #without parameters
+                if args[1] is None or (isinstance(args[1],list) and len(args[1])==0): #without parameters
                     _params_str = ''
                     result = self._execute('execute '+_plan_name)
                 else:
