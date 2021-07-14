@@ -185,6 +185,8 @@ class NerProcessor(DataProcessor):
 
         self.loc_consolidator = ner.NerConsolidator(*args, **kwargs)
 
+        self.mix_detector = ner.MixedLettersDetector(*args, **kwargs)
+
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
@@ -211,7 +213,7 @@ class NerProcessor(DataProcessor):
             if len(self.raw_sentences) == 0:
                 break
 
-            self.remove_empty_sentences()
+            self.remove_broken_sentences()
 
             if len(self.raw_sentences) > 0:
 
@@ -278,15 +280,22 @@ class NerProcessor(DataProcessor):
         pass
 
 
-    def remove_empty_sentences(self):
+    def remove_broken_sentences(self):
         for i in range(len(self.raw_sentences)-1,-1,-1):
             if self.raw_sentences[i]['txt'] == '' or self.raw_sentences[i]['txt'].isspace():
-                self.save_set_is_process(self.raw_sentences[i]['id'])
+                self.save_set_is_process(self.raw_sentences[i]['id'], True, token.SENT_BROKEN_TYPE_EMPTY)
                 self.raw_sentences.pop(i)
-            elif len(self.raw_sentences[i]['txt'].split(' ')) > self.MAX_WORDS_IN_SENTENCE:
-                self.save_set_is_process(self.raw_sentences[i]['id'])
-                self.log_error_too_long_sentence(self.raw_sentences[i]['id_data_text'], self.raw_sentences[i]['id'], self.raw_sentences[i]['txt'])
-                self.raw_sentences.pop(i)
+            else:
+                sentence_mixed = self.mix_detector.is_sentence_mixed(self.raw_sentences[i]['txt'])
+
+                if sentence_mixed:
+                    self.save_set_is_process(self.raw_sentences[i]['id'], True, token.SENT_BROKEN_TYPE_MIXED)
+                    self.log_error_mixed_sentence(self.raw_sentences[i]['id_data_text'], self.raw_sentences[i]['id'], self.raw_sentences[i]['txt'])
+                    self.raw_sentences.pop(i)
+                elif self.mix_detector.num_tokens > self.MAX_WORDS_IN_SENTENCE:
+                    self.save_set_is_process(self.raw_sentences[i]['id'], True, token.SENT_BROKEN_TYPE_TOO_LONG)
+                    self.log_error_too_long_sentence(self.raw_sentences[i]['id_data_text'], self.raw_sentences[i]['id'], self.raw_sentences[i]['txt'])
+                    self.raw_sentences.pop(i)
 
 
     def check_words_len(self, words_list, id_data_text, id_sentence, fix_error = True):
@@ -297,8 +306,8 @@ class NerProcessor(DataProcessor):
                 words_list[i] = words_list[i][:self.MAX_WORD_LEN]
         #return words_list
 
-    def save_set_is_process(self,id_sentence):
-        self.db.sentence_set_is_process(id = id_sentence, autocommit = False)
+    def save_set_is_process(self,id_sentence, is_broken = False, id_broken_type = None):
+        self.db.sentence_set_is_process(id = id_sentence, is_broken = is_broken, id_broken_type = id_broken_type, autocommit = False)
 
 
     def convert_ners_to_id(self, ner_list):
@@ -333,6 +342,12 @@ class NerProcessor(DataProcessor):
               format(self.id_project, id_data_text, id_sentence, txt)
 
         self.db.log_error("Sentence is too long", self.id_project, err_description)
+
+    def log_error_mixed_sentence(self, id_data_text, id_sentence, txt):
+        err_description = "Sentence consists of words with mixed Russian-English letters. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
+              format(self.id_project, id_data_text, id_sentence, txt)
+
+        self.db.log_error("Sentence with mix-letters words", self.id_project, err_description)
 
     def log_error_too_long_word(self, id_data_text, id_sentence, txt):
         err_description = "Word is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\

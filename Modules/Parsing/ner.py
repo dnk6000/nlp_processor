@@ -172,3 +172,47 @@ class NerConsolidator(common.CommonFunc):
         return self._res_ner_types_list, self._res_ner_list, self._res_ner_idx
 
     
+class MixedLettersDetector(common.CommonFunc):
+    '''detect sentences consisting of words, mixed English and Russian letters 
+    '''
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+
+        self.percentage_of_mixed_words = 10
+        #self.re_pattern_words = re.compile("[а-яА-Яa-zA-Z]{2,}")
+        #self.re_pattern_mixed_words = re.compile("([а-яА-Я]{1,}[a-zA-Z]{1,}|[a-zA-Z]{1,}[а-яА-Я]{1,})")
+        self.re_pattern_words = re.compile("[а-яa-z]{2,}",re.I)
+        self.re_pattern_mixed_words = re.compile("([а-я]{1,}[a-z]{1,}|[a-z]{1,}[а-я]{1,})",re.I)
+
+    def _get_tokens(self, sentence):
+        return sentence.split(' ')
+
+    def _get_words(self, tokens):
+        return [w for w in filter(self.re_pattern_words.match, tokens)]
+
+    def _get_mixed_words(self, words):
+        return [w for w in filter(self.re_pattern_mixed_words.match, words)]
+
+    def _is_meet_mixed_criterion(self, num_words, num_mixed_words):
+        return num_mixed_words / num_words * 100 < self.percentage_of_mixed_words
+
+    def is_sentence_mixed(self, sentence):
+        tokens = self._get_tokens(sentence)
+        self.num_tokens = len(tokens)
+
+        words = self._get_words(tokens)
+        num_words = len(words)
+        if num_words == 0:
+            return False
+
+        mixed_words = self._get_mixed_words(words)
+        num_mixed_words = len(mixed_words)
+        if num_mixed_words == 0:
+            return False
+
+        if self._is_meet_mixed_criterion(num_words, num_mixed_words):
+            return False
+
+        return True
+

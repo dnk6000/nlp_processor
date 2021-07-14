@@ -385,16 +385,16 @@ class MainDB:
         self.commit(autocommit)
         return None if res is None else res
 
-    def sentence_set_is_process(self, id, autocommit = True):
+    def sentence_set_is_process(self, id, is_broken = False, id_broken_type = None, autocommit = True):
         plan_id = 'plan_sentence_set_is_process'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
-                SELECT * FROM git400_token.sentence_set_is_process($1)
+                SELECT * FROM git400_token.sentence_set_is_process($1, $2, $3)
                 ''', 
-                ["dmn.git_pk"])
+                ["dmn.git_pk","dmn.git_boolean","dmn.git_pk"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [id])
+        res = self.plpy.execute(gvars.GD[plan_id], [id, is_broken, id_broken_type])
         self.commit(autocommit)
 
     def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0):

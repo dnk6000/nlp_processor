@@ -3,6 +3,9 @@ import Modules.Common.common as common
 
 from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
 
+SENT_BROKEN_TYPE_EMPTY = 1
+SENT_BROKEN_TYPE_MIXED = 2
+SENT_BROKEN_TYPE_TOO_LONG = 3
 
 class Tokenizer(common.CommonFunc):
     def __init__(self, *args,
