@@ -6,8 +6,8 @@ import Modules.Parsing.processor as processor
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'process'
-step_name = 'debug'
 step_name = 'debug_sent_list'
+step_name = 'debug'
 ID_PROJECT_main = 10
 
 if const.PY_ENVIRONMENT:
@@ -45,15 +45,15 @@ VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
 
 
 if step_name == 'debug':
-    import Modules.Parsing.ner as ner
-    mld = ner.MixedLettersDetector()
+    #import Modules.Parsing.ner as ner
+    #mld = ner.MixedLettersDetector()
     #testString = r'- пpeдлoжeниe дeйcтвyeт тoлькo в oтнoшeнии тex лиц, ктo гoтoв зaключить дoгoвop нaймa yкaзaннoгo жилoгo пoмeщeния и aктyaльнo в тeчeниe мecяцa, * дoм нoвый; * oгopoжeннaя дeтcкaя плoщaдкa; * ecть вceгдa пapкoвoчнoe мecтo для мaшины вo двope дoмa; * зa дoмoм ecть плaтнaя aвтocтoянкa; * paзвитa инфpacтpyктypa: - в шaгoвoй дocтyпнocти ocтaнoвкa oбщecтвeннoгo тpaнcпopтa 51-й микpopaйoн (20 мeтpoв oт дoмa); - в coceднeм дoмe дeтcкий caд "Чyнгa-чaнгa" (Лoбыpинa, д.7); - в 10 минyтax xoдьбы oт дoмa Oбpaзoвaтeльный цeнтp №2, MAOУ шкoлa, дeтcкий caд 19, Дeтcкий caд 45; - Пpямo в дoмe: Kpacнoe и бeлoe, пapикмaxepcкaя; - B 5 минyтax oт дoмa мaгaзины ceтeвыe : Пятёpoчкa , Maгнит и т.д.; - дo цeнтpa гopoдa 10-ть минyт нa мaшинe и 20-ть нa oбщecтвeннoм тpaнcпopтe; - мнoгo paзвивaющиx цeнтpoв кaк для дeтeй дoшкoльнoгo и шкoльнoгo вoзpacтa, тaк и для взpocлыx.'
     #res = mld.is_sentence_mixed(testString)
     #print('result '+str(res))
     
-    testString = r'- предложение Yдействует Yтолько в отношении тех лиц, кто готов заключить договор найма'
-    res = mld.is_sentence_mixed(testString)
-    print('result '+str(res))
+    #testString = r'- предложение Yдействует Yтолько в отношении тех лиц, кто готов заключить договор найма'
+    #res = mld.is_sentence_mixed(testString)
+    #print('result '+str(res))
 
 
 
@@ -74,17 +74,17 @@ if step_name == 'debug':
     #pass
 
 
-    #import Modules.Parsing.ner as ner
+    import Modules.Parsing.ner as ner
 
-    #nerc = ner.NerConsolidator()
+    nerc = ner.NerConsolidator()
 
-    #nt_res, n_res, idx_res = nerc.consolidate([ 'O'     , 'B-PER', 'B-PER' , 'O'     , 'O', 'I-LOC'  , 'I-LOC', 'O', 'O'        , 'O', 'O'     , 'B-LOC'     ],
-    #                                 [ 'Солдат', 'Иван' , 'Петров', 'пришел', 'в', 'Красное', 'Село' , 'и', 'поселился', 'в', 'районе', 'Дворцовый' ]
-    #                                )
-    #print(n_res)
-    #print(nt_res)
-    #print(idx_res)
-    #pass
+    nt_res, n_res, idx_res = nerc.consolidate([ 'O'     , 'B-PER', 'GIT-URL'   , 'B-PER' , 'O'     , 'GIT-URL'   , 'O', 'I-LOC'  , 'I-LOC', 'O', 'O'        , 'O', 'O'     , 'B-LOC'    , 'GIT-URL' ],
+                                              [ 'Солдат', 'Иван' , 'www.ria.ru', 'Петров', 'пришел', 'www.git.ru', 'в', 'Красное', 'Село' , 'и', 'поселился', 'в', 'районе', 'Дворцовый', 'www.git.ru' ]
+                                    )
+    print(n_res)
+    print(nt_res)
+    print(idx_res)
+    pass
 
 
     #nerc = ner.UrlRecognizer()

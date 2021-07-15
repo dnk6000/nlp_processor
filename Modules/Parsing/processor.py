@@ -249,7 +249,7 @@ class NerProcessor(DataProcessor):
                             continue
                             #words_array = [_['word'] for _ in result[3]] #get words tokens from lemmatizer
 
-                    self.url_recognizer.imitate_to_original(words_array, url_ners_array, ners)
+                    self.url_recognizer.imitate_to_original(words_array, lemms_array, url_ners_array, ners)
 
                     ners_cons, lemms_array_cons, _ners_idx_array = self.loc_consolidator.consolidate(ners, lemms_array)
 
