@@ -108,7 +108,7 @@ class NerConsolidator(common.CommonFunc):
 
         self.res_ner_types_list = [] #an array containing data of keys from _res_ner_dict
         self.res_ner_list       = [] #an array containing data of ners from _res_ner_dict
-        self.res_ner_idx        = [] #an array of length equal to the original with indexes of _res_ner_list
+        self.res_ner_idx        = [] #an array of length equal to the original with indexes of res_ner_list
         
         self._ne_b_t_list = []
         self._ne_i_t_list = []
@@ -140,11 +140,7 @@ class NerConsolidator(common.CommonFunc):
 
 
     def _consolidate_if_necessary(self, the_end = False):
-        if self._cur_ne_non_consolidated:
-            idx = self._add_cons_ner_if_not_exist(self._cur_ne_type, self._ne)
-            self.res_ner_idx.append(idx)
-            self._prev_ne_type = None
-        elif self._prev_ne_type is not None or the_end:
+        if self._prev_ne_type is not None or the_end:
             if (self._cur_ne_type != self._prev_ne_type or the_end) \
               and (len(self._ne_b_list) > 0 or len(self._ne_i_list) > 0):
                 cons_ner = " ".join(self._ne_b_list)
@@ -162,19 +158,28 @@ class NerConsolidator(common.CommonFunc):
                 self._ne_b_list  .clear()
                 self._ne_i_list  .clear()
             self._prev_ne_type = self._cur_ne_type
+        
+        if self._cur_ne_non_consolidated:
+            idx = self._add_cons_ner_if_not_exist(self._cur_ne_type, self._ne)
+            self.res_ner_idx.append(idx)
+            self._prev_ne_type = self._cur_ne_type
 
     def _add_cons_ner_if_not_exist(self, ner_type, consolidated_ner):
+        if ner_type == '':
+            return None
+
         if not ner_type in self._res_ner_dict:
             self._res_ner_dict[ner_type] = []
 
         if consolidated_ner in self._res_ner_dict[ner_type]:
-            return self.res_ner_list.index(consolidated_ner)
+            idx = self.res_ner_list.index(consolidated_ner)
         else:
             self.res_ner_types_list.append(ner_type)
             self.res_ner_list.append(consolidated_ner)
             self._res_ner_dict[ner_type].append(consolidated_ner)
             idx = len(self.res_ner_list)-1
-            return idx
+        
+        return idx
 
     def _store_ner_if_necessary(self):
         if self._cur_ne_non_consolidated:

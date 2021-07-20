@@ -78,12 +78,25 @@ if step_name == 'debug':
 
     nerc = ner.NerConsolidator()
 
-    nt_res, n_res, idx_res = nerc.consolidate([ 'O'     , 'B-PER', 'GIT-URL'   , 'B-PER' , 'O'     , 'GIT-URL'   , 'O', 'I-LOC'  , 'I-LOC', 'O', 'O'        , 'O', 'O'     , 'B-LOC'    , 'GIT-URL' ],
-                                              [ 'Солдат', 'Иван' , 'www.ria.ru', 'Петров', 'пришел', 'www.git.ru', 'в', 'Красное', 'Село' , 'и', 'поселился', 'в', 'районе', 'Дворцовый', 'www.git.ru' ]
-                                    )
+    orig_nt = [ 'O'     , 'B-PER','I-PER'  , 'GIT-URL'   , 'B-PER' , 'O'     , 'GIT-URL'   , 'O', 'I-LOC'  , 'I-LOC', 'O', 'O'        , 'O', 'O'     , 'B-LOC'    , 'GIT-URL'   , 'GIT-URL'   , 'I-LOC'  , 'B-LOC' ]
+    orig_n  = [ 'Солдат', 'Иван' ,'Петров' , 'www.ria.ru', 'Петров', 'пришел', 'www.git.ru', 'в', 'Красное', 'Село' , 'и', 'поселился', 'в', 'районе', 'Дворцовый', 'www.git.ru', 'www.ria.ru', 'Село', 'Красное' ]
+
+    nt_res, n_res, idx_res = nerc.consolidate(orig_nt, orig_n)
+
     print(n_res)
     print(nt_res)
     print(idx_res)
+
+    n = 0
+    for i in zip(nt_res, n_res):
+        print(f'{n:>4}  {i[1]:>15}          {i[0]:>9}')
+        n += 1
+
+    print('----------------')
+    for i in zip(orig_nt, orig_n, idx_res):
+        t = i[2] if i[2] is not None else ''
+        print(f'{i[1]:>15}          {i[0]:>9}          {t:>5}')
+
     pass
 
 
