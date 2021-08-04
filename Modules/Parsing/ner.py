@@ -76,8 +76,8 @@ class UrlRecognizer(common.CommonFunc):
     def imitate_to_original(self, words_list, lemms_list, imitate_dict, ners_list):
         for i in range(0, len(words_list)):
             if words_list[i] in imitate_dict:
-                words_list[i] = imitate_dict[words_list[i]]
                 lemms_list[i] = imitate_dict[words_list[i]]
+                words_list[i] = imitate_dict[words_list[i]]
                 ners_list[i] = ENTITY_NAME_URL
         
 
@@ -157,12 +157,13 @@ class NerConsolidator(common.CommonFunc):
                 self._ne_i_t_list.clear()
                 self._ne_b_list  .clear()
                 self._ne_i_list  .clear()
-            self._prev_ne_type = self._cur_ne_type
+            #self._prev_ne_type = self._cur_ne_type
         
-        if self._cur_ne_non_consolidated:
+        if self._cur_ne_non_consolidated and not the_end:
             idx = self._add_cons_ner_if_not_exist(self._cur_ne_type, self._ne)
             self.res_ner_idx.append(idx)
-            self._prev_ne_type = self._cur_ne_type
+            
+        self._prev_ne_type = self._cur_ne_type
 
     def _add_cons_ner_if_not_exist(self, ner_type, consolidated_ner):
         if ner_type == '':
@@ -357,3 +358,34 @@ class MixedLettersDetector(common.CommonFunc):
 
         return True
 
+class DoubleSymbolsRemover(common.CommonFunc):
+    '''remove double symbols from string 
+    '''
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+
+        self.symbols = '-_&#$'
+        self.len_repeating_block = 3
+        self._initilize()
+
+    def _initilize(self):
+        self.repeating_block = []
+        for s in self.symbols:
+            self.repeating_block.append(s * self.len_repeating_block)
+
+    def remove_from_str(self, original_str):
+        for repeating_block in self.repeating_block:
+            while repeating_block in original_str:
+                original_str = original_str.replace(repeating_block, repeating_block[0])
+        return original_str
+
+    def remove_from_list(self, sentences):
+        for i in range(len(sentences)):
+            need_remove = False
+            for repeating_block in self.repeating_block:
+                if repeating_block in sentences[i]:
+                    need_remove = True
+                    break
+            if need_remove:
+                sentences[i] = self.remove_from_str(sentences[i])

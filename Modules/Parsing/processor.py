@@ -187,6 +187,8 @@ class NerProcessor(DataProcessor):
 
         self.mix_detector = ner.MixedLettersDetector(*args, **kwargs)
 
+        self.double_symbols_remover = ner.DoubleSymbolsRemover(*args, **kwargs)
+
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
@@ -218,6 +220,7 @@ class NerProcessor(DataProcessor):
             if len(self.raw_sentences) > 0:
 
                 _sentences = [i['txt'] for i in self.raw_sentences]
+                self.double_symbols_remover.remove_from_list(_sentences)
                 self.url_recognizer.recognize(_sentences)
                 if self.debug_sentence_id != 0:
                     self.debug_msg('    Sentences: '+str(_sentences))
