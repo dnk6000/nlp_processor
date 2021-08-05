@@ -55,7 +55,37 @@
 #sys.exit(0)
 
 
+##########################################################################################
+#### Sentence Tokenizer
 
+import deeppavlov.models.tokenizers.ru_sent_tokenizer as ru_sent_tokenizer
+from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
+from deeppavlov.models.tokenizers.ru_tokenizer import RussianTokenizer  #words only
+from deeppavlov.models.tokenizers.nltk_tokenizer import NLTKTokenizer
+from deeppavlov.models.tokenizers.nltk_moses_tokenizer import NLTKMosesTokenizer
+from nltk.tokenize import sent_tokenize
+
+#ru_sent_tokenizer.SHORTENINGS.add('пр')
+ru_sent_tokenizer.JOINING_SHORTENINGS.add('пр')
+
+RST = RuSentTokenizer()
+#RST = RussianTokenizer()
+#RST = NLTKTokenizer(tokenizer = 'sent_tokenize')
+#RST = NLTKMosesTokenizer()
+
+#res = RST(['Эта шоколадка за 400р. ничего из себя не представляла. Артём решил больше не ходить в этот магазин'])
+#res = RST(['Работа в Челябинске (Пр. Ленина 81)'])
+res = RST([ 'Адрес: Челябинск, пр-кт Ленина, 21-А, 1 этаж отеля Меридиан.'])
+
+
+#RST = sent_tokenize
+#res = RST('Работа в Челябинске (Пр. Ленина 81)', language='russian')
+
+
+print(res)
+
+import sys
+sys.exit(0)
 
 #### Lemmatize
 
@@ -152,13 +182,3 @@ from deeppavlov import configs, build_model
 
 #print(res)
 
-##########################################################################################
-#### Sentence Tokenizer
-
-#from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
-
-#RST = RuSentTokenizer()
-
-#res = RST(['Эта шоколадка за 400р. ничего из себя не представляла. Артём решил больше не ходить в этот магазин'])
-
-#print(res)

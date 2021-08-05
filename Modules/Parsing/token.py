@@ -1,11 +1,13 @@
 import Modules.Common.const as const
 import Modules.Common.common as common
 
-from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer
+from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer, JOINING_SHORTENINGS
 
 SENT_BROKEN_TYPE_EMPTY = 1
 SENT_BROKEN_TYPE_MIXED = 2
 SENT_BROKEN_TYPE_TOO_LONG = 3
+
+JOINING_SHORTENINGS.add('пр') #TODO create specialized procedure for addition SHORTENINGS 
 
 class Tokenizer(common.CommonFunc):
     def __init__(self, *args,
