@@ -221,6 +221,12 @@ class MainDB:
             self.plpy.execute(pg_func)
         self.plpy.commit()
     
+    def clear_table(self, table_name):
+        with self.plpy.subtransaction():
+            pg_func = 'delete from {};'.format(table_name)
+            self.plpy.execute(pg_func)
+        self.plpy.commit()
+    
     def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post):
         plan_id = 'plan_get_sn_activity'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
@@ -407,14 +413,25 @@ class MainDB:
 
         return convert_select_result(res)
 
-    #def Select(self):
-    #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
-    #                        FROM git200_crawl.sn_accounts")
-    #    rows = self.cursor.fetchall()
-    #    for row in rows:  
-    #       print(row)
-    #       print("\n")
+    def _TestSelect(self):
+        #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
+        #                        FROM git200_crawl.sn_accounts")
+        #    rows = self.cursor.fetchall()
+        #    for row in rows:  
+        #       print(row)
+        #       print("\n")
+        pass
 
+    def upsert_trip_advisor(self, name, name_lemma, name2, address, category_str, longtitude, latitude, url, autocommit = True):
+        plan_id = 'plan_upsert_trip_advisor'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git010_dict.upsert_trip_advisor($1, $2, $3, $4, $5, $6, $7, $8)''', 
+                            ["dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", 
+                             "dmn.git_double", "dmn.git_double", "dmn.git_string"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [name, name_lemma, name2, address, category_str, longtitude, latitude, url])
+        self.commit(autocommit)
+        return None if res is None else res
 
 class NeedStopChecker:
     def __init__(self, cass_db, id_project, func_name, state = None):
@@ -492,7 +509,9 @@ if __name__ == "__main__":
 
     #res = cass_db.ent_type_insert(name = 'py name 111', description = 'py descr 222')
     #res = cass_db.ent_type_select_all()
-    res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
+    #res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
+    res = cass_db.upsert_trip_advisor('11Ресторан Засека', 'ресторан засека', 'Restaurant Zaseka', 'Пенза Мира 22', 
+                                        'Рестораны', 66.55555, 59.33333, 'www из питона')
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
     #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)

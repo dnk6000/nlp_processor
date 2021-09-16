@@ -14,7 +14,7 @@ class ScrapyTripadvisorItem(scrapy.Item):
     geo_latitude = scrapy.Field()
     geo_longitude = scrapy.Field()
 
-    addres = scrapy.Field()
+    address = scrapy.Field()
     category = scrapy.Field()
     url  = scrapy.Field()
 

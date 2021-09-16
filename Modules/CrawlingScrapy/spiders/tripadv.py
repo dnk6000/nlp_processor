@@ -92,8 +92,8 @@ class TripAdvSelenDriver(SelenDriver):
         else:
             logger_err.error(f'Geocoding tag not found: \n url: {url}')
 
-        item['addres']  = self.xpath_first_text(r'//div[@id="atf_header_wrap"]//a[@href="#MAPVIEW"]')
-        if item['addres'] == '':
+        item['address']  = self.xpath_first_text(r'//div[@id="atf_header_wrap"]//a[@href="#MAPVIEW"]')
+        if item['address'] == '':
             logger_err.error(f'Address not found: \n url: {url}')
 
         item['category']  = self.get_category_by_url(url)
@@ -130,7 +130,7 @@ class TripAdvSelenDriver(SelenDriver):
         else:
             logger_err.error(f'Geocoding tag not found: \n url: {url}')
 
-        item['addres']  = self.xpath_first_text(r'//div[@id="LOCATION"]//div[text()="Связаться"]/ancestor::*[1]//span[text() != ""]')
+        item['address']  = self.xpath_first_text(r'//div[@id="LOCATION"]//div[text()="Связаться"]/ancestor::*[1]//span[text() != ""]')
         item['category']  = self.get_category_by_url(url)
         item['url']     = url
         
@@ -157,7 +157,7 @@ class TripAdvSelenDriver(SelenDriver):
         else:
             logger_err.error(f'Geocoding tag not found: \n url: {url}')
 
-        item['addres']  = self.xpath_first_text(r'//div[@data-automation="AppPresentation_PoiLocationSectionGroup"]//div[text()="Поблизости"]/ancestor::*[1]//button[@type="button"]/descendant::*')
+        item['address']  = self.xpath_first_text(r'//div[@data-automation="AppPresentation_PoiLocationSectionGroup"]//div[text()="Поблизости"]/ancestor::*[1]//button[@type="button"]/descendant::*')
         item['category']  = self.get_category_by_url(url)
         item['url']     = url
         
@@ -204,8 +204,8 @@ class TripAdvisorStartUrl():
     restaurants_url = rf'https://{domain}/Restaurants-g{region_tripadv_id}-{region_addon_url}.html'
 
     start_urls = []
-    #start_urls.append(attractions_url)
-    #start_urls.append(hotels_url)
+    start_urls.append(attractions_url)
+    start_urls.append(hotels_url)
     start_urls.append(restaurants_url)
 
     attractions_headers = [
@@ -238,6 +238,8 @@ class TripAdvisorSpider(Spider):
     selen_driver = TripAdvSelenDriver()
 
     logger_res.info('Start')
+
+    db = None
 
     def parse(self, response):
         self.debug_counter += 1

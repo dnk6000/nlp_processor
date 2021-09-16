@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Modules\CrawlingScrapy\spiders\__init__.py</StartupFile>
+    <StartupFile>ModulesPyOnly\tripadv_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -170,6 +170,8 @@
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
     <Content Include="Documentation\Cassandra. Parsing. Концепт ТЗ по тональности.doc" />
     <Content Include="Documentation\Интерфейс смартфона.pptx" />
+    <Content Include="Logs\ta_ERR.log" />
+    <Content Include="Logs\ta_Result.log" />
     <Content Include="Logs\tg_crawl.log" />
     <Content Include="Config\ner_rus_bert.json" />
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />

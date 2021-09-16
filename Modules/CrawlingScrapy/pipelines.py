@@ -12,4 +12,19 @@ from Modules.CrawlingScrapy.spiders.tripadv import logger_res, logger_err
 class GitScrapyPipeline:
     def process_item(self, item, spider):
         logger_res.info(f'\n № {item.get_instance_counter()} \n{str(item)}')
+
+        longtitude = item['geo_longitude'] if 'geo_longitude' in item else 0
+        latitude = item['geo_latitude'] if 'geo_latitude' in item else 0
+        name2 = item['name2'] if 'geo_latitude' in item else ''
+
+        spider.db.upsert_trip_advisor(name = item['name'], 
+                                        name_lemma = '', 
+                                        name2 = item['name2'], 
+                                        address = item['address'], 
+                                        category_str = item['category'], 
+                                        longtitude = longtitude, 
+                                        latitude = latitude, 
+                                        url = item['url']
+                                      )
+
         return item
