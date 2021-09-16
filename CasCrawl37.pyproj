@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesTemp\draft_deeppavlov.py</StartupFile>
+    <StartupFile>Modules\CrawlingScrapy\spiders\__init__.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -33,6 +33,15 @@
     <Compile Include="ModulesPyOnly\sentiment_main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Modules\CrawlingScrapy\items.py" />
+    <Compile Include="Modules\CrawlingScrapy\middlewares.py" />
+    <Compile Include="Modules\CrawlingScrapy\pipelines.py" />
+    <Compile Include="Modules\CrawlingScrapy\selenium\git_selenium.py" />
+    <Compile Include="Modules\CrawlingScrapy\settings.py" />
+    <Compile Include="Modules\CrawlingScrapy\spiders\tripadv.py" />
+    <Compile Include="Modules\CrawlingScrapy\spiders\__init__.py" />
+    <Compile Include="ModulesPyOnly\tripadv_main.py" />
+    <Compile Include="Modules\CrawlingScrapy\__init__.py" />
     <Compile Include="Modules\Crawling\crawler.py" />
     <Compile Include="Modules\Crawling\exceptions.py">
       <SubType>Code</SubType>
@@ -140,6 +149,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Documentation\" />
+    <Folder Include="Modules\CrawlingScrapy\" />
+    <Folder Include="Modules\CrawlingScrapy\selenium\" />
+    <Folder Include="Modules\CrawlingScrapy\spiders\" />
     <Folder Include="Modules\Crawling\" />
     <Folder Include="Modules\Common\" />
     <Folder Include="Config\" />
@@ -162,6 +174,7 @@
     <Content Include="Config\ner_rus_bert.json" />
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
+    <Content Include="Modules\CrawlingScrapy\selenium\chromedriver.exe" />
     <Content Include="ServiceInfo\DP dict import.docx" />
     <Content Include="ServiceInfo\Pg Inheritance.docx" />
     <Content Include="ServiceInfo\Py Pip.docx" />

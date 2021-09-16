@@ -37,3 +37,7 @@ class Logger:
 
 	def info(self, message):
 		self.logger.info(str(message))
+
+def clear_file(fname):
+    f = open(fname, 'w')
+    f.close()    

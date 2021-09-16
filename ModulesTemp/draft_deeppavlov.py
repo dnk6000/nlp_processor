@@ -54,6 +54,39 @@
 #import sys
 #sys.exit(0)
 
+#### Named Entity Recognition
+
+from deeppavlov import configs, build_model
+#from deeppavlov.models.morpho_tagger.lemmatizer import UDPymorphyLemmatizer
+#import tensorflow_core.python.pywrap_tensorflow_internal
+
+ner_model = build_model(configs.ner.ner_rus_bert, download=False)
+
+#res = ner_model(['Bob Ross lived in Florida'])
+#res = ner_model(['Иван Петров живет в Российской Федерации в Пензе', 'Давайте встремся у Кинотеатра Современник', 'Иван Петров живет в Российской Пензе','Путешествие в Южную Африку','Путешествие в Африку'])
+res = ner_model(['Адрес: Челябинск, пр-кт Ленина, 21-А, 1 этаж отеля Меридиан.'])
+
+tokens = res[0]
+ners = res[1]
+
+print('TOKENS:')
+print([f'{i}\n' for i in res[0]])
+
+import sys
+sys.exit(0)
+
+
+Lemmatizer = UDPymorphyLemmatizer()
+for sent in res[0]:
+    for word in sent:
+        print(str(Lemmatizer(word)))
+    pass
+
+
+print('  ') 
+print('NERS:')
+print([f'{i}\n' for i in res[1]])
+
 
 ##########################################################################################
 #### Sentence Tokenizer
@@ -123,34 +156,6 @@ for res_el in zip(tokens, ners):
 
 import sys
 sys.exit(0)
-
-#### Named Entity Recognition
-
-from deeppavlov import configs, build_model
-from deeppavlov.models.morpho_tagger.lemmatizer import UDPymorphyLemmatizer
-#import tensorflow_core.python.pywrap_tensorflow_internal
-
-ner_model = build_model(configs.ner.ner_rus_bert, download=False)
-
-#res = ner_model(['Bob Ross lived in Florida'])
-res = ner_model(['Иван Петров живет в Российской Федерации в Пензе', 'Давайте встремся у Кинотеатра Современник', 'Иван Петров живет в Российской Пензе','Путешествие в Южную Африку','Путешествие в Африку'])
-
-tokens = res[0]
-ners = res[1]
-
-print('TOKENS:')
-print([f'{i}\n' for i in res[0]])
-
-Lemmatizer = UDPymorphyLemmatizer()
-for sent in res[0]:
-    for word in sent:
-        print(str(Lemmatizer(word)))
-    pass
-
-
-print('  ') 
-print('NERS:')
-print([f'{i}\n' for i in res[1]])
 
 ##########################################################################################
 #### SENTIMENT

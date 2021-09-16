@@ -164,7 +164,7 @@ if step_name == 'process':
                     msg_func = plpy.notice,
                     portion_size = 200)
 
-    dp.debug_num_portions = 200
+    dp.debug_num_portions = 300
 
     dp.process()
     pass
