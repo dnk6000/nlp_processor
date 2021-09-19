@@ -15,11 +15,11 @@ class GitScrapyPipeline:
 
         longtitude = item['geo_longitude'] if 'geo_longitude' in item else 0
         latitude = item['geo_latitude'] if 'geo_latitude' in item else 0
-        name2 = item['name2'] if 'geo_latitude' in item else ''
+        name2 = item['name2'] if 'name2' in item else ''
 
         spider.db.upsert_trip_advisor(name = item['name'], 
                                         name_lemma = '', 
-                                        name2 = item['name2'], 
+                                        name2 = name2, 
                                         address = item['address'], 
                                         category_str = item['category'], 
                                         longtitude = longtitude, 

@@ -510,8 +510,16 @@ if __name__ == "__main__":
     #res = cass_db.ent_type_insert(name = 'py name 111', description = 'py descr 222')
     #res = cass_db.ent_type_select_all()
     #res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
-    res = cass_db.upsert_trip_advisor('11Ресторан Засека', 'ресторан засека', 'Restaurant Zaseka', 'Пенза Мира 22', 
-                                        'Рестораны', 66.55555, 59.33333, 'www из питона')
+    #res = cass_db.upsert_trip_advisor('11Ресторан Засека', 'ресторан засека', 'Restaurant Zaseka', 'Пенза Мира 22', 
+    #                                    'Рестораны', 66.55555, 59.33333, 'www из питона')
+
+    res = cass_db.custom_simple_request("SELECT \
+                                            id, \
+                                            name \
+                                        FROM \
+                                          git010_dict.trip_advisor \
+                                        WHERE name_lemma = '';")
+
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
     #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)

@@ -350,3 +350,38 @@ class TripAdvisorSpider(Spider):
         return None
 
 
+def LemmatizeTripAdvisor(cass_db):
+    #GD = None
+    #import ModulesPyOnly.plpyemul as plpyemul
+    #plpy = plpyemul.get_plpy()    
+    #from Modules.Common.globvars import GlobVars
+    #gvars = GlobVars(GD)
+    #import Modules.Common.pginterface as pginterface
+    #cass_db = pginterface.MainDB(plpy, GD)
+
+    non_lemmatized_recs = cass_db.custom_simple_request("SELECT id, name \
+                                                         FROM git010_dict.trip_advisor \
+                                                         WHERE name_lemma = '';")
+
+    import Modules.Parsing.lemma as lemma
+    lemmatizer = lemma.Lemmatizer()
+
+    _sentences = [i['name'] for i in non_lemmatized_recs]
+
+    symbols = ["'", '"', '.', '&', 'Кафе', 'кафе', 'Ресторан', 'ресторан', 'Бар', 'бар', 
+               'Мини-отель', 'мини-отель',                'Отель', 'отель', 'Хостел', 'хостел', 
+               'Гостиница', 'гостиница', 'Парк-отель', 'парк-отель']
+
+    for i in range(len(_sentences)):
+        for symb in symbols:
+            _sentences[i] = _sentences[i].replace(symb, '') 
+
+    lemma_result = lemmatizer.lemmatize(_sentences)
+
+    for result in zip(non_lemmatized_recs, lemma_result, _sentences):
+        lemma = ' '.join([i['lemma'] for i in result[1]])
+        print(f"id: {result[0]['id']} name: {result[0]['name']}  lemma:{lemma}   _sent: {result[2]}")
+        cass_db.custom_simple_request(f"UPDATE git010_dict.trip_advisor \
+                                       SET name_lemma = '{lemma}' \
+                                       WHERE id = {result[0]['id']} ;")
+

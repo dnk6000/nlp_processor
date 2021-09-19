@@ -3,12 +3,14 @@ import Modules.Common.pginterface as pginterface
 
 import Modules.CrawlingScrapy.spiders as spiders
 from Modules.CrawlingScrapy.spiders.tripadv import TripAdvisorSpider
+from Modules.CrawlingScrapy.spiders.tripadv import LemmatizeTripAdvisor
 
 
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'debug'
 step_name = 'process'
+step_name = 'lemmatize'
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
@@ -43,11 +45,12 @@ if step_name == 'debug':
     #clear_tables()
     pass
 
+if step_name == 'lemmatize':
+    LemmatizeTripAdvisor(cass_db)
+    pass
+
 
 if step_name == 'process':
-    #cass_db.custom_simple_request(f'UPDATE git400_token.sentence SET is_process = FALSE WHERE is_process = TRUE AND id_project = {ID_PROJECT_main} AND id_www_sources = {TG_SOURCE_ID}')
-    #clear_tables_by_project(ID_PROJECT_main)
-
     ta_spider = TripAdvisorSpider
     ta_spider.db = cass_db
 
