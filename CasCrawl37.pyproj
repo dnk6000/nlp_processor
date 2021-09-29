@@ -161,6 +161,7 @@
     <Folder Include="ModulesTemp\" />
     <Folder Include="ModulesTest\" />
     <Folder Include="Logs\" />
+    <Folder Include="PGscripts\" />
     <Folder Include="ServiceInfo\" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +178,10 @@
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
     <Content Include="Modules\CrawlingScrapy\selenium\chromedriver.exe" />
+    <Content Include="PGscripts\fias.sql" />
+    <Content Include="PGscripts\monitor_tg.sql" />
+    <Content Include="PGscripts\monitor_vk.sql" />
+    <Content Include="PGscripts\ner.sql" />
     <Content Include="ServiceInfo\DP dict import.docx" />
     <Content Include="ServiceInfo\Pg Inheritance.docx" />
     <Content Include="ServiceInfo\Py Pip.docx" />
