@@ -26,7 +26,6 @@ gvars = GlobVars(GD)
 
 DEBUG_MODE = True
 
-
 def clear_tables_by_project(id_project):
     tables = [
         'git430_ner.entity',
@@ -42,6 +41,9 @@ need_stop_cheker = pginterface.NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_re
 
 TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
 VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
+
+
+
 
 
 if step_name == 'debug':
