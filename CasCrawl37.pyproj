@@ -182,6 +182,7 @@
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
     <Content Include="Modules\CrawlingScrapy\selenium\chromedriver.exe" />
     <Content Include="PGscripts\dbf_import.sql" />
+    <Content Include="PGscripts\fias_geocode.sql" />
     <Content Include="PGscripts\fias.sql" />
     <Content Include="PGscripts\monitor_tg.sql" />
     <Content Include="PGscripts\monitor_vk.sql" />
