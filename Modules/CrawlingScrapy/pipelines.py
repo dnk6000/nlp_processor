@@ -13,7 +13,7 @@ class GitScrapyPipeline:
     def process_item(self, item, spider):
         logger_res.info(f'\n № {item.get_instance_counter()} \n{str(item)}')
 
-        longtitude = item['geo_longitude'] if 'geo_longitude' in item else 0
+        longitude = item['geo_longitude'] if 'geo_longitude' in item else 0
         latitude = item['geo_latitude'] if 'geo_latitude' in item else 0
         name2 = item['name2'] if 'name2' in item else ''
 
@@ -22,7 +22,7 @@ class GitScrapyPipeline:
                                         name2 = name2, 
                                         address = item['address'], 
                                         category_str = item['category'], 
-                                        longtitude = longtitude, 
+                                        longitude = longitude, 
                                         latitude = latitude, 
                                         url = item['url']
                                       )

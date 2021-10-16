@@ -422,14 +422,14 @@ class MainDB:
         #       print("\n")
         pass
 
-    def upsert_trip_advisor(self, name, name_lemma, name2, address, category_str, longtitude, latitude, url, autocommit = True):
+    def upsert_trip_advisor(self, name, name_lemma, name2, address, category_str, longitude, latitude, url, autocommit = True):
         plan_id = 'plan_upsert_trip_advisor'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git010_dict.upsert_trip_advisor($1, $2, $3, $4, $5, $6, $7, $8)''', 
                             ["dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", 
                              "dmn.git_double", "dmn.git_double", "dmn.git_string"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [name, name_lemma, name2, address, category_str, longtitude, latitude, url])
+        res = self.plpy.execute(gvars.GD[plan_id], [name, name_lemma, name2, address, category_str, longitude, latitude, url])
         self.commit(autocommit)
         return None if res is None else res
 

@@ -327,9 +327,15 @@ if step_name == 'debug':
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '')
-	#tg_add_group(id_project = 12, name_group = 'meduzalive')
+	tg_add_group(id_project = 12, name_group = 'meduzalive')
 	#tg_add_group(id_project = 12, name_group = 'breakingmash')
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
+    #                      name_group = 'meduzalive', hash_group = '-2943065673075768629', id_post = '')
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', 
+    #                       name_group = 'meduzalive', id_post = '')
+	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
+ #                         name_group = 'meduzalive', hash_group = '2994531093415596401', id_post = '')
 
 	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1156431022', name_group = 'Ali_boroda_74', id_post = '')
  	#tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
@@ -369,7 +375,7 @@ if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
 
     #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-    cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+    #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
     queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
     queue.regenerate()
