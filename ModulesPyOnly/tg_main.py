@@ -55,7 +55,7 @@ if const.PY_ENVIRONMENT:
 ####################################################
 
 
-def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
+def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_hash = False):
 
     project_params = cass_db.get_project_params(id_project)[0] 
 
@@ -73,9 +73,9 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
     
     tg_crawler.connect()
 
-    select_result = cass_db.select_groups_id(id_project)
-    
-    tg_crawler.id_cash = list(i['account_id'] for i in select_result)
+    if not update_hash:
+        select_result = cass_db.select_groups_id(id_project)
+        tg_crawler.id_cash = list(i['account_id'] for i in select_result)
 
     CriticalErrorsLimit = 3
 
@@ -356,21 +356,16 @@ if step_name == 'clear_all':
     pass
 
 #--1--
-if step_name == 'crawl_groups':
-    #cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
-    tg_crawl_groups(ID_PROJECT_main)
+if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
+    update_hash = step_name == 'crawl_groups_upd_hash'
+    cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main,'')
+    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'meduzalive')
+    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'breakingmash')
+    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'rabotaa_chelyabinsk')
+    tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
     pass
 
 #--2--
-if step_name == 'crawl_subscribers':
-    #cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
-    #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT_main));
-    #cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT_main)
-    #cass_db.queue_generate(TG_SOURCE_ID, ID_PROJECT_main)
-    #vk_crawl_wall_subscribers(ID_PROJECT_main)
-    pass
-
-#--3--
 if step_name == 'crawl_wall':
     cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
 
