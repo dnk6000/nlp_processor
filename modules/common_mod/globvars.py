@@ -6,7 +6,7 @@
 VK_SOURCE_ID - id VK in table www_sources
 '''
 
-import Modules.Common.const as const
+import modules.common_mod.const as const
 
 GDpy = dict()
 

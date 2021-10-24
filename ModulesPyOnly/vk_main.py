@@ -2,18 +2,18 @@ import time
 import datetime
 import json
 
-import Modules.Crawling.vk as vk
+import modules.crawling.vk as vk
 
-import Modules.Common.pginterface as pginterface
-import Modules.Common.const as const
-import Modules.Crawling.crawler as crawler
-import Modules.Crawling.scraper as scraper
-import Modules.Crawling.exceptions as exceptions
-import Modules.Crawling.date as date
-import Modules.Crawling.accounts as accounts
-import Modules.Crawling.pauser as pauser
+import modules.common_mod.pginterface as pginterface
+import modules.common_mod.const as const
+import modules.crawling.crawler as crawler
+import modules.crawling.scraper as scraper
+import modules.crawling.exceptions as exceptions
+import modules.crawling.date as date
+import modules.crawling.accounts as accounts
+import modules.common_mod.pauser as pauser
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 

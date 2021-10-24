@@ -6,7 +6,7 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
-from Modules.CrawlingScrapy.spiders.tripadv import logger_res, logger_err
+from modules.crawling_scrapy.spiders.tripadv import logger_res, logger_err
 
 
 class GitScrapyPipeline:

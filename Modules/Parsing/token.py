@@ -1,5 +1,5 @@
-import Modules.Common.const as const
-import Modules.Common.common as common
+import modules.common_mod.const as const
+import modules.common_mod.common as common
 
 from deeppavlov.models.tokenizers.ru_sent_tokenizer import RuSentTokenizer, JOINING_SHORTENINGS
 
@@ -101,10 +101,10 @@ if __name__ == "__main__":
         GD = None
     else: 
         GD = {}
-    from Modules.Common.globvars import GlobVars
+    from modules.common_mod.globvars import GlobVars
     gvars = GlobVars(GD)
 
-    import Modules.Common.pginterface as pginterface
+    import modules.common_mod.pginterface as pginterface
 
     cass_db = pginterface.MainDB(plpy, GD)
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, 10, 'tokenize', state = 'off')

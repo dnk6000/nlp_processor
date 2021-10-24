@@ -3,7 +3,7 @@
 import re
 import datetime
 
-import Modules.Common.const as const
+import modules.common_mod.const as const
 
 class StrToDate:
     '''re_patterns - 're'-patterns str or list with  str:

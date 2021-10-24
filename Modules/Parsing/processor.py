@@ -1,13 +1,17 @@
-import Modules.Common.const as const
-import Modules.Common.common as common
-import Modules.Common.globvars as globvars
+import modules.common_mod.const as const
+import modules.common_mod.common as common
+import modules.common_mod.globvars as globvars
 
-import Modules.Parsing.ner as ner
-import Modules.Parsing.lemma as lemma
-import Modules.Parsing.token as token
-import Modules.Parsing.sentiment as sentiment
+import modules.parsing.ner as ner
+import modules.parsing.lemma as lemma
+import modules.parsing.token as token
+import modules.parsing.sentiment as sentiment
 
-import Modules.Crawling.exceptions as exceptions
+import modules.crawling.exceptions as exceptions
+
+import modules.crawling.date as date
+
+from modules.crawling.crawler import remove_empty_symbols
 
 class DataProcessor(common.CommonFunc):
     def __init__(self, *args,
@@ -26,9 +30,12 @@ class DataProcessor(common.CommonFunc):
         self.id_www_source = id_www_source
         self.portion_size = portion_size
 
+        self.process_description = 'non named process'
+
 
     def process(self):
         try:
+            self.log_start_process();
             self._process()
         except exceptions.UserInterruptByDB as e:
             self.log_critical_error(e)
@@ -46,6 +53,10 @@ class DataProcessor(common.CommonFunc):
 
     def log_critical_error(self, raised_exeption):
         pass
+    
+    def log_start_process(self):
+        self.debug_msg('{}: Batch start. Project: {}  {}'.format(date.date_now_str(), self.id_project, self.process_description))
+        self.db.log_info(const.LOG_INFO_DATA_PROCESSOR, self.id_project, 'Started: '+self.process_description)
 
 class SentimentProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -58,12 +69,15 @@ class SentimentProcessor(DataProcessor):
 
         self.debug_num_portions = 3 #number portions to stop process
 
+        self.process_description = 'Tonalization. Source: '+str(self.id_www_source)
+
     def get_text_portion(self):
         self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
     def _process(self):
         portion_counter = 1
-        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
+        self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
+        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
         self.get_text_portion()
 
         while len(self.raw_text) > 0:
@@ -74,7 +88,7 @@ class SentimentProcessor(DataProcessor):
             sentence_tokens = self.sent_tokenizer.tokenize(text_only)
 
             #sentiment analysis of the text as a whole
-            self.debug_msg('---sentim text analize. portion = {}'.format(portion_counter))
+            #self.debug_msg('---sentim text analize. portion = {}'.format(portion_counter))
             sentiment_text = self.sentim_analizer.analize(text_only)
 
             #collect sentences in a solid list - to speed up tonalization
@@ -118,16 +132,16 @@ class SentimentProcessor(DataProcessor):
                 id_data_text = res_raw_text['id']
                 rating_text = res_sentiment_text
 
-                self.debug_msg('Upsert sentence token: id data text = {}  SENT: {}'.format(id_data_text, res_sentence_tokens))
+                #self.debug_msg('Upsert sentence token: id data text = {}  SENT: {}'.format(id_data_text, res_sentence_tokens))
                 sent_token_id = self.save_token_result(id_data_text, res_sentence_tokens)
 
-                self.debug_msg('Upsert sentiment text: id data text = {}  RATE: {}'.format(id_data_text, rating_text))
+                #self.debug_msg('Upsert sentiment text: id data text = {}  RATE: {}'.format(id_data_text, rating_text))
                 self.save_sentim_text(id_data_text, self.get_rating_id(rating_text))
 
                 for sent_token in zip(res_sentence_tokens, res_sentiment_sent, sent_token_id):
                     rating_sent = sent_token[1]
                     id_token_sentence = sent_token[2]['upsert_sentence']
-                    self.debug_msg('Upsert sentiment sentence: id data text = {}  RATE: {} ID SENT TOKEN: {}'.format(id_data_text, rating_sent, id_token_sentence))
+                    #self.debug_msg('Upsert sentiment sentence: id data text = {}  RATE: {} ID SENT TOKEN: {}'.format(id_data_text, rating_sent, id_token_sentence))
                     self.save_sentim_sentence(id_data_text, id_token_sentence, self.get_rating_id(rating_sent))
 
                 self.db.data_text_set_is_process(id_data_text, autocommit = False)
@@ -138,7 +152,8 @@ class SentimentProcessor(DataProcessor):
                 break
 
             portion_counter += 1
-            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
+            self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
+            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_text_portion()
         pass
 
@@ -189,6 +204,8 @@ class NerProcessor(DataProcessor):
 
         self.double_symbols_remover = ner.DoubleSymbolsRemover(*args, **kwargs)
 
+        self.process_description = 'NE recognize. Source: '+str(self.id_www_source)
+
     def get_raw_sentences(self):
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
@@ -209,8 +226,8 @@ class NerProcessor(DataProcessor):
             self.check_user_interrupt()
 
             portion_counter += 1
-            self.debug_msg('Get portion for NerProcessor Portion: {}'.format(portion_counter))
-            self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {}'.format(portion_counter))
+            self.debug_msg('{}: Get portion for NerProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
+            self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_raw_sentences()
             if len(self.raw_sentences) == 0:
                 break
@@ -221,6 +238,10 @@ class NerProcessor(DataProcessor):
 
                 _sentences = [i['txt'] for i in self.raw_sentences]
                 self.double_symbols_remover.remove_from_list(_sentences)
+
+                for i in range(len(_sentences)):
+                    _sentences[i] = remove_empty_symbols(_sentences[i]) #to solving problem with \xa0
+
                 self.url_recognizer.recognize(_sentences)
                 if self.debug_sentence_id != 0:
                     self.debug_msg('    Sentences: '+str(_sentences))

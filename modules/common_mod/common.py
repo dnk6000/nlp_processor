@@ -1,6 +1,6 @@
 import logging
 
-import Modules.Common.const as const
+import modules.common_mod.const as const
 
 class CommonFunc:
 	def __init__(self, *args, debug_mode = True, msg_func = None, **kwargs):

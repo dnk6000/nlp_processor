@@ -1,4 +1,4 @@
-import Modules.Common.const as const
+import modules.common_mod.const as const
 
 VK_ACCOUNT = [
     #--0--

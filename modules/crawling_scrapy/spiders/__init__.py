@@ -10,7 +10,7 @@ import os
 class RunSpider:
     def __init__(self, spider):
 
-        settings_file_path = 'Modules.CrawlingScrapy.settings' # The path seen from root, ie. from main.py
+        settings_file_path = 'modules.crawling_scrapy.settings' # The path seen from root, ie. from main.py
         os.environ.setdefault('SCRAPY_SETTINGS_MODULE', settings_file_path)
         self.process = CrawlerProcess(get_project_settings())
         self.spider = spider # The spider you want to crawl

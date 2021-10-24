@@ -6,13 +6,13 @@ def LemmatizeAddrBase():
     GD = None
     import ModulesPyOnly.plpyemul as plpyemul
     plpy = plpyemul.get_plpy()    
-    from Modules.Common.globvars import GlobVars
+    from modules.common_mod.globvars import GlobVars
     gvars = GlobVars(GD)
-    import Modules.Common.pginterface as pginterface
+    import modules.common_mod.pginterface as pginterface
     cass_db = pginterface.MainDB(plpy, GD)
     #connect to PG
 
-    import Modules.Parsing.lemma as lemma
+    import modules.parsing.lemma as lemma
     lemmatizer = lemma.Lemmatizer()
 
     socr_recs = cass_db.custom_simple_request('SELECT scname FROM addr.fias_socrbase WHERE NOT scname IS NULL;')

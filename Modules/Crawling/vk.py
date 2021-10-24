@@ -22,12 +22,12 @@ import vk_requests.exceptions
 from bs4 import BeautifulSoup
 
 #internal modules
-import Modules.Crawling.crawler as crawler
-import Modules.Crawling.scraper as scraper
-import Modules.Crawling.exceptions as exceptions
-import Modules.Common.const as const
-import Modules.Crawling.date as date
-import Modules.Crawling.pauser as pauser
+import modules.crawling.crawler as crawler
+import modules.crawling.scraper as scraper
+import modules.crawling.exceptions as exceptions
+import modules.common_mod.const as const
+import modules.crawling.date as date
+import modules.common_mod.pauser as pauser
 
 #import asyncio
 #from pyppeteer import launch

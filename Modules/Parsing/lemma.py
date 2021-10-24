@@ -1,5 +1,5 @@
-import Modules.Common.const as const
-import Modules.Common.common as common
+import modules.common_mod.const as const
+import modules.common_mod.common as common
 
 from deeppavlov import configs, build_model
 

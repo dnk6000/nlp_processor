@@ -7,10 +7,10 @@ from datetime import datetime
 from urllib.parse import urldefrag, parse_qsl
 import logging
 
-from Modules.CrawlingScrapy.items import ScrapyTripadvisorItem 
-from Modules.CrawlingScrapy.selenium.git_selenium import SelenDriver, EmptyWebElement
-import Modules.Common.const as const
-import Modules.Common.common as common
+from modules.crawling_scrapy.items import ScrapyTripadvisorItem 
+from modules.crawling_scrapy.selenium.git_selenium import SelenDriver, EmptyWebElement
+import modules.common_mod.const as const
+import modules.common_mod.common as common
 
 __log_format = f"%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
 
@@ -354,16 +354,16 @@ def LemmatizeTripAdvisor(cass_db):
     #GD = None
     #import ModulesPyOnly.plpyemul as plpyemul
     #plpy = plpyemul.get_plpy()    
-    #from Modules.Common.globvars import GlobVars
+    #from modules.common_mod.globvars import GlobVars
     #gvars = GlobVars(GD)
-    #import Modules.Common.pginterface as pginterface
+    #import modules.common_mod.pginterface as pginterface
     #cass_db = pginterface.MainDB(plpy, GD)
 
     non_lemmatized_recs = cass_db.custom_simple_request("SELECT id, name \
                                                          FROM git010_dict.trip_advisor \
                                                          WHERE name_lemma = '';")
 
-    import Modules.Parsing.lemma as lemma
+    import modules.parsing.lemma as lemma
     lemmatizer = lemma.Lemmatizer()
 
     _sentences = [i['name'] for i in non_lemmatized_recs]

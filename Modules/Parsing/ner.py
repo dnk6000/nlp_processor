@@ -1,11 +1,11 @@
-import Modules.Common.const as const
-import Modules.Common.common as common
+import modules.common_mod.const as const
+import modules.common_mod.common as common
 
 from deeppavlov import configs, build_model
 
 import re
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
 
 ENTITY_NAME_URL = 'GIT-URL'

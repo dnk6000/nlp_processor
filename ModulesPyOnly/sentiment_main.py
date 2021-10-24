@@ -1,12 +1,15 @@
-import Modules.Common.const as const
-import Modules.Common.pginterface as pginterface
-import Modules.Parsing.processor as processor
+import modules.common_mod.const as const
+import modules.common_mod.pginterface as pginterface
+import modules.parsing.processor as processor
+import modules.common_mod.pauser as pauser
+from datetime import time as timedt
 
 
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'debug'
 step_name = 'process'
+step_name = 'process_shedule'
 ID_PROJECT_main = 10
 
 if const.PY_ENVIRONMENT:
@@ -15,7 +18,7 @@ if const.PY_ENVIRONMENT:
 ####### end: for PY environment only #############
 ####################################################
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 
@@ -64,3 +67,39 @@ if step_name == 'process':
     dp.process()
     pass
 
+if step_name == 'process_shedule':
+
+    VK_ID_PROJECT = 9
+    TG_ID_PROJECT = 10
+
+    PORTION_SIZE = 300
+    NUM_PORTIONS = 50
+
+    shedule_pauser = pauser.DayShedulePauser()
+    shedule_pauser.add_pause(timedt(9,0,0),timedt(23,59,59))
+
+    dp_vk = processor.SentimentProcessor(db = cass_db,
+                    id_project = VK_ID_PROJECT,
+                    id_www_source = VK_SOURCE_ID,
+                    need_stop_cheker = need_stop_cheker,
+                    debug_mode = DEBUG_MODE,
+                    msg_func = plpy.notice,
+                    portion_size = PORTION_SIZE)
+
+    dp_vk.debug_num_portions = NUM_PORTIONS
+
+    dp_tg = processor.SentimentProcessor(db = cass_db,
+                    id_project = TG_ID_PROJECT,
+                    id_www_source = TG_SOURCE_ID,
+                    need_stop_cheker = need_stop_cheker,
+                    debug_mode = DEBUG_MODE,
+                    msg_func = plpy.notice,
+                    portion_size = PORTION_SIZE)
+
+    dp_tg.debug_num_portions = NUM_PORTIONS
+
+    while True:
+        shedule_pauser.sleep_if_need()
+        dp_vk.process()
+        shedule_pauser.sleep_if_need()
+        dp_tg.process()

@@ -1,13 +1,15 @@
-import Modules.Common.const as const
-import Modules.Common.pginterface as pginterface
-import Modules.Parsing.processor as processor
-
+import modules.common_mod.const as const
+import modules.common_mod.pginterface as pginterface
+import modules.parsing.processor as processor
+import modules.common_mod.pauser as pauser
+from datetime import time as timedt
 
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'debug'
 step_name = 'debug_sent_list'
 step_name = 'process'
+step_name = 'process_shedule'
 ID_PROJECT_main = 10
 
 if const.PY_ENVIRONMENT:
@@ -17,7 +19,7 @@ if const.PY_ENVIRONMENT:
 ####################################################
 
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 
@@ -47,7 +49,7 @@ VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
 
 
 if step_name == 'debug':
-    #import Modules.Parsing.ner as ner
+    #import modules.parsing.ner as ner
     #mld = ner.MixedLettersDetector()
     #testString = r'- пpeдлoжeниe дeйcтвyeт тoлькo в oтнoшeнии тex лиц, ктo гoтoв зaключить дoгoвop нaймa yкaзaннoгo жилoгo пoмeщeния и aктyaльнo в тeчeниe мecяцa, * дoм нoвый; * oгopoжeннaя дeтcкaя плoщaдкa; * ecть вceгдa пapкoвoчнoe мecтo для мaшины вo двope дoмa; * зa дoмoм ecть плaтнaя aвтocтoянкa; * paзвитa инфpacтpyктypa: - в шaгoвoй дocтyпнocти ocтaнoвкa oбщecтвeннoгo тpaнcпopтa 51-й микpopaйoн (20 мeтpoв oт дoмa); - в coceднeм дoмe дeтcкий caд "Чyнгa-чaнгa" (Лoбыpинa, д.7); - в 10 минyтax xoдьбы oт дoмa Oбpaзoвaтeльный цeнтp №2, MAOУ шкoлa, дeтcкий caд 19, Дeтcкий caд 45; - Пpямo в дoмe: Kpacнoe и бeлoe, пapикмaxepcкaя; - B 5 минyтax oт дoмa мaгaзины ceтeвыe : Пятёpoчкa , Maгнит и т.д.; - дo цeнтpa гopoдa 10-ть минyт нa мaшинe и 20-ть нa oбщecтвeннoм тpaнcпopтe; - мнoгo paзвивaющиx цeнтpoв кaк для дeтeй дoшкoльнoгo и шкoльнoгo вoзpacтa, тaк и для взpocлыx.'
     #res = mld.is_sentence_mixed(testString)
@@ -80,7 +82,7 @@ if step_name == 'debug':
     testList.append(testString)
     testList.append(testString)
 
-    import Modules.Parsing.ner as ner
+    import modules.parsing.ner as ner
     nerc = ner.DoubleSimbolsRemover()
 
     nerc.remove_from_list(testList)
@@ -88,7 +90,7 @@ if step_name == 'debug':
     a=1
 
     if False:
-        import Modules.Parsing.ner as ner
+        import modules.parsing.ner as ner
 
         nerc = ner.NerConsolidator()
 
@@ -126,7 +128,7 @@ if step_name == 'debug':
     #                #Инстаграм => https://www.instagram.com/bostonclubchelyabinsk/ Телеграм => https://t.me/bostonclubchelyabinsk  \
     #                #Бостон Клуб - Курсы английского языка для детей и взрослых в Челябинске.')
     #a = 1
-    #import Modules.Parsing.token as token
+    #import modules.parsing.token as token
     #dp = token.SentenceTokenizer()
     #txt_lst = [ '  я видимо здоровья дохуя я работаю\n При поддержке Золота Бородача  ', '  я видимо здоровья дохуя я работаю\nПри поддержке Золота Бородача  \n' ]
     #res = dp.tokenize(txt_lst)
@@ -139,7 +141,7 @@ if step_name == 'debug':
 
 if step_name == 'debug_sent_list':
     #debug_id_sent_list = debug_id_sent_list = [101947,101948,101949,101950,101951,101952,101953,101954,101955,101956,101957,101990,102049,101959,101960,101961,101962,101963,101964,101965,101966,101967,101968,101969,101970,101971,101972,101973,101974,101975,101976,101977,101978,101979,101980,101981,101982,101983,101984,101985,101986,101987,101988,101989,101991,101992,101993,101994,101995,101996,101997,101998,101999,102000,102001,102002,102003,102004,102005,102007,102008,102009,102010,102011,102012,102013,102014,102015,102016,102017,102018,102019,102020,102021,102022,102023,102024,102025,102026,102027,102028,102029,102030,102031,102032,102033,102034,102035,102036,102037,102038,102039,102040,102041,102042,102043,102044,102045,102046,102050,102051,102052,102053,102054,102055,102056,102057,102058,102059,102060,102061,102062,102063,102064,102065,102066,102067,102068,102069,102070,102071,102072,102074,102075,102076,102077,102078,102079,102080,102081,102082,102083,102084,102085,102086,102087,102088,102089,102090,102091,102092,102093,102094,102095,102096,102097,102098,102099,102100,102101,102102,102103,102104,102105,102106,102107,102108,102109,102110,102111,102112,102113,102114,102115,102116,102117,102118,102119,102120,102121,102122,102123,102124,102125,102126,102127,102128,102129,102130,102131,102132,102133,102134,102135,102136,102137,102138,102139,102140,102141,102142,102143,102144,102145,102146,102147,102148,102149]
-    debug_id_sent_list = [102107]
+    debug_id_sent_list = [265121]
     dp = processor.NerProcessor(db = cass_db,
                     id_project = ID_PROJECT_main,
                     id_www_source = TG_SOURCE_ID,
@@ -170,5 +172,44 @@ if step_name == 'process':
 
     dp.process()
     pass
+
+if step_name == 'process_shedule':
+
+    VK_ID_PROJECT = 9
+    TG_ID_PROJECT = 10
+
+    PORTION_SIZE = 500
+    NUM_PORTIONS = 50
+
+    shedule_pauser = pauser.DayShedulePauser()
+    #shedule_pauser.add_pause(timedt(9,0,0),timedt(23,59,59))
+
+    dp_vk = processor.NerProcessor(db = cass_db,
+                    id_project = VK_ID_PROJECT,
+                    id_www_source = VK_SOURCE_ID,
+                    need_stop_cheker = need_stop_cheker,
+                    debug_mode = DEBUG_MODE,
+                    msg_func = plpy.notice,
+                    portion_size = PORTION_SIZE)
+
+    dp_vk.debug_num_portions = NUM_PORTIONS
+
+    dp_tg = processor.NerProcessor(db = cass_db,
+                    id_project = TG_ID_PROJECT,
+                    id_www_source = TG_SOURCE_ID,
+                    need_stop_cheker = need_stop_cheker,
+                    debug_mode = DEBUG_MODE,
+                    msg_func = plpy.notice,
+                    portion_size = PORTION_SIZE)
+
+    dp_tg.debug_num_portions = NUM_PORTIONS
+
+    while True:
+        shedule_pauser.sleep_if_need()
+        dp_vk.process()
+        shedule_pauser.sleep_if_need()
+        dp_tg.process()
+
+
 
 

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesPyOnly\tg_main.py</StartupFile>
+    <StartupFile>ModulesPyOnly\ner_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -36,50 +36,50 @@
     <Compile Include="ModulesPyOnly\sentiment_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\CrawlingScrapy\items.py" />
-    <Compile Include="Modules\CrawlingScrapy\middlewares.py" />
-    <Compile Include="Modules\CrawlingScrapy\pipelines.py" />
-    <Compile Include="Modules\CrawlingScrapy\selenium\git_selenium.py" />
-    <Compile Include="Modules\CrawlingScrapy\settings.py" />
-    <Compile Include="Modules\CrawlingScrapy\spiders\tripadv.py" />
-    <Compile Include="Modules\CrawlingScrapy\spiders\__init__.py" />
+    <Compile Include="modules\crawling_scrapy\items.py" />
+    <Compile Include="modules\crawling_scrapy\middlewares.py" />
+    <Compile Include="modules\crawling_scrapy\pipelines.py" />
+    <Compile Include="modules\crawling_scrapy\selenium\git_selenium.py" />
+    <Compile Include="modules\crawling_scrapy\settings.py" />
+    <Compile Include="modules\crawling_scrapy\spiders\tripadv.py" />
+    <Compile Include="modules\crawling_scrapy\spiders\__init__.py" />
     <Compile Include="ModulesPyOnly\tripadv_main.py" />
-    <Compile Include="Modules\CrawlingScrapy\__init__.py" />
-    <Compile Include="Modules\Crawling\crawler.py" />
-    <Compile Include="Modules\Crawling\exceptions.py">
+    <Compile Include="modules\crawling_scrapy\__init__.py" />
+    <Compile Include="modules\crawling\crawler.py" />
+    <Compile Include="modules\crawling\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Crawling\date.py">
+    <Compile Include="modules\crawling\date.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Crawling\accounts.py">
+    <Compile Include="modules\crawling\accounts.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Common\common.py">
+    <Compile Include="modules\common_mod\common.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Crawling\tg.py">
+    <Compile Include="modules\crawling\tg.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\tg_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\lemma.py">
+    <Compile Include="modules\parsing\lemma.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\dict_download.py">
+    <Compile Include="modules\parsing\dict_download.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\ner.py">
+    <Compile Include="modules\parsing\ner.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\processor.py">
+    <Compile Include="modules\parsing\processor.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\sentiment.py">
+    <Compile Include="modules\parsing\sentiment.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Parsing\token.py">
+    <Compile Include="modules\parsing\token.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesTemp\draft_deeppavlov.py">
@@ -100,16 +100,16 @@
     <Compile Include="ModulesTemp\telegram_draft_temp.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Crawling\pauser.py">
+    <Compile Include="modules\common_mod\pauser.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\vk_main.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Common\const.py">
+    <Compile Include="modules\common_mod\const.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Modules\Common\globvars.py">
+    <Compile Include="modules\common_mod\globvars.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\self_psw.py">
@@ -135,9 +135,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesTest\z_ParserAddressByNatasha.py" />
-    <Compile Include="Modules\Common\pginterface.py" />
-    <Compile Include="Modules\Crawling\scraper.py" />
-    <Compile Include="Modules\Crawling\vk.py" />
+    <Compile Include="modules\common_mod\pginterface.py" />
+    <Compile Include="modules\crawling\scraper.py" />
+    <Compile Include="modules\crawling\vk.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="CassandraPy37\">
@@ -152,15 +152,15 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Documentation\" />
-    <Folder Include="Modules\CrawlingScrapy\" />
-    <Folder Include="Modules\CrawlingScrapy\selenium\" />
-    <Folder Include="Modules\CrawlingScrapy\spiders\" />
-    <Folder Include="Modules\Crawling\" />
-    <Folder Include="Modules\Common\" />
+    <Folder Include="modules\crawling_scrapy\" />
+    <Folder Include="modules\crawling_scrapy\selenium\" />
+    <Folder Include="modules\crawling_scrapy\spiders\" />
+    <Folder Include="modules\crawling\" />
+    <Folder Include="modules\common_mod\" />
     <Folder Include="Config\" />
-    <Folder Include="Modules\" />
+    <Folder Include="modules\" />
     <Folder Include="ModulesPyOnly\" />
-    <Folder Include="Modules\Parsing\" />
+    <Folder Include="modules\parsing\" />
     <Folder Include="ModulesTemp\" />
     <Folder Include="ModulesTest\" />
     <Folder Include="Logs\" />
@@ -181,7 +181,7 @@
     <Content Include="Config\ner_rus_bert.json" />
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
-    <Content Include="Modules\CrawlingScrapy\selenium\chromedriver.exe" />
+    <Content Include="modules\crawling_scrapy\selenium\chromedriver.exe" />
     <Content Include="PGscripts\dbf_import.sql" />
     <Content Include="PGscripts\fias_geocode.sql" />
     <Content Include="PGscripts\fias.sql" />

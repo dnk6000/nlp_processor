@@ -3,8 +3,8 @@ from psycopg2.extras import RealDictCursor
 import re
 import time
 
-import Modules.Common.const as const
-import Modules.Crawling.pauser as pauser
+import modules.common_mod.const as const
+import modules.common_mod.pauser as pauser
 
 import ModulesPyOnly.self_psw as self_psw
 

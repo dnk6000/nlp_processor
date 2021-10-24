@@ -27,6 +27,7 @@ ERROR_DATE_RECOGNIZE        = 'Date not recognize'
 ERROR_CONNECTION            = 'Connection error'
 
 LOG_INFO_REQUEST_PAUSE      = 'Request pause'
+LOG_INFO_DATA_PROCESSOR     = 'Data processor'
 
 CW_RESULT_TYPE_NUM_SUBSCRIBERS  = 'NUM_SUBSCRIBERS'
 CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND = 'NUM_SUBSCRIBERS Not found'

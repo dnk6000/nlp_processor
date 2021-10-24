@@ -1,9 +1,9 @@
-import Modules.Common.const as const
-import Modules.Common.pginterface as pginterface
+import modules.common_mod.const as const
+import modules.common_mod.pginterface as pginterface
 
-import Modules.CrawlingScrapy.spiders as spiders
-from Modules.CrawlingScrapy.spiders.tripadv import TripAdvisorSpider
-from Modules.CrawlingScrapy.spiders.tripadv import LemmatizeTripAdvisor
+import modules.crawling_scrapy.spiders as spiders
+from modules.crawling_scrapy.spiders.tripadv import TripAdvisorSpider
+from modules.crawling_scrapy.spiders.tripadv import LemmatizeTripAdvisor
 
 
 ####################################################
@@ -19,7 +19,7 @@ if const.PY_ENVIRONMENT:
 ####################################################
 
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: 
     GD = None
 else: 

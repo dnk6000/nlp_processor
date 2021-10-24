@@ -1,8 +1,8 @@
-import Modules.Common.const as const
-import Modules.Crawling.exceptions as exceptions
-import Modules.Crawling.date as date
+import modules.common_mod.const as const
+import modules.crawling.exceptions as exceptions
+import modules.crawling.date as date
 
-from Modules.Common.globvars import GlobVars
+from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: GD = None
 gvars = None
 
@@ -478,7 +478,7 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
 
 if __name__ == "__main__":
     import ModulesPyOnly.self_psw as self_psw
-    from Modules.Common.globvars import GlobVars
+    from modules.common_mod.globvars import GlobVars
     if const.PY_ENVIRONMENT: 
         GD = None
     else: 
