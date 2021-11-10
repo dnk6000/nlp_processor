@@ -72,8 +72,8 @@ if step_name == 'process_shedule':
     VK_ID_PROJECT = 9
     TG_ID_PROJECT = 10
 
-    PORTION_SIZE = 300
-    NUM_PORTIONS = 50
+    PORTION_SIZE = 100
+    NUM_PORTIONS = 20
 
     shedule_pauser = pauser.DayShedulePauser()
     shedule_pauser.add_pause(timedt(9,0,0),timedt(23,59,59))
