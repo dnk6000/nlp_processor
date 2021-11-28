@@ -63,4 +63,10 @@ def get_err_description(_exeption, **kwargs):
     _descr += traceback.format_exc()
     _descr += '\n'+' Exception: '+str(_exeption)
     _descr += '\n'+' kwargs: '+str(kwargs)
+    try:
+        if hasattr(_exeption, 'extra_info'):
+            _descr += '\n'+' extra_info: '+str(_exeption.extra_info)
+    except:
+        pass
     return _descr
+

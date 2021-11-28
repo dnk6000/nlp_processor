@@ -42,7 +42,7 @@ class CrawlerCommon(common.CommonFunc):
 		if proxy is None:
 			self.proxy = None
 		else:
-			self.proxy = proxy.get_dict_socks5()
+			self.proxy = proxy
 
 	def check_user_interrupt(self):
 		if self.need_stop_checker is None:
@@ -91,8 +91,23 @@ class Telegram(CrawlerCommon):
 		session = const.TOKEN_FOLDER + self.username + SQLiteSession_EXTENSION #for cache in sqlite3
 		#its_new_session = False
 		
-		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash, proxy = self.proxy)
-		self.client.start()
+		if self.proxy is None:
+			proxy = None
+		else:
+			proxy = self.proxy.get_dict_socks5()
+
+		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash, proxy = proxy)
+		try:
+			self.client.start()
+		except Exception as e:
+			try:
+				if not self.proxy is None:
+					self.proxy.check_ip()
+					e.extra_info = str(self.proxy)
+			except:
+				pass
+			raise
+		pass
 		
 		#if its_new_session:
 		#	self.save_session()

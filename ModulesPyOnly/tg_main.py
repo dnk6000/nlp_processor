@@ -28,10 +28,9 @@ CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челяб�
 
 ####################################################
 ####### begin: for PY environment only #############
-step_name = 'crawl_subscribers'
+step_name = 'debug'
 step_name = 'crawl_wall'
 step_name = 'crawl_groups'
-step_name = 'debug'
 ID_PROJECT_main = 12
 
 if const.PY_ENVIRONMENT:
@@ -372,7 +371,11 @@ if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
     #tg_add_group(id_project = ID_PROJECT_main, name_group = 'meduzalive')
     #tg_add_group(id_project = ID_PROJECT_main, name_group = 'breakingmash')
     #tg_add_group(id_project = ID_PROJECT_main, name_group = 'rabotaa_chelyabinsk')
-    tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
+    try:
+        tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
+    except Exception as e:
+        cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
+        raise
     pass
 
 #--2--

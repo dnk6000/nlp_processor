@@ -364,8 +364,15 @@ class CrawlerVk(CrawlerSocialNet):
                     cities = self.api.database.getCities(country_id = 1, region_id = 1067455)
                 except vk_requests.exceptions.VkAPIError:
                     _need_new_token = True
-                #except Exception as e:
-                #    self.msg(e)
+                except Exception as e:
+                    try:
+                        if not self.proxy is None:
+                            self.proxy.check_ip()
+                            e.extra_info = str(self.proxy)
+                    except:
+                        pass
+                    raise
+                    #self.msg(e)
             else:
                 _need_new_token = True
 
@@ -739,6 +746,8 @@ class CrawlerVkWall(CrawlerVk):
                 yield step_result
         except requests.exceptions.RequestException as e:
             _descr = exceptions.get_err_description(e, _cw_url = self._cw_url)
+            if not self.proxy is None:
+                _descr = _descr + '\n' + str(self.proxy)
             self._cw_add_to_result_critical_error(str(e), _descr)
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)  
             return

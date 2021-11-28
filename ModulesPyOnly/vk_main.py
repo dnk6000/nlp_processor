@@ -25,10 +25,10 @@ gvars = GlobVars(GD)
 DEBUG_MODE = False
 
 ####### begin: for PY environment only #############
-step_name = '_crawl_wall'
 step_name = 'debug'
-step_name = 'crawl_groups'
 step_name = 'crawl_subscribers'
+step_name = 'crawl_wall'
+step_name = 'crawl_groups'
 ID_PROJECT = 11
 
 if const.PY_ENVIRONMENT:
@@ -103,7 +103,7 @@ def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
             cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
             plpy.notice(res_unit['err_type'])
             if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
-                plpy.notice('Request error: pause before repeating...')
+                plpy.notice(date.date_now_str()+' Request error: pause before repeating...')
                 time.sleep(2) #TODO через параметр
                 
         elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
@@ -142,7 +142,8 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
 
-    request_error_pauser = pauser.ExpPauser()
+    #request_error_pauser = pauser.ExpPauser()
+    request_error_pauser = pauser.ExpPauser(delay_seconds = 1, number_intervals = 5)  #DEBUG
 
     wall_processed = False
     CriticalErrorsLimit = 3
@@ -362,7 +363,11 @@ if step_name == 'clear_all':
 #--1--
 if step_name == 'crawl_groups':
     cass_db.log_info('Start '+step_name, ID_PROJECT,'')
-    vk_crawl_groups(ID_PROJECT)
+    try:
+        vk_crawl_groups(ID_PROJECT)
+    except Exception as e:
+        cass_db.log_fatal('CriticalErr on main_vk', ID_PROJECT, exceptions.get_err_description(e))
+        raise
 
 #--2--
 if step_name == 'crawl_subscribers':

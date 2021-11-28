@@ -6,6 +6,8 @@ import modules.common_mod.common as common
 
 
 class Proxy(common.CommonFunc):
+	IP_ERROR_MSG = '<error>'
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(**kwargs)
 
@@ -15,11 +17,17 @@ class Proxy(common.CommonFunc):
 		self.user = ''
 		self.psw = ''
 		self.ssl = True
+		self.check_ip_result = ''
 
 		if self.debug_mode:
 			#self.ip = '121.244.147.137'
 			#self.port = '8080'
 			pass
+
+	def __str__(self):
+		if self.ip == '' or self.ip.isspace():
+			return None
+		return f'Proxy ip={self.ip} port={self.port} port_socks5={self.port_socks5} user={self.user} psw={self.psw} ssl={str(self.ssl)} check_res={self.check_ip_result}'
 
 	def get_ip_with_port(self):
 		if self.user == '' or self.user.isspace():
@@ -61,7 +69,7 @@ class Proxy(common.CommonFunc):
 		http = 'https://' if self.ssl else 'http://'
 		service_url = f'{http}{service_www}'
 
-		if informing: self.msg(f'Check ip starting ({service_url})...')
+		if informing: self.msg(f'Checking ip starting ({service_url})...')
 		
 		if session is None:
 			session = requests.Session()
@@ -74,11 +82,13 @@ class Proxy(common.CommonFunc):
 			ip_txt = result.text.strip()
 			if informing: self.msg(f'ip = {ip_txt}')
 		except Exception as e:
-			ip_txt = '<sorry we have a error>'
+			ip_txt = self.IP_ERROR_MSG
 			if informing: self.msg(str(e))
 			if informing: self.msg(sys.exc_info())
 
-		if informing: self.msg('Check ip finished')
+		if informing: self.msg('Checking ip finished')
+
+		self.check_ip_result = ip_txt
 
 		return ip_txt
 
