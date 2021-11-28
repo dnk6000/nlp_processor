@@ -251,6 +251,18 @@ class MainDB:
         res = self.plpy.execute(gvars.GD[plan_id], [id_project])
         return convert_select_result(res, ['date_deep'], ['requests_delay_sec']) 
 
+    def get_proxy_project(self, id_project):
+        plan_id = 'plan_get_proxy_project'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git000_cfg.get_proxy_project($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id_project])
+        return convert_select_result(res) 
+
     def create_project(self, 
                        id_project, 
                        name = '', 
@@ -512,13 +524,13 @@ if __name__ == "__main__":
     #res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
     #res = cass_db.upsert_trip_advisor('11Ресторан Засека', 'ресторан засека', 'Restaurant Zaseka', 'Пенза Мира 22', 
     #                                    'Рестораны', 66.55555, 59.33333, 'www из питона')
-
-    res = cass_db.custom_simple_request("SELECT \
-                                            id, \
-                                            name \
-                                        FROM \
-                                          git010_dict.trip_advisor \
-                                        WHERE name_lemma = '';")
+    res = cass_db.get_proxy_project(11)
+    #res = cass_db.custom_simple_request("SELECT \
+    #                                        id, \
+    #                                        name \
+    #                                    FROM \
+    #                                      git010_dict.trip_advisor \
+    #                                    WHERE name_lemma = '';")
 
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)

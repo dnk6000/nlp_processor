@@ -16,6 +16,7 @@ import requests_html
 import requests.exceptions
 import lxml.html
 
+import vk_api
 import vk_requests
 import vk_requests.exceptions
 
@@ -53,6 +54,7 @@ class CrawlerSocialNet:
                  need_stop_cheker = None,
                  requests_delay_sec = 2,
                  request_error_pauser = None,
+                 proxy = None,
                  **kwargs
                  ):
         """
@@ -74,21 +76,21 @@ class CrawlerSocialNet:
         if base_search_words is None:
             self.base_search_words = ['пенза', 'penza', 'pnz']
         else:
-            self.base_search_words = base_search_words
+            self.base_search_words = [w.strip() for w in base_search_words]
         
         self.search_list = []
         for i in self.base_search_words:
-            self.search_list = [{ 'search_str': i,
-                                 'type' : None, #Возможные значения: group, page, event
-                                 'sort' : None,     #0 — сортировать по умолчанию (аналогично результатам поиска в полной версии сайта);
-                                                    #1 — сортировать по скорости роста;
-                                                    #2 — сортировать по отношению дневной посещаемости к количеству пользователей;
-                                                    #3 — сортировать по отношению количества лайков к количеству пользователей;
-                                                    #4 — сортировать по отношению количества комментариев к количеству пользователей;
-                                                    #5 — сортировать по отношению количества записей в обсуждениях к количеству пользователей.
-                                 '_level': 0,              #управляющий элемент
-                                  '_source_search_str': i  #исходная поисковая строка, т.е. строка с _level = 0
-                               }]
+            self.search_list.append({'search_str': i,
+                                     'type' : None, #Возможные значения: group, page, event
+                                     'sort' : None,     #0 — сортировать по умолчанию (аналогично результатам поиска в полной версии сайта);
+                                                        #1 — сортировать по скорости роста;
+                                                        #2 — сортировать по отношению дневной посещаемости к количеству пользователей;
+                                                        #3 — сортировать по отношению количества лайков к количеству пользователей;
+                                                        #4 — сортировать по отношению количества комментариев к количеству пользователей;
+                                                        #5 — сортировать по отношению количества записей в обсуждениях к количеству пользователей.
+                                     '_level': 0,              #управляющий элемент
+                                     '_source_search_str': i  #исходная поисковая строка, т.е. строка с _level = 0
+                                   })
 
         self.crawl_method = crawl_method
 
@@ -120,6 +122,7 @@ class CrawlerSocialNet:
         self._requests_pauser = pauser.IntervalPauser(delay_seconds = requests_delay_sec)
         self._request_error_pauser = request_error_pauser
 
+        self.proxy = proxy
 
 
     def msg(self, message):
@@ -315,6 +318,11 @@ class CrawlerSocialNet:
         if not self._request_error_pauser is None:
             self._request_error_pauser.reset()
 
+    def set_session_proxy(self, session):
+        if self.proxy is None:
+            return
+        self.proxy.set_session_proxy(session, check = False)
+
 class CrawlerVk(CrawlerSocialNet):
     def __init__(self, *args, **kwargs):
 
@@ -345,8 +353,14 @@ class CrawlerVk(CrawlerSocialNet):
                 with open(self.token_file_name, 'r') as f:
                     self.service_token = f.read()
 
+                if self.proxy is None:
+                    http_params = None
+                else:
+                    #self.proxy.check_ip()
+                    http_params = {'proxies': self.proxy.get_dict()}
+
                 try:
-                    self.api = vk_requests.create_api(service_token = self.service_token)
+                    self.api = vk_requests.create_api(service_token = self.service_token, http_params = http_params)
                     cities = self.api.database.getCities(country_id = 1, region_id = 1067455)
                 except vk_requests.exceptions.VkAPIError:
                     _need_new_token = True
@@ -357,7 +371,7 @@ class CrawlerVk(CrawlerSocialNet):
 
             if _need_new_token:
                 if self.get_vk_service_token():
-                    self.api = vk_requests.create_api(service_token = self.service_token)
+                    self.api = vk_requests.create_api(service_token = self.service_token, http_params = http_params)
                 else:
                     self.msg('Ошибка получения нового токена VK !')
                     raise exceptions.CrawlVkGetTokenError
@@ -367,6 +381,7 @@ class CrawlerVk(CrawlerSocialNet):
 
         #session = requests_html.session()
         session = requests_html.HTMLSession()
+        self.set_session_proxy(session)
         data = session.get(self.url, headers=self.headers)
         page = lxml.html.fromstring(data.content)
 
@@ -382,11 +397,12 @@ class CrawlerVk(CrawlerSocialNet):
             self.msg('VK authorisation error !')
             return None
 
-    def get_vk_service_token(self):
+    def __archive_get_vk_service_token(self):
 
         self.msg('Получение нового токена')
 
         session = requests.session()
+        self.set_session_proxy(session)
         data = session.get(self.url, headers = self.headers)
         page = lxml.html.fromstring(data.content)
 
@@ -418,6 +434,35 @@ class CrawlerVk(CrawlerSocialNet):
             return True
 
         return False
+
+    def get_vk_service_token(self):
+        config_filename = const.TOKEN_FOLDER + 'vk_config.v2.json'
+
+        vk = vk_api.VkApi(self.login, self.password, config_filename = config_filename)
+        vk.auth()  #we can get app_id from here 6222115
+
+        with open(config_filename, 'r') as data_file:
+            data = json.load(data_file)
+
+        access_token = ''
+        data_branch = data[self.login]['token']
+
+        for i in data_branch.keys():
+            for j in data_branch[i].keys():
+                access_token = data_branch[i][j]['access_token']
+
+        os.remove(config_filename)
+
+        if access_token == '':
+            return False
+
+        self.service_token = access_token
+
+        with open(self.token_file_name, 'w') as f:
+            psw = f.write(self.service_token)
+
+        return True
+
 
 class CrawlerVkGroups(CrawlerVk):
     def __init__(self, *args, **kwargs):
@@ -727,6 +772,7 @@ class CrawlerVkWall(CrawlerVk):
         self._cw_num_repl_request = 20  #number of replies received per request
 
         self._cw_session = requests_html.HTMLSession()
+        self.set_session_proxy(self._cw_session)
 
         self._cw_group_id = group_id
         if not self._cw_debug_mode or self._cw_debug_post_filter == '':
@@ -742,9 +788,9 @@ class CrawlerVkWall(CrawlerVk):
         self._requests_pauser.smart_sleep()
 
         _request_attempt = self.request_tries
-        while True:
-            try:
-                d = self._cw_session.get(self._cw_url, headers = self.headers)
+        while True:                                                              #self.proxy.check_ip(self._cw_session)   self.proxy.check_ip(informing = True)
+            try:                                                                 #self._cw_session.get('https://icanhazip.com/')  self._cw_session.get('https://vk.com/')
+                d = self._cw_session.get(self._cw_url, headers = self.headers)   #self._cw_session.get('https://ria.ru/') self._cw_session.get('https://welcome.stepik.org/en')
                 self.reset_request_error_pauser()
                 break
             except Exception as e:
@@ -1290,7 +1336,7 @@ class CrawlerVkWall(CrawlerVk):
         return result, par
 
     def _cw_scrap_subscribers(self, result, par, **kwargs):
-        self.msg(str(result))
+        #self.msg(str(result))
 
         if result is None: return None, par
         

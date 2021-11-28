@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesPyOnly\sentiment_main.py</StartupFile>
+    <StartupFile>ModulesPyOnly\vk_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -34,6 +34,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\sentiment_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="modules\common_mod\proxy.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\crawling_scrapy\items.py" />
@@ -186,6 +189,7 @@
     <Content Include="PGscripts\dbf_import.sql" />
     <Content Include="PGscripts\fias_geocode.sql" />
     <Content Include="PGscripts\fias.sql" />
+    <Content Include="PGscripts\FrontEndTestSelection_1.xls" />
     <Content Include="PGscripts\monitor_tg.sql" />
     <Content Include="PGscripts\monitor_vk.sql" />
     <Content Include="PGscripts\ner.sql" />

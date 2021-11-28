@@ -5,13 +5,14 @@ import json
 import modules.common_mod.const as const
 import modules.common_mod.common as common
 import modules.common_mod.pginterface as pginterface
+import modules.common_mod.proxy as proxy
+import modules.common_mod.pauser as pauser
 
 import modules.crawling.date as date
 import modules.crawling.tg as tg
 import modules.crawling.accounts as accounts
 import modules.crawling.crawler as crawler
 import modules.crawling.scraper as scraper
-import modules.common_mod.pauser as pauser
 import modules.crawling.exceptions as exceptions
 
 from modules.common_mod.globvars import GlobVars
@@ -28,9 +29,9 @@ CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челяб�
 ####################################################
 ####### begin: for PY environment only #############
 step_name = 'crawl_subscribers'
+step_name = 'crawl_wall'
 step_name = 'crawl_groups'
 step_name = 'debug'
-step_name = 'crawl_wall'
 ID_PROJECT_main = 12
 
 if const.PY_ENVIRONMENT:
@@ -63,12 +64,15 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
 
     request_error_pauser = pauser.ExpPauser()
 
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
     tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = msg, #plpy.notice, 
                                             need_stop_cheker = need_stop_cheker,
                                             search_keys = CHANNEL_SEARCH_KEYS, 
                                             requests_delay_sec = project_params['requests_delay_sec'],
                                             request_error_pauser = request_error_pauser,
+                                            proxy = project_proxy,
                                             **accounts.TG_ACCOUNT[0])
     
     tg_crawler.connect()
@@ -136,6 +140,8 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
     
     request_error_pauser = pauser.ExpPauser()
 
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 TG_SOURCE_ID, 
                                                 id_project, 
@@ -157,6 +163,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                                             date_deep = project_params['date_deep'],
                                             requests_delay_sec = project_params['requests_delay_sec'],
                                             request_error_pauser = request_error_pauser,
+                                            proxy = project_proxy,
                                             **accounts.TG_ACCOUNT[0])
     msg(id_group)
     if tg_client['client'] is None:
@@ -266,8 +273,11 @@ def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '',
 
 def tg_add_group(id_project, name_group):
 
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
     tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = msg, #plpy.notice, 
+                                            proxy = project_proxy,
                                             **accounts.TG_ACCOUNT[0])
     
     tg_crawler.connect()

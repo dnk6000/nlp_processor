@@ -28,7 +28,8 @@ class CrawlerCommon(common.CommonFunc):
 	def __init__(self, 
 			     need_stop_cheker = None, 
 				 requests_delay_sec = 2,
-				 request_error_pauser = None, 
+				 request_error_pauser = None,
+				 proxy = None,
 				 **kwargs):
 		
 		super().__init__(**kwargs)
@@ -38,6 +39,10 @@ class CrawlerCommon(common.CommonFunc):
 		self.request_error_pauser = request_error_pauser
 		self.request_tries = 5
 		self.scrape_result = None
+		if proxy is None:
+			self.proxy = None
+		else:
+			self.proxy = proxy.get_tuple_socks5()
 
 	def check_user_interrupt(self):
 		if self.need_stop_checker is None:
@@ -86,7 +91,7 @@ class Telegram(CrawlerCommon):
 		session = const.TOKEN_FOLDER + self.username + SQLiteSession_EXTENSION #for cache in sqlite3
 		#its_new_session = False
 		
-		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash)
+		self.client = TelegramClient(session = session, api_id = self.api_id, api_hash = self.api_hash, proxy = self.proxy)
 		self.client.start()
 		
 		#if its_new_session:

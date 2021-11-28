@@ -6,6 +6,7 @@ import modules.crawling.vk as vk
 
 import modules.common_mod.pginterface as pginterface
 import modules.common_mod.const as const
+import modules.common_mod.proxy as proxy
 import modules.crawling.crawler as crawler
 import modules.crawling.scraper as scraper
 import modules.crawling.exceptions as exceptions
@@ -24,11 +25,11 @@ gvars = GlobVars(GD)
 DEBUG_MODE = False
 
 ####### begin: for PY environment only #############
-step_name = '_crawl_groups'
-step_name = '_crawl_subscribers'
 step_name = '_crawl_wall'
 step_name = 'debug'
-ID_TEST_PROJECT = 10
+step_name = 'crawl_groups'
+step_name = 'crawl_subscribers'
+ID_PROJECT = 11
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
@@ -54,13 +55,25 @@ if const.PY_ENVIRONMENT:
 
 def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
 
+    project_params = cass_db.get_project_params(id_project)[0]
+    group_search_str = project_params['group_search_str']
+
+    if group_search_str.isspace():
+        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, 'Search string is empty!')
+        return
+
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
+    base_search_words = group_search_str.split(',')
+
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
 
     vk_crawler = vk.CrawlerVkGroups(vk_account = accounts.VK_ACCOUNT[0], 
-                         base_search_words = ['Челябинск'], 
+                         base_search_words = base_search_words, 
                          msg_func = plpy.notice, 
                          id_project = id_project,
                          need_stop_cheker = need_stop_cheker,
+                         proxy = project_proxy
                          )    
     select_result = cass_db.select_groups_id(id_project)
     vk_crawler.id_cash = list(i['account_id'] for i in select_result)
@@ -117,6 +130,8 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         if not res[0]['Success']:
             cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
                                                 gvars.get('VK_SOURCE_ID'), 
                                                 id_project, 
@@ -143,7 +158,8 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                   need_stop_cheker = need_stop_cheker,
                                   write_file_func = None,
                                   requests_delay_sec = project_params['requests_delay_sec'],
-                                  request_error_pauser = request_error_pauser
+                                  request_error_pauser = request_error_pauser,
+                                  proxy = project_proxy
                                   )
     vk_crawler._cw_set_debug_mode(turn_on = DEBUG_MODE, debug_post_filter = id_post)
 
@@ -290,7 +306,12 @@ def vk_crawling_wall_group(id_project, id_group, id_post = ''):
 
     project_params = cass_db.get_project_params(id_project)[0]
 
-    vk_crawl_wall(id_project = id_project, id_group = id_group, id_queue = None, attempts_counter = 0, project_params = project_params, id_post = id_post)
+    vk_crawl_wall(id_project = id_project, 
+                  id_group = id_group, 
+                  id_queue = None, 
+                  attempts_counter = 0, 
+                  project_params = project_params, 
+                  id_post = id_post)
             
 def msg(msgstr):
     if DEBUG_MODE:
@@ -319,56 +340,60 @@ def write_debug_file(msg):
 
 cass_db = pginterface.MainDB(plpy, GD)
 
-cass_db.create_project(ID_TEST_PROJECT)
+cass_db.create_project(ID_PROJECT)
+
+
 
 #--0-- debug
 if step_name == 'debug':
-    #clear_tables_by_project(ID_TEST_PROJECT)
-    vk_crawling_wall_group(ID_TEST_PROJECT, id_group = '15158721')                       #debug group
-    #vk_crawling_wall_group(ID_TEST_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
+    #clear_tables_by_project(ID_PROJECT)
+    #vk_crawling_wall_group(ID_PROJECT, id_group = '15158721')                       #debug group
+    #vk_crawling_wall_group(ID_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
+    #tst = proxy.ProxyCassandra(debug_mode = False, msg_func = print, cass_db = cass_db, id_project = 11)
+    f = 1
 
 #--0-- clear
 if step_name == 'clear_all':
     #for i in range(1,20):
     #    clear_tables_by_project(i)
-    #clear_tables_by_project(ID_TEST_PROJECT)
+    #clear_tables_by_project(ID_PROJECT)
     pass
 
 #--1--
 if step_name == 'crawl_groups':
-    cass_db.log_info('Start '+step_name, ID_TEST_PROJECT,'')
-    #vk_crawl_groups(ID_TEST_PROJECT)
+    cass_db.log_info('Start '+step_name, ID_PROJECT,'')
+    vk_crawl_groups(ID_PROJECT)
 
 #--2--
 if step_name == 'crawl_subscribers':
-    cass_db.log_info('Start '+step_name, ID_TEST_PROJECT,'')
-    plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
-    cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
-    cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT)
-    vk_crawl_wall_subscribers(ID_TEST_PROJECT)
+    cass_db.log_info('Start '+step_name, ID_PROJECT,'')
+    #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
+    #cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT)
+    vk_crawl_wall_subscribers(ID_PROJECT)
 
 #--3--
 if step_name == 'crawl_wall':
-    cass_db.log_info('Start '+step_name, ID_TEST_PROJECT,'')
+    cass_db.log_info('Start '+step_name, ID_PROJECT,'')
     
-    plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_TEST_PROJECT));
-    cass_db.clear_table_by_project('git200_crawl.queue', ID_TEST_PROJECT)
+    plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
+    cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
     
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 10001)
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 5000, 10000)
-    cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 1000, 5000)
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 500, 1000)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 10001)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 5000, 10000)
+    cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 1000, 5000)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 500, 1000)
     
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 5000, 9999999)
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 10, 5000)
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 50, 100)
-    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_TEST_PROJECT, 0, 9)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 5000, 9999999)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 10, 5000)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 50, 100)
+    #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 0, 9)
 
-    vk_crawling(ID_TEST_PROJECT)
+    vk_crawling(ID_PROJECT)
 
 
 #vk_crawl_wall(5, 52233236, subscribers_only = True)
-#vk_crawl_wall(ID_TEST_PROJECT, 16758516, subscribers_only = False)
+#vk_crawl_wall(ID_PROJECT, 16758516, subscribers_only = False)
 
 #vk_crawl_wall(130782889,subscribers_only = True)
 #vk_crawl_wall(0, 222333444,subscribers_only = True)
