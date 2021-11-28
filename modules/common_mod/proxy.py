@@ -1,6 +1,6 @@
 import sys
 import requests
-import socks
+import python_socks
 
 import modules.common_mod.common as common
 
@@ -36,13 +36,25 @@ class Proxy(common.CommonFunc):
 		url = f'{http}{ip_with_port}'
 		return  {"http": url, "https": url} 
 
-	def get_tuple_socks5(self):
+	def get_dict_socks5(self):
 		if self.ip == '' or self.ip.isspace():
 			return None
 		if self.user == '' or self.user.isspace():
-			return (socks.SOCKS5, self.ip, self.port_socks5)
+			#return (socks.SOCKS5, self.ip, self.port_socks5)
+			return {'proxy_type': 'socks5',
+					'addr': self.ip,
+					'port': self.port_socks5
+					#'rdns': True  # (optional) whether to use remote or local resolve, default remote
+					}
 		else:
-			return (socks.SOCKS5, self.ip, int(self.port_socks5), self.user, self.psw)
+			#return (socks.SOCKS5, self.ip, int(self.port_socks5), self.user, self.psw)
+			return {'proxy_type': 'socks5',
+					'addr': self.ip,
+					'port': self.port_socks5,
+					'username': self.user,
+					'password': self.psw
+					#'rdns': True  # (optional) whether to use remote or local resolve, default remote
+					}
 
 	def check_ip(self, session = None, informing = True):
 		service_www = 'icanhazip.com'

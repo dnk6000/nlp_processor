@@ -42,7 +42,7 @@ class CrawlerCommon(common.CommonFunc):
 		if proxy is None:
 			self.proxy = None
 		else:
-			self.proxy = proxy.get_tuple_socks5()
+			self.proxy = proxy.get_dict_socks5()
 
 	def check_user_interrupt(self):
 		if self.need_stop_checker is None:
