@@ -11,7 +11,7 @@ import modules.common_mod.const as const
 GDpy = dict()
 
 class GlobVars:
-    def __init__(self, _GD = None):
+    def __init__(self, GD = None):
         if const.PY_ENVIRONMENT: 
             self.GD = GDpy
         else: 

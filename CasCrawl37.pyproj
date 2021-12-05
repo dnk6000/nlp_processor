@@ -173,6 +173,7 @@
   <ItemGroup>
     <Content Include="Documentation\Cassandra. Algorithms of Crawling and Scraping.docx" />
     <Content Include="Documentation\Cassandra. Front-end.docx" />
+    <Content Include="Documentation\Cassandra. Работа с фоновыми заданиями.docx" />
     <Content Include="Documentation\Cassandra. Рефакторинг Улучшения.docx" />
     <Content Include="Documentation\Cassandra. Стандарты разработки.docx" />
     <Content Include="Documentation\Cassandra. Parsing. Концепт ТЗ по тональности.doc" />
