@@ -36,6 +36,12 @@
     <Compile Include="ModulesPyOnly\sentiment_main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\common_mod\jobs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="modules\common_mod\venv.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="modules\common_mod\proxy.py">
       <SubType>Code</SubType>
     </Compile>

@@ -29,6 +29,11 @@ ERROR_CONNECTION            = 'Connection error'
 LOG_INFO_REQUEST_PAUSE      = 'Request pause'
 LOG_INFO_DATA_PROCESSOR     = 'Data processor'
 
+LOG_INFO_JOB_START          = 'Job start'
+LOG_INFO_JOB_FINISH         = 'Job finish'
+LOG_INFO_JOB_STEP_START     = 'Job step start'
+LOG_INFO_JOB_RELOAD_PROGRAM = 'Job program reload'
+
 CW_RESULT_TYPE_NUM_SUBSCRIBERS  = 'NUM_SUBSCRIBERS'
 CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND = 'NUM_SUBSCRIBERS Not found'
 CW_RESULT_TYPE_FINISH_NOT_FOUND = 'FINISH Not found'

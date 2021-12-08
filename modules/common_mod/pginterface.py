@@ -445,6 +445,30 @@ class MainDB:
         self.commit(autocommit)
         return None if res is None else res
 
+    def job_read(self, id):
+        plan_id = 'plan_job_read'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git100_main.job_read($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id])
+        return convert_select_result(res)
+
+    def job_turn_off(self, id):
+        plan_id = 'plan_job_turn_off'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git100_main.job_turn_off($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id])
+        self.plpy.commit()
+
 class NeedStopChecker:
     def __init__(self, cass_db, id_project, func_name, state = None):
         self.cass_db = cass_db

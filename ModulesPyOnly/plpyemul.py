@@ -185,7 +185,7 @@ def get_plpy():
 
     cassandra_db_conn_par = {
         'database': 'cassandra_new', 
-        'host'   : '192.168.60.46', 
+        'host'   : '192.168.62.46', 
         'port': '5432', 
         'user': 'm.tyurin', 
         'password': self_psw.get_psw_db_mtyurin()
