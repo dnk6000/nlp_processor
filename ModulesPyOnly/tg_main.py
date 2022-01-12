@@ -8,6 +8,7 @@ import modules.common_mod.common as common
 import modules.common_mod.pginterface as pginterface
 import modules.common_mod.proxy as proxy
 import modules.common_mod.pauser as pauser
+import modules.common_mod.jobs as jobs
 
 import modules.crawling.date as date
 import modules.crawling.tg as tg
@@ -24,33 +25,28 @@ else:
 gvars = GlobVars(GD)
 
 
-DEBUG_MODE = True
-CHANNEL_SEARCH_KEYS = ['Челябинск','chelyabinsk','chelyab','челябин']
+#DEBUG_MODE = True
+DEBUG_MODE = False
 
 ####################################################
 ####### begin: for PY environment only #############
-step_name = 'debug'
-step_name = 'crawl_wall'
+job_id = 1
+job_id = None
+
 step_name = 'crawl_groups'
-ID_PROJECT_main = 12
+step_name = 'crawl_wall'
+step_name = 'debug'
+ID_PROJECT_main = 1
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
-    import ModulesPyOnly.self_psw as self_psw
-
-    cassandra_db_conn_par = {
-        'database': 'cassandra_new', 
-        'host'   : '192.168.60.46', 
-        'port': '5432', 
-        'user': 'm.tyurin', 
-        'password': self_psw.get_psw_db_mtyurin()
-    }
-    plpy = plpyemul.PlPy(**cassandra_db_conn_par)
-#else:
-#    try: 
-#        plpy = None  #otherwise an error occurs: using the plpy before assignment
-#    except:
-#        pass
+    plpy = plpyemul.get_plpy()
+else:
+    #    try: 
+    #        plpy = None  #otherwise an error occurs: using the plpy before assignment
+    #    except:
+    #        pass
+    pass
 
 ####### end: for PY environment only #############
 ####################################################
@@ -59,6 +55,13 @@ if const.PY_ENVIRONMENT:
 def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_hash = False):
 
     project_params = cass_db.get_project_params(id_project)[0] 
+    group_search_str = project_params['group_search_str']
+
+    if group_search_str.isspace():
+        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, 'Search string is empty!')
+        return
+
+    base_search_words = group_search_str.split(',')
 
     need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
 
@@ -69,7 +72,7 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
     tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = msg, #plpy.notice, 
                                             need_stop_cheker = need_stop_cheker,
-                                            search_keys = CHANNEL_SEARCH_KEYS, 
+                                            search_keys = base_search_words, 
                                             requests_delay_sec = project_params['requests_delay_sec'],
                                             request_error_pauser = request_error_pauser,
                                             proxy = project_proxy,
@@ -103,6 +106,7 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
                     msg('Request error: pause before repeating...') #DEBUG
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
+                        tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
@@ -111,11 +115,14 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
                 critical_error_counter['counter'] += 1
 
                 if res_unit['stop_process']:
+                    tg_crawler.close_session()
                     raise exceptions.StopProcess()
 
                 if critical_error_counter['counter'] >= CriticalErrorsLimit:  
+                    tg_crawler.close_session()
                     raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
 
+    tg_crawler.close_session()
 
 def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                   project_params,
@@ -214,6 +221,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                     msg('Request error: pause before repeating...') #DEBUG
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
+                        tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
@@ -225,15 +233,19 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                     queue.suspend(suspend_time_min=30)
 
                 if res_unit['stop_process']:
+                    tg_crawler.close_session()
                     raise exceptions.StopProcess()
 
                 if critical_error_counter['counter'] >= CriticalErrorsLimit:  
+                    tg_crawler.close_session()
                     raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
 
             elif res_unit['result_type'] in (scraper.ScrapeResult.RESULT_TYPE_POST, scraper.ScrapeResult.RESULT_TYPE_REPLY, scraper.ScrapeResult.RESULT_TYPE_REPLY_TO_REPLY):
                 msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['sn_id']) + ' ' + res_unit['url'])
                 cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
     
+    tg_crawler.close_session()
+
     if queue is not None:
         queue.reg_finish(wall_processed)
                                   
@@ -287,6 +299,8 @@ def tg_add_group(id_project, name_group):
     msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
     cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
 
+    tg_crawler.close_session()
+
     pass
 
 def msg(msgstr):
@@ -308,93 +322,101 @@ def clear_tables_by_project(id_project):
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
         cass_db.clear_table_by_project(t, id_project)
 
-cass_db = pginterface.MainDB(plpy, GD)
-TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
-
-cass_db.create_project(ID_PROJECT_main)
-
 logger = None
 
-if DEBUG_MODE:
-    #logger = common.Logger("tg_crawl")
-    pass
+try:
 
-#--0-- debug
-if step_name == 'debug':
-	#clear_tables_by_project(ID_PROJECT_main)
-	#cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-	#cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
-	
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'afk_che', id_post = '') #1378397816
-	#cass_db.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
-	#tg_crawl_groups(ID_PROJECT_main)
+    cass_db = pginterface.MainDB(plpy, GD)
 
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
+    TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
+
+    job = jobs.JobManager(id_job = job_id, db = cass_db)
+
+    while job.get_next_step():
+
+        if not job_id is None:
+            step_params = job.get_step_params()
+            step_name = step_params['step_name']
+            ID_PROJECT_main = step_params['id_project']
+
+        cass_db.create_project(ID_PROJECT_main)
+
+        print(f'step_name: {step_name} ID_PROJECT: {ID_PROJECT_main}')
+
+        if DEBUG_MODE:
+            #logger = common.Logger("tg_crawl")
+            pass
+
+        #--0-- debug
+        if step_name == 'debug':
+	        #clear_tables_by_project(ID_PROJECT_main)
+	        #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+	        #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
+
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'afk_che', id_post = '') #1378397816
+	        #cass_db.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
+	        #tg_crawl_groups(ID_PROJECT_main)
+
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
 
 
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '')
-	tg_add_group(id_project = 12, name_group = 'meduzalive')
-	#tg_add_group(id_project = 12, name_group = 'breakingmash')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
-    #                      name_group = 'meduzalive', hash_group = '-2943065673075768629', id_post = '')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', 
-    #                       name_group = 'meduzalive', id_post = '')
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
- #                         name_group = 'meduzalive', hash_group = '2994531093415596401', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '') 
+            tg_add_group(id_project = 1, name_group = 'meduzalive')
+            tg_add_group(id_project = 1, name_group = 'breakingmash')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
+            #                      name_group = 'meduzalive', hash_group = '-2943065673075768629', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', 
+            #                       name_group = 'meduzalive', id_post = '')
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
+         #                         name_group = 'meduzalive', hash_group = '2994531093415596401', id_post = '')
 
-	#tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1156431022', name_group = 'Ali_boroda_74', id_post = '')
- 	#tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
-  #									  msg_func = msg, #plpy.notice,
-  #									  date_deep = None,
-  #									  id_group = 1156431022,
-  #									  name_group = 'Ali_boroda_74',
-  #									  **accounts.TG_ACCOUNT[0])
- 	#tg_crawler.connect()
- 	#peer = tg_crawler.get_peer_entity('Ali_boroda_74', hash = -2081109350199989705)
-	pass
+	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1156431022', name_group = 'Ali_boroda_74', id_post = '')
+ 	        #tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
+          #									  msg_func = msg, #plpy.notice,
+          #									  date_deep = None,
+          #									  id_group = 1156431022,
+          #									  name_group = 'Ali_boroda_74',
+          #									  **accounts.TG_ACCOUNT[0])
+ 	        #tg_crawler.connect()
+ 	        #peer = tg_crawler.get_peer_entity('Ali_boroda_74', hash = -2081109350199989705)
+        pass
 
-#--0-- clear
-if step_name == 'clear_all':
-    #for i in range(1,20):
-    #    clear_tables_by_project(i)
-    #clear_tables_by_project(ID_PROJECT_main)
-    pass
+        #--0-- clear
+        if step_name == 'clear_all':
+            #for i in range(1,20):
+            #    clear_tables_by_project(i)
+            #clear_tables_by_project(ID_PROJECT_main)
+            pass
 
-#--1--
-if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
-    update_hash = step_name == 'crawl_groups_upd_hash'
-    cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main,'')
-    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'meduzalive')
-    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'breakingmash')
-    #tg_add_group(id_project = ID_PROJECT_main, name_group = 'rabotaa_chelyabinsk')
-    try:
-        tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
-    except Exception as e:
-        cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
-        raise
-    pass
+        #--1--
+        if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
+            update_hash = step_name == 'crawl_groups_upd_hash'
+            cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main,'')
+            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'meduzalive')
+            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'breakingmash')
+            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'rabotaa_chelyabinsk')
+            tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
+            pass
 
-#--2--
-if step_name == 'crawl_wall':
-    cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+        #--2--
+        if step_name == 'crawl_wall':
+            cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
 
-    #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-    #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+            #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+            #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
-    queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
-    queue.regenerate()
+            #queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
+            #queue.regenerate()
 
-    try:
-        tg_crawl_messages_start(ID_PROJECT_main, queue)
-    except Exception as e:
-        cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
-        raise
+            #tg_crawl_messages_start(ID_PROJECT_main, queue)
 
-pass
+except Exception as e:
+    cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
+    raise
 
 

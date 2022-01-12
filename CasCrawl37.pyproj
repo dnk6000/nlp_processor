@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesPyOnly\vk_main.py</StartupFile>
+    <StartupFile>ModulesPyOnly\tg_main.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -34,6 +34,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\sentiment_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ModulesTemp\test_tls.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\common_mod\jobs.py">
@@ -200,6 +203,7 @@
     <Content Include="PGscripts\monitor_tg.sql" />
     <Content Include="PGscripts\monitor_vk.sql" />
     <Content Include="PGscripts\ner.sql" />
+    <Content Include="ServiceInfo\Debug on Linux server.docx" />
     <Content Include="ServiceInfo\DP dict import.docx" />
     <Content Include="ServiceInfo\Pg Inheritance.docx" />
     <Content Include="ServiceInfo\Py Pip.docx" />

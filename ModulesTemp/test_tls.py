@@ -1,18 +1,13 @@
 import sys
 import requests
-import python_socks
-
-from requests.adapters import HTTPAdapter #for managing TLS version
-import ssl                                #for managing TLS version
-
-import modules.common_mod.common as common
+from requests.adapters import HTTPAdapter 
+import ssl
 
 
-class Proxy(common.CommonFunc):
+class Proxy():
 	IP_ERROR_MSG = '<error>'
 
 	def __init__(self, *args, **kwargs):
-		super().__init__(**kwargs)
 
 		self.ip = ''
 		self.port = ''
@@ -21,6 +16,7 @@ class Proxy(common.CommonFunc):
 		self.psw = ''
 		self.ssl = True
 		self.check_ip_result = ''
+		self.debug_mode = True
 
 		if self.debug_mode:
 			#self.ip = '121.244.147.137'
@@ -30,6 +26,9 @@ class Proxy(common.CommonFunc):
 			self.user = 'Selfedot7'
 			self.psw = 'F4o5LlN'
 			pass
+
+	def msg(self, message):
+		print(message)
 
 	def __repr__(self):
 		if self.ip == '' or self.ip.isspace():
@@ -50,26 +49,6 @@ class Proxy(common.CommonFunc):
 		http = 'https://' if self.ssl else 'http://'
 		url = f'{http}{ip_with_port}'
 		return  {"http": url, "https": url} 
-
-	def get_dict_socks5(self):
-		if self.ip == '' or self.ip.isspace():
-			return None
-		if self.user == '' or self.user.isspace():
-			#return (socks.SOCKS5, self.ip, self.port_socks5)
-			return {'proxy_type': 'socks5',
-					'addr': self.ip,
-					'port': self.port_socks5
-					#'rdns': True  # (optional) whether to use remote or local resolve, default remote
-					}
-		else:
-			#return (socks.SOCKS5, self.ip, int(self.port_socks5), self.user, self.psw)
-			return {'proxy_type': 'socks5',
-					'addr': self.ip,
-					'port': self.port_socks5,
-					'username': self.user,
-					'password': self.psw
-					#'rdns': True  # (optional) whether to use remote or local resolve, default remote
-					}
 
 	def check_ip(self, session = None, informing = True):
 		service_www = 'icanhazip.com'
@@ -132,11 +111,15 @@ class ProxyCassandra(Proxy):
 		self.psw  = str(params['psw']).strip()
 		self.ssl  = str(params['ssl']).strip()
 
+
 class HTTPAdapterForProxy(HTTPAdapter):
-	''' for managing TLS version '''
+	#https://stackoverflow.com/questions/67946031/how-to-force-tls-1-3-version-in-python
+	#https://docs.python.org/3/library/ssl.html#ssl.SSLContext.minimum_version
+	#https://github.com/psf/requests/issues/5555
+	#https://www.programcreek.com/python/example/98858/requests.adapters.HTTPAdapter
+	#https://www.programcreek.com/python/?code=Yelp%2Fthreat_intel%2Fthreat_intel-master%2Fthreat_intel%2Futil%2Fhttp.py
 
 	def init_poolmanager(self, *args, **kwargs):
-		"""Called to initialize the HTTPAdapter when a proxy is NOT used."""
 		ssl_context = ssl.create_default_context()
 
 		#ssl_context.options &= ~ssl.OP_NO_TLSv1_3 & ~ssl.OP_NO_TLSv1_2 & ~ssl.OP_NO_TLSv1_1
@@ -159,33 +142,36 @@ class HTTPAdapterForProxy(HTTPAdapter):
 		
 		kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1_1
 		#kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1_2
-		#kwargs['ssl_version'] = ssl.PROTOCOL_TLS_CLIENT
-		#kwargs['ssl_version'] = ssl.PROTOCOL_TLS_SERVER
-		#kwargs['ssl_version'] = ssl.PROTOCOL_TLS
-		#kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
-		#kwargs['ssl_version'] = ssl.PROTOCOL_SSLv23
+		
+		###kwargs['ssl_version'] = ssl.PROTOCOL_TLS_CLIENT
+		###kwargs['ssl_version'] = ssl.PROTOCOL_TLS_SERVER
+		###kwargs['ssl_version'] = ssl.PROTOCOL_TLS
+		###kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+		###kwargs['ssl_version'] = ssl.PROTOCOL_SSLv23
 
 		return super().proxy_manager_for(proxy, **kwargs)
 
-if __name__ == "__main__":
-
+def main():
 	adapter = HTTPAdapterForProxy()
 
-	tst = Proxy(debug_mode = True, msg_func = print)
+	tst = Proxy()
 	#tst.ssl = False
+
 	sess = requests.Session()
 	
 	sess.mount('http://', adapter)
 	sess.mount('https://', adapter)
 	
+	print('Test TLS without proxy...')
 	tst.check_ip(session = sess)
 
 	res = sess.get('https://www.howsmyssl.com/a/check', verify=True)
 	js = res.json()
 	tls_actual = js['tls_version']
-	print(f'tls_actual without proxy {tls_actual}')
+	print(f'\ntls_actual without proxy {tls_actual}')
 
 	#----------
+	print('\n\nTest TLS with proxy...')
 	sess.proxies = tst.get_dict()
 
 	tst.check_ip(session = sess)
@@ -193,12 +179,13 @@ if __name__ == "__main__":
 	res = sess.get('https://www.howsmyssl.com/a/check', verify=True)
 	js = res.json()
 	tls_actual = js['tls_version']
-	print(f'tls_actual proxy {tls_actual}')
+	print(f'\ntls_actual proxy {tls_actual}')
 
 	#session = requests.Session()
 	#tst.check_ip(session)
 	#sess.rebuild_proxies()
 
-
-
+if __name__ == "__main__":
+	main()
 	pass
+

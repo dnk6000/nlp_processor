@@ -112,6 +112,9 @@ class Telegram(CrawlerCommon):
 		#if its_new_session:
 		#	self.save_session()
 
+	def close_session(self):
+		self.client.session.close()
+
 	def save_session(self):
 		''' save StringSession to file '''
 		with open(self.session_file_name, 'w') as f:

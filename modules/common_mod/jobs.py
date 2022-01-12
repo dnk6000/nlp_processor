@@ -52,7 +52,12 @@ class JobManager(common.CommonFunc):
 		cfg = configparser.ConfigParser()
 		cfg.read_string(self.job_params['program'])
 
+		self.job_steps = {}
+		first_step = ''
+
 		for step in cfg.sections():
+			if first_step == '':
+				first_step = step
 			step_keys = self._get_step_default_params()
 			for key in cfg[step]:  
 				if key in step_keys:
@@ -62,9 +67,9 @@ class JobManager(common.CommonFunc):
 						step_keys[key] = str(cfg[step][key])
 
 			self.job_steps[step] = step_keys
-			if self.current_step == '':
-				self.current_step = step
-		pass
+
+		if self.current_step == '' or not self.current_step in self.job_steps:
+			self.current_step = first_step
 
 	def get_step_params(self):
 		if self.once:
