@@ -3,6 +3,7 @@ import time
 
 import modules.common_mod.const as const
 import modules.common_mod.common as common
+import modules.crawling.exceptions as exceptions
 
 class JobManager(common.CommonFunc):
 	def __init__(self, *args, id_job, db, **kwargs):
@@ -143,3 +144,14 @@ class JobManager(common.CommonFunc):
 	def _log_finish(self):
 		self.db.log_info(const.LOG_INFO_JOB_FINISH, 0, self.__repr__())
 		pass
+
+	def need_stop(self):
+		res = self.db.job_need_stop(self.id_job)
+		if not res[0]['enabled']:
+			raise exceptions.UserInterruptByDB()
+
+	def get_need_stop_checker(self):
+		if self.id_job is None:
+			return None
+		else:
+			return self

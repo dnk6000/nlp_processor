@@ -469,6 +469,19 @@ class MainDB:
         res = self.plpy.execute(gvars.GD[plan_id], [id])
         self.plpy.commit()
 
+    def job_need_stop(self, id):
+        plan_id = 'plan_job_need_stop'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git100_main.job_need_stop($1)
+                ''', 
+                ["dmn.git_pk"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [id])
+        return convert_select_result(res)
+
+
 class NeedStopChecker:
     def __init__(self, cass_db, id_project, func_name, state = None):
         self.cass_db = cass_db
@@ -491,6 +504,19 @@ class NeedStopChecker:
             raise exceptions.UserInterruptByDB()
         #else:  #DEBUG
         #    return self.func_name+' res:' + str(res[0]['result'])  #DEBUG
+
+    @staticmethod
+    def get_need_stop_cheker(job, cass_db, id_project, cheker_name):
+        ''' returns either <cheker from job-object> or <NeedStopChecker-object identified via cheker_name>'''
+        need_stop_cheker = None
+
+        if not job is None:
+            need_stop_cheker = job.get_need_stop_checker()
+
+        if need_stop_cheker is None:
+            need_stop_cheker = NeedStopChecker(cass_db, id_project, cheker_name, state = 'off')
+
+        return need_stop_cheker
 
 def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = [], msg_func = None):
 

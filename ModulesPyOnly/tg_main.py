@@ -31,7 +31,7 @@ DEBUG_MODE = False
 ####################################################
 ####### begin: for PY environment only #############
 job_id = 1
-job_id = None
+#job_id = None
 
 step_name = 'crawl_groups'
 step_name = 'crawl_wall'
@@ -51,8 +51,7 @@ else:
 ####### end: for PY environment only #############
 ####################################################
 
-
-def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_hash = False):
+def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}, update_hash = False):
 
     project_params = cass_db.get_project_params(id_project)[0] 
     group_search_str = project_params['group_search_str']
@@ -63,7 +62,7 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
 
     base_search_words = group_search_str.split(',')
 
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
+    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_group')
 
     request_error_pauser = pauser.ExpPauser()
 
@@ -126,6 +125,7 @@ def tg_crawl_groups(id_project, critical_error_counter = {'counter': 0}, update_
 
 def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                   project_params,
+                  job = None,
                   attempts_counter = 0, 
                   critical_error_counter = {'counter': 0},
                   queue = None,
@@ -143,7 +143,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
     wall_processed = False
     CriticalErrorsLimit = 3
 
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
     
     request_error_pauser = pauser.ExpPauser()
 
@@ -250,7 +250,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
         queue.reg_finish(wall_processed)
                                   
 
-def tg_crawl_messages_start(id_project, queue):
+def tg_crawl_messages_start(id_project, queue, job = None):
 
     critical_error_counter = {'counter': 0}
 
@@ -275,13 +275,22 @@ def tg_crawl_messages_start(id_project, queue):
                           project_params = project_params,
                           critical_error_counter = critical_error_counter,
                           queue = queue,
-                          tg_client = tg_client)
+                          tg_client = tg_client,
+                          job = job)
 
-def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', id_post = ''):
+def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', id_post = '', job = None):
 
     project_params = cass_db.get_project_params(id_project)[0]
 
-    tg_crawl_messages(id_project = id_project, id_group = id_group, name_group = name_group, hash_group = hash_group, project_params = project_params, debug_id_post = id_post)
+    tg_crawl_messages(id_project = id_project, 
+                      id_group = id_group, 
+                      name_group = name_group, 
+                      hash_group = hash_group, 
+                      project_params = project_params, 
+                      debug_id_post = id_post,
+                      job = job)
+    
+    pass
 
 def tg_add_group(id_project, name_group):
 
@@ -373,18 +382,18 @@ try:
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', 
             #                       name_group = 'meduzalive', id_post = '')
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
-         #                         name_group = 'meduzalive', hash_group = '2994531093415596401', id_post = '')
+            #                         name_group = 'meduzalive', hash_group = '2994531093415596401', id_post = '')
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1156431022', name_group = 'Ali_boroda_74', id_post = '')
  	        #tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
-          #									  msg_func = msg, #plpy.notice,
-          #									  date_deep = None,
-          #									  id_group = 1156431022,
-          #									  name_group = 'Ali_boroda_74',
-          #									  **accounts.TG_ACCOUNT[0])
+            #									  msg_func = msg, #plpy.notice,
+            #									  date_deep = None,
+            #									  id_group = 1156431022,
+            #									  name_group = 'Ali_boroda_74',
+            #									  **accounts.TG_ACCOUNT[0])
  	        #tg_crawler.connect()
  	        #peer = tg_crawler.get_peer_entity('Ali_boroda_74', hash = -2081109350199989705)
-        pass
+            pass
 
         #--0-- clear
         if step_name == 'clear_all':
@@ -397,10 +406,7 @@ try:
         if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
             update_hash = step_name == 'crawl_groups_upd_hash'
             cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main,'')
-            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'meduzalive')
-            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'breakingmash')
-            #tg_add_group(id_project = ID_PROJECT_main, name_group = 'rabotaa_chelyabinsk')
-            tg_crawl_groups(ID_PROJECT_main, update_hash = update_hash)
+            tg_crawl_groups(ID_PROJECT_main, job = job, update_hash = update_hash)
             pass
 
         #--2--
@@ -415,7 +421,10 @@ try:
 
             #tg_crawl_messages_start(ID_PROJECT_main, queue)
 
-except Exception as e:
+except exceptions.StopProcess:
+    #its ok  maybe user stop process
+    pass
+except Exception as e: 
     cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
     raise
 

@@ -26,6 +26,7 @@ gvars = GlobVars(GD)
 
 DEBUG_MODE = False
 
+####################################################
 ####### begin: for PY environment only #############
 job_id = 10
 job_id = None
@@ -51,10 +52,11 @@ else:
     pass
 
 ####### end: for PY environment only #############
+####################################################
 
 
 
-def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
+def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}):
 
     project_params = cass_db.get_project_params(id_project)[0]
     group_search_str = project_params['group_search_str']
@@ -67,7 +69,7 @@ def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
 
     base_search_words = group_search_str.split(',')
 
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_group', state = 'off')
+    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_group')
 
     vk_crawler = vk.CrawlerVkGroups(vk_account = accounts.VK_ACCOUNT[0], 
                          base_search_words = base_search_words, 
@@ -116,10 +118,11 @@ def vk_crawl_groups(id_project, critical_error_counter = {'counter': 0}):
 
             if critical_error_counter['counter'] >= 3:
                 raise exceptions.CrawlCriticalErrorsLimit(critical_error_counter)
-
+    pass
 
 def vk_crawl_wall(id_project, id_group, id_queue, 
                   project_params,
+                  job = None,
                   attempts_counter = 0, 
                   subscribers_only = False, 
                   id_post = '',
@@ -141,7 +144,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                                 recrawl_days_reply = project_params['recrawl_days_reply'],
                                                 plpy = plpy)
 
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, id_project, 'crawl_wall', state = 'off')
+    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
 
     #request_error_pauser = pauser.ExpPauser()
     request_error_pauser = pauser.ExpPauser(delay_seconds = 1, number_intervals = 5)  #DEBUG
@@ -245,7 +248,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         if not res[0]['Success']:
             cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 
-def vk_crawl_wall_subscribers(id_project):
+def vk_crawl_wall_subscribers(id_project, job):
     select_result = cass_db.select_groups_id(id_project = id_project)
     project_params = cass_db.get_project_params(id_project)[0]
 
@@ -276,11 +279,12 @@ def vk_crawl_wall_subscribers(id_project):
                           id_queue = elem['id'], 
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params, 
+                          job = job,
                           subscribers_only = True,
                           critical_error_counter = critical_error_counter)
             time.sleep(1)
 
-def vk_crawling(id_project):
+def vk_crawling(id_project, job):
 
     portion_counter = 0
     critical_error_counter = {'counter': 0}
@@ -302,13 +306,15 @@ def vk_crawling(id_project):
                           id_queue = elem['id'], 
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
+                          job = job,
                           critical_error_counter = critical_error_counter)
 
-def vk_crawling_wall_group(id_project, id_group, id_post = ''):
+def vk_crawling_wall_group(id_project, id_group, id_post = '', job = None):
 
     project_params = cass_db.get_project_params(id_project)[0]
 
     vk_crawl_wall(id_project = id_project, 
+                  job = job,
                   id_group = id_group, 
                   id_queue = None, 
                   attempts_counter = 0, 
@@ -378,11 +384,7 @@ try:
         #--1--
         if step_name == 'crawl_groups':
             cass_db.log_info('Start '+step_name, ID_PROJECT,'')
-            try:
-                vk_crawl_groups(ID_PROJECT)
-            except Exception as e:
-                cass_db.log_fatal('CriticalErr on main_vk', ID_PROJECT, exceptions.get_err_description(e))
-                raise
+            vk_crawl_groups(ID_PROJECT, job)
 
         #--2--
         if step_name == 'crawl_subscribers':
@@ -390,7 +392,7 @@ try:
             #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
             #cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
             #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT)
-            vk_crawl_wall_subscribers(ID_PROJECT)
+            vk_crawl_wall_subscribers(ID_PROJECT, job)
 
         #--3--
         if step_name == 'crawl_wall':
@@ -410,7 +412,7 @@ try:
             #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 50, 100)
             #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 0, 9)
 
-            vk_crawling(ID_PROJECT)
+            vk_crawling(ID_PROJECT, job)
 
 
         #vk_crawl_wall(5, 52233236, subscribers_only = True)
@@ -420,6 +422,10 @@ try:
         #vk_crawl_wall(0, 222333444,subscribers_only = True)
         #vk_crawl_wall_subscribers(0)
         pass
+
+except exceptions.StopProcess:
+    #its ok  maybe user stop process
+    pass
 except Exception as e:
     cass_db.log_fatal('CriticalErr on main_vk', ID_PROJECT, exceptions.get_err_description(e))
     raise
