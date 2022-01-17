@@ -6,6 +6,8 @@ import modules.common_mod.common as common
 import modules.crawling.exceptions as exceptions
 
 class JobManager(common.CommonFunc):
+	'''The job-task should be described in the config file
+	'''
 	def __init__(self, *args, id_job, db, **kwargs):
 		super().__init__(*args, **kwargs)
 
@@ -40,6 +42,10 @@ class JobManager(common.CommonFunc):
 			'_runing': False
 			}
 
+	def _get_common_default_params(self):
+		return {
+			}
+
 	def _read_from_db(self):
 		self.debug_msg(f'Read job id {self.id_job}');
 		res = self.db.job_read(self.id_job)
@@ -53,21 +59,36 @@ class JobManager(common.CommonFunc):
 		cfg = configparser.ConfigParser()
 		cfg.read_string(self.job_params['program'])
 
+		common_keys = {}
 		self.job_steps = {}
 		first_step = ''
 
 		for step in cfg.sections():
-			if first_step == '':
-				first_step = step
-			step_keys = self._get_step_default_params()
-			for key in cfg[step]:  
+			if step == 'COMMON':
+				step_keys = self._get_common_default_params()
+			else:
+				if first_step == '':
+					first_step = step
+				step_keys = self._get_step_default_params()
+
+			for key in cfg[step]:
+				key_value = cfg[step][key]
 				if key in step_keys:
 					if type(step_keys[key]) == int:
-						step_keys[key] = int(cfg[step][key])
+						step_keys[key] = int(key_value)
 					elif type(step_keys[key]) == str:
-						step_keys[key] = str(cfg[step][key])
+						step_keys[key] = str(key_value)
+				else:
+					if key_value.isdigit():
+						step_keys[key] = int(key_value)
+					else:
+						step_keys[key] = str(key_value)
 
-			self.job_steps[step] = step_keys
+			if step == 'COMMON':
+				common_keys = step_keys
+			else:
+				step_keys.update(common_keys)
+				self.job_steps[step] = step_keys
 
 		if self.current_step == '' or not self.current_step in self.job_steps:
 			self.current_step = first_step
