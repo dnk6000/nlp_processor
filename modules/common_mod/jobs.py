@@ -56,7 +56,7 @@ class JobManager(common.CommonFunc):
 			self.no_job = True
 
 	def _parse_job_program(self):
-		cfg = configparser.ConfigParser()
+		cfg = configparser.ConfigParser(inline_comment_prefixes = ('#', ';'))
 		cfg.read_string(self.job_params['program'])
 
 		common_keys = {}
@@ -78,11 +78,16 @@ class JobManager(common.CommonFunc):
 						step_keys[key] = int(key_value)
 					elif type(step_keys[key]) == str:
 						step_keys[key] = str(key_value)
+					elif type(step_keys[key]) == bool:
+						step_keys[key] = bool(key_value)
 				else:
 					if key_value.isdigit():
 						step_keys[key] = int(key_value)
 					else:
-						step_keys[key] = str(key_value)
+						if key_value in ('True','False'):
+							step_keys[key] = bool(key_value)
+						else:
+							step_keys[key] = str(key_value)
 
 			if step == 'COMMON':
 				common_keys = step_keys

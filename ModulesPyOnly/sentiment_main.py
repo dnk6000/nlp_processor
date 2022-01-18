@@ -16,11 +16,14 @@ gvars = GlobVars(GD)
 
 ####################################################
 ####### begin: for PY environment only #############
+job_id = 1
+#job_id = None
+
 step_name = 'debug'
 step_name = 'process'
 step_name = 'process_shedule'
 
-#will be apply for debug only :: step_name == 'debug'
+#will be apply for debug only: when job_id is None
 ID_PROJECT_main = 10
 SOURCE_ID = 4
 DEBUG_MODE = True
@@ -56,7 +59,7 @@ try:
 
     job = jobs.JobManager(id_job = job_id, db = cass_db)
 
-    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'tokenize')
+    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, ID_PROJECT_main, 'tokenize')
 
     while job.get_next_step():
 
