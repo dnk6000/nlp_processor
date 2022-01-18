@@ -54,9 +54,6 @@ try:
 
     cass_db = pginterface.MainDB(plpy, GD)
 
-    TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
-    VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
-
     job = jobs.JobManager(id_job = job_id, db = cass_db)
 
     need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, ID_PROJECT_main, 'tokenize')
@@ -78,6 +75,9 @@ try:
 
 
         if step_name == 'debug':
+            TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
+            VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
+
             #clear_tables_by_project(ID_PROJECT_main)
             import sys
             sys.exit(0)
