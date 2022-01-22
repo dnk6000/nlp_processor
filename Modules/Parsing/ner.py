@@ -49,7 +49,8 @@ class UrlRecognizer(common.CommonFunc):
 
         #self.re_pattern = re.compile(r'/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/igm')
         #self.re_pattern = re.compile(r'(?:(?:https?|ftp|file):(?://|\\)|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])')
-        self.re_pattern = re.compile(r'(?:(?:https?|ftp|file):(?://|\\)|www\.|ftp\.)[\S]{0,}\.[\S]{0,}')
+        #self.re_pattern = re.compile(r'(?:(?:https?|ftp|file):(?://|\\)|www\.|ftp\.)[\S]{0,}\.[\S]{0,}')
+        self.re_pattern = re.compile(r'(?:(?:https?|ftp|file):(?://|\\)|www\.|ftp\.)[\S]{0,}\.([\S](?<![\),])){0,}')
 
         self.imitate_str = 'wwwaddr'
         self.result = []
@@ -271,7 +272,7 @@ class DoubleSymbolsRemover(common.CommonFunc):
         
         super().__init__(*args, **kwargs)
 
-        self.symbols = '-_&#$'
+        self.symbols = u'-_&#$\u200b'
         self.len_repeating_block = 3
         self._initilize()
 

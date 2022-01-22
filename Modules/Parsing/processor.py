@@ -236,6 +236,7 @@ class NerProcessor(DataProcessor):
 
             if len(self.raw_sentences) > 0:
 
+                self.debug_msg(f'   {date.date_now_str()} prepearing for ner & lemmatize...')
                 _sentences = [i['txt'] for i in self.raw_sentences]
                 self.double_symbols_remover.remove_from_list(_sentences)
 
@@ -246,11 +247,16 @@ class NerProcessor(DataProcessor):
                 if self.debug_sentence_id != 0:
                     self.debug_msg('    Sentences: '+str(_sentences))
 
+                self.debug_msg(f'   {date.date_now_str()} doing ner operation...')
+                #DEBUG
+                _sentences[0] = 'wwwaddr0), Ирина Κононова (wwwaddr1), Эльвира Асылхужина (wwwaddr2), Катерина Должина (wwwaddr3), Ксения Селютина (wwwaddr4), Елена Водолазова (wwwaddr5), Нина Арбузина (wwwaddr6), Анастасия Пястолова (wwwaddr7), Анна Луч (wwwaddr8), Екатерина Якушева (wwwaddr9), Юлия Алексеева (wwwaddr10), Екатерина Марьина (wwwaddr11), Диана Быкова (wwwaddr12), Наташа Михеенкова (wwwaddr13), Юлиана Муханова (wwwaddr14), Оля Маленькая вредина (wwwaddr15), Евгения Заварухина (wwwaddr16), Кристина Гренц (wwwaddr17), Марина Какушина (wwwaddr18), Катерина Гордеева (wwwaddr19), Tatyana Nails (wwwaddr20), Елена Ноготкова (wwwaddr21), Nastya Murashova (wwwaddr22), Anna Krasnova (wwwaddr23), Валентина Милехина (wwwaddr24), Юлия Ненадовец (wwwaddr25), Алёна Кузнецова (wwwaddr26), Ксения Калашникова (wwwaddr27), Регина Сомова (wwwaddr28), Наталья Натальевна (wwwaddr29), Светлана Плеханова (wwwaddr30), Милена Вениаминовна (wwwaddr31), Юлия Барисевич (wwwaddr32), Мидина Маймакова (wwwaddr33), Оксана Петрова (wwwaddr34), Анастасия Галкина (wwwaddr35), Людочка Калинова (wwwaddr36), Диана Минькина (wwwaddr37), Аня Лисовская (wwwaddr38), Оксана Кофман (wwwaddr39), Tatyana Brows (wwwaddr40),'
                 ner_result = self.ner_recognizer.recognize(_sentences)
+                self.debug_msg(f'   {date.date_now_str()} doing lemmatizing operation...')
                 lemma_result = self.lemmatizer.lemmatize(_sentences)
 
+                self.debug_msg(f'   putting the results into db...')
                 for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result, self.url_recognizer.result):
-                    #record that the sentence has been processed
+                    #record the sentence has been processed
                     id_sentence = result[0]['id']
                     self.save_set_is_process(id_sentence)
 
@@ -296,6 +302,7 @@ class NerProcessor(DataProcessor):
                     pass #end for result in zip(...)
                 pass #end if len(self.raw_sentences) > 0
 
+            self.debug_msg(f'   commiting...')
             self.db.commit()
 
             if self.debug_mode and portion_counter >= self.debug_num_portions:

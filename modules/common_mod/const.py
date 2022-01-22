@@ -1,6 +1,9 @@
 '''Constants'''
 
 from datetime import datetime, timezone
+from os.path import expanduser
+
+HOME = expanduser("~")
 
 try: 
     import ModulesPyOnly.plpyemul  as plpyemul #this library is not in PG
