@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesPyOnly\ner_main.py</StartupFile>
+    <StartupFile>modules\common_mod\pginterface.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -12,7 +12,7 @@
     <RootNamespace>CasCrawl37</RootNamespace>
     <InterpreterId>MSBuild|CassandraPy37|$(MSBuildProjectFullPath)</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterPath>C:\Work\Python\CasCrawl37\CassandraPy37\Scripts\python.exe</InterpreterPath>
+    <InterpreterPath>CassandraPy37\Scripts\python.exe</InterpreterPath>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <CommandLineArguments>
     </CommandLineArguments>

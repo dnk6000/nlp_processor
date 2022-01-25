@@ -6,7 +6,7 @@ def get_psw_vk_mtyurin():
     with open(const.HOME+PSWFOLDER+'mypswvk.txt', 'r') as f:
         psw = f.read()
 
-    return 'Bey'+psw+'00'
+    return 'Cov'+psw+'001'
 
 def get_psw_db_mtyurin():
     with open(const.HOME+PSWFOLDER+'mypsw.txt', 'r') as f:

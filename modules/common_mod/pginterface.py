@@ -415,11 +415,11 @@ class MainDB:
         res = self.plpy.execute(gvars.GD[plan_id], [id, is_broken, id_broken_type])
         self.commit(autocommit)
 
-    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0):
+    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0, debug_sentence_id_arr = []):
         plan_id = 'plan_sentence_select_unprocess'
         if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
-            pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3, $4);'
-            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk"])
+            pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3, $4, $5);'
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk","dmn.git_pk[]"])
 
         res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records, debug_sentence_id])
 
@@ -539,28 +539,31 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
         
 
 if __name__ == "__main__":
-    import ModulesPyOnly.self_psw as self_psw
-    from modules.common_mod.globvars import GlobVars
-    if const.PY_ENVIRONMENT: 
-        GD = None
-    else: 
-        GD = {}
+    #import ModulesPyOnly.self_psw as self_psw
+    #from modules.common_mod.globvars import GlobVars
+    #if const.PY_ENVIRONMENT: 
+    #    GD = None
+    #else: 
+    #    GD = {}
     if const.PY_ENVIRONMENT:
         import ModulesPyOnly.plpyemul as plpyemul
+        plpy = plpyemul.get_plpy()    
+    #if const.PY_ENVIRONMENT:
+    #    import ModulesPyOnly.plpyemul as plpyemul
 
-        def get_psw_db_mtyurin():
-            with open('C:\Temp\mypsw.txt', 'r') as f:
-                psw = f.read()
-            return 'Fdt'+psw+'00'
+    #    def get_psw_db_mtyurin():
+    #        with open('C:\Temp\mypsw.txt', 'r') as f:
+    #            psw = f.read()
+    #        return 'Fdt'+psw+'00'
 
-        cassandra_db_conn_par = {
-            'database': 'cassandra_new', 
-            'host'   : '192.168.60.46', 
-            'port': '5432', 
-            'user': 'm.tyurin', 
-            'password': self_psw.get_psw_db_mtyurin()
-        }
-        plpy = plpyemul.PlPy(**cassandra_db_conn_par)
+    #    cassandra_db_conn_par = {
+    #        'database': 'cassandra_new', 
+    #        'host'   : '192.168.60.46', 
+    #        'port': '5432', 
+    #        'user': 'm.tyurin', 
+    #        'password': self_psw.get_psw_db_mtyurin()
+    #    }
+    #    plpy = plpyemul.PlPy(**cassandra_db_conn_par)
 
     cass_db = MainDB(plpy, GD)
     #CassDB.Connect()
@@ -574,7 +577,7 @@ if __name__ == "__main__":
     #res = cass_db.entity_upsert(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, id_word = 55, id_ent_type = [21, 22], txt_lemm = ['test', 'ttt'])
     #res = cass_db.upsert_trip_advisor('11Ресторан Засека', 'ресторан засека', 'Restaurant Zaseka', 'Пенза Мира 22', 
     #                                    'Рестораны', 66.55555, 59.33333, 'www из питона')
-    res = cass_db.get_proxy_project(11)
+    #res = cass_db.get_proxy_project(11)
     #res = cass_db.custom_simple_request("SELECT \
     #                                        id, \
     #                                        name \
@@ -584,7 +587,7 @@ if __name__ == "__main__":
 
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
-    #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)
+    res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)
     print(res)
     #cass_db.test_commit()
     #cass_db.test_rollback()

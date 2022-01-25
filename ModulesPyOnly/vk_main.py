@@ -84,18 +84,19 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
     for _res_unit in vk_crawler.crawl_groups(): #by API
         res_unit = json.loads(_res_unit)
 
-        plpy.notice(res_unit['result_type'])
+        #plpy.notice(res_unit['result_type'])
 
         if res_unit['result_type'] == const.CG_RESULT_TYPE_GROUPS_LIST:
             n = len(res_unit['groups_list'])
-            c = 0
-            plpy.notice('Add groups to DB: ' + str(n))
+            if n > 0:
+                c = 0
+                plpy.notice('Add groups to DB: ' + str(n))
 
-            for gr in res_unit['groups_list']:
-                c += 1
-                #plpy.notice('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
-                cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
-                                 gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
+                for gr in res_unit['groups_list']:
+                    c += 1
+                    #plpy.notice('Add groups to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(gr['id']) + ' ' + gr['name'])
+                    cass_db.upsert_sn_accounts(gvars.get('VK_SOURCE_ID'), id_project, const.SN_GROUP_MARK,
+                                     gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
         
         #elif res_unit['result_type'] == const.CW_RESULT_TYPE_WARNING:
         #    cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
@@ -103,6 +104,7 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
         #        wall_processed = res_unit['wall_processed']
             
         elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
+            plpy.notice(res_unit['result_type'])
             cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
             plpy.notice(res_unit['err_type'])
             if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
@@ -110,6 +112,7 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
                 time.sleep(2) #TODO через параметр
                 
         elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
+            plpy.notice(res_unit['result_type'])
             cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
             critical_error_counter['counter'] += 1
 
@@ -201,6 +204,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
                 cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                wall_processed = True
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
                 cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
