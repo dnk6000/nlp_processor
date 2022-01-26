@@ -192,6 +192,7 @@ class NerProcessor(DataProcessor):
 
         self.debug_raw_sentences = []
         self.debug_sentence_id = 0
+        self.debug_sent_id_list = []
 
         self.MAX_WORDS_IN_SENTENCE = 150
         self.MAX_WORD_LEN = 1000
@@ -207,10 +208,19 @@ class NerProcessor(DataProcessor):
         self.process_description = 'NE recognize. Source: '+str(self.id_www_source)
 
     def get_raw_sentences(self):
+        dbg_sent_id = 0
+        dbg_sent_id_list = []
+        if self.debug_mode:
+            if self.debug_sentence_id == 0:
+                dbg_sent_id_list = self.debug_sent_id_list
+            else:
+                dbg_sent_id = self.debug_sentence_id
+
         self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
                                                                number_records = self.portion_size,
-                                                               debug_sentence_id = self.debug_sentence_id if self.debug_mode else 0)
+                                                               debug_sentence_id = dbg_sent_id,
+                                                               debug_sentence_id_arr = dbg_sent_id_list)
         if self.debug_mode and len(self.debug_raw_sentences) > 0:
             for i in range(0,len(self.debug_raw_sentences)-1):
                 if i > len(self.raw_sentences):
@@ -236,8 +246,8 @@ class NerProcessor(DataProcessor):
             for sentence in sentences:
                 try:
                     _ner_result = self.ner_recognizer.recognize([sentence])
-                    ner_result[0].append(_ner_result[0])
-                    ner_result[1].append(_ner_result[1])
+                    ner_result[0].append(_ner_result[0][0])
+                    ner_result[1].append(_ner_result[1][0])
                     ner_errors.append(None)
                 except RuntimeError as e:
                     if e.args[0] == "input sequence after bert tokenization shouldn't exceed 512 tokens.":
@@ -301,7 +311,7 @@ class NerProcessor(DataProcessor):
                     #check ne-recognition errors
                     ner_error = result[5]
                     if ner_error == ner.ERROR_NER_512TOKENS:
-                        self.log_error_too_many_entity(self, id_data_text, id_sentence, result[0]['txt'])
+                        self.log_error_too_many_entity(id_data_text, id_sentence, result[0]['txt'])
                         continue
 
                     #record word tokens
@@ -433,11 +443,17 @@ class NerProcessor(DataProcessor):
         err_description = "Too many entities in sentence. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Word is too long", self.id_project, err_description)
+        self.db.log_error("Too many entities in sentence", self.id_project, err_description)
 
 
-    def debug_sentence_id_list(self,sentence_id_list):
+    def debug_sentence_id_list_one_by_one(self,sentence_id_list):
         for _sent_id in sentence_id_list:
             self.debug_msg('DEBUG Sentence id = '+str(_sent_id))
             self.debug_sentence_id = _sent_id
             self._process()
+
+    def debug_sentence_id_list_whole(self,sentence_id_list):
+        self.debug_msg('DEBUG Sentence id list = '+str(sentence_id_list))
+        self.debug_sentence_id = 0
+        self.debug_sent_id_list = sentence_id_list
+        self._process()

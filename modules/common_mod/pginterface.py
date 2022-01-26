@@ -421,7 +421,7 @@ class MainDB:
             pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3, $4, $5);'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk","dmn.git_pk[]"])
 
-        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records, debug_sentence_id])
+        res = self.plpy.execute(gvars.GD[plan_id], [id_www_source, id_project, number_records, debug_sentence_id, debug_sentence_id_arr])
 
         return convert_select_result(res)
 
@@ -587,7 +587,7 @@ if __name__ == "__main__":
 
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
-    res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4)
+    res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4, debug_sentence_id_arr = [3790780, 3790789])
     print(res)
     #cass_db.test_commit()
     #cass_db.test_rollback()
