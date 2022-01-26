@@ -217,39 +217,7 @@ class NerProcessor(DataProcessor):
                     break
                 self.raw_sentences[i]['txt'] = self.debug_raw_sentences[i]
 
-    def _ner_safe_recognize(self, sentences):
-        one_by_one_process = False
-        try:
-            ner_result = self.ner_recognizer.recognize(sentences)
-            ner_errors = [None for _ in range(len(sentences))]
-        except RuntimeError as e:
-            if e.args[0] == "input sequence after bert tokenization shouldn't exceed 512 tokens.":
-                one_by_one_process = True
-            else:
-                raise
-        except Exception as e:
-            raise
 
-        if one_by_one_process:
-            ner_result = ([],[])
-            ner_errors = []
-            for sentence in sentences:
-                try:
-                    _ner_result = self.ner_recognizer.recognize([sentence])
-                    ner_result[0].append(_ner_result[0])
-                    ner_result[1].append(_ner_result[1])
-                    ner_errors.append(None)
-                except RuntimeError as e:
-                    if e.args[0] == "input sequence after bert tokenization shouldn't exceed 512 tokens.":
-                        ner_result[0].append(None)
-                        ner_result[1].append(None)
-                        ner_errors.append(ner.ERROR_NER_512TOKENS)
-                    else:
-                        raise
-                except Exception as e:
-                    raise
-        
-        return ner_result, ner_errors
 
     def _process(self):
         portion_counter = 0
@@ -279,32 +247,22 @@ class NerProcessor(DataProcessor):
                 if self.debug_sentence_id != 0:
                     self.debug_msg('    Sentences: '+str(_sentences))
 
+                #DEBUG   294 err 237 is OK
+                _sentences[0] = 'wwwaddr0), Ирина Κононова (wwwaddr1), Эльвира Асылхужина (wwwaddr2), Катерина Должина (wwwaddr3), Ксения Селютина (wwwaddr4), Елена Водолазова (wwwaddr5), Нина Арбузина (wwwaddr6), Анастасия Пястолова (wwwaddr7), Анна Луч (wwwaddr8), Екатерина Якушева (wwwaddr9), Юлия Алексеева (wwwaddr10), Екатерина Марьина (wwwaddr11), Диана Быкова (wwwaddr12), Наташа Михеенкова (wwwaddr13), Юлиана Муханова (wwwaddr14), Оля Маленькая вредина (wwwaddr15), Евгения Заварухина (wwwaddr16), Кристина Гренц (wwwaddr17), Марина Какушина (wwwaddr18), Катерина Гордеева (wwwaddr19), Tatyana Nails (wwwaddr20), Елена Ноготкова (wwwaddr21), Nastya Murashova (wwwaddr22), Anna Krasnova (wwwaddr23), Валентина Милехина (wwwaddr24), Юлия Ненадовец (wwwaddr25), Алёна Кузнецова (wwwaddr26), Ксения Калашникова (wwwaddr27), Регина Сомова (wwwaddr28), Наталья Натальевна (wwwaddr29), Светлана Плеханова (wwwaddr30), Милена Вениаминовна (wwwaddr31), Юлия Барисевич (wwwaddr32), Мидина Маймакова (wwwaddr33), Оксана Петрова (wwwaddr34), Анастасия Галкина (wwwaddr35), Людочка Калинова (wwwaddr36), Диана Минькина (wwwaddr37), Аня Лисовская (wwwaddr38), Оксана Кофман (wwwaddr39), раз два три чеитыре пять шесть семь'
+                #_sentences[0] = 'Tatyana Brows (wwwaddr40), Ирина Шумакова (wwwaddr41), Tanya Silantyeva (wwwaddr42), Милана Синицына (wwwaddr43), Вера Переверзева (wwwaddr44), Ольга Гришина (wwwaddr45), Conor Leslie (wwwaddr46), Виктория Массажная (wwwaddr47), Алёна Кузнецова (wwwaddr48) С Днем Рождения!'
                 self.debug_msg(f'   {date.date_now_str()} doing lemmatizing operation...')
                 lemma_result = self.lemmatizer.lemmatize(_sentences)
                 self.debug_msg(f'   {date.date_now_str()} doing ner operation...')
-                #ner_result = self.ner_recognizer.recognize(_sentences)
-                ner_result, ner_errors = self._ner_safe_recognize(_sentences)
+                ner_result = self.ner_recognizer.recognize(_sentences)
 
                 self.debug_msg(f'   putting the results into db...')
-                for result in zip(self.raw_sentences,           #0
-                                  ner_result[0],                #1
-                                  ner_result[1],                #2
-                                  lemma_result,                 #3
-                                  self.url_recognizer.result,   #4
-                                  ner_errors                    #5
-                                  ):
+                for result in zip(self.raw_sentences, ner_result[0], ner_result[1], lemma_result, self.url_recognizer.result):
                     #record the sentence has been processed
-                    id_data_text = result[0]['id_data_text']
                     id_sentence = result[0]['id']
                     self.save_set_is_process(id_sentence)
 
-                    #check ne-recognition errors
-                    ner_error = result[5]
-                    if ner_error == ner.ERROR_NER_512TOKENS:
-                        self.log_error_too_many_entity(self, id_data_text, id_sentence, result[0]['txt'])
-                        continue
-
                     #record word tokens
+                    id_data_text = result[0]['id_data_text']
                     words_array = result[1]        #get words tokens from ner processor
                     lemms_array = [_['lemma'] for _ in result[3]]
                     ners = result[2]
@@ -425,12 +383,6 @@ class NerProcessor(DataProcessor):
 
     def log_error_too_long_word(self, id_data_text, id_sentence, txt):
         err_description = "Word is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
-              format(self.id_project, id_data_text, id_sentence, txt)
-
-        self.db.log_error("Word is too long", self.id_project, err_description)
-
-    def log_error_too_many_entity(self, id_data_text, id_sentence, txt):
-        err_description = "Too many entities in sentence. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
         self.db.log_error("Word is too long", self.id_project, err_description)

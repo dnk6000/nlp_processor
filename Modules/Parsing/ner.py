@@ -19,9 +19,6 @@ ENTITY_NAME_B_ORG = 'B-ORG'
 ENTITY_NAME_I_ORG = 'I-ORG'
 ENTITY_NAME_ORG   = 'GIT-ORG'
 
-ERROR_NER_512TOKENS = 'Too many NE in sentence'
-
-
 class NerRecognizer(common.CommonFunc):
     def __init__(self, *args,
                  db = None,
