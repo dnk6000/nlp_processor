@@ -188,6 +188,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
                 cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                wall_processed = subscribers_only
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
                 msg('post id = {} dt = {}'.format(res_unit['post_id'], res_unit['dt']))

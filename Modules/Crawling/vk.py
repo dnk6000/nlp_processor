@@ -328,7 +328,7 @@ class CrawlerVk(CrawlerSocialNet):
 
         super().__init__(*args, **kwargs)
 
-        self.msg('Инициализация')
+        #self.msg('Инициализация')
 
         self.url = r'https://vk.com/'
 
