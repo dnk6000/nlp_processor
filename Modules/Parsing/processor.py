@@ -194,7 +194,7 @@ class NerProcessor(DataProcessor):
         self.debug_sentence_id = 0
         self.debug_sent_id_list = []
 
-        self.MAX_WORDS_IN_SENTENCE = 150
+        self.MAX_WORDS_IN_SENTENCE = 200 #150
         self.MAX_WORD_LEN = 1000
 
         self.url_recognizer = ner.UrlRecognizer(*args, **kwargs)

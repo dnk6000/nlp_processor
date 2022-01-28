@@ -79,13 +79,13 @@ class JobManager(common.CommonFunc):
 					elif type(step_keys[key]) == str:
 						step_keys[key] = str(key_value)
 					elif type(step_keys[key]) == bool:
-						step_keys[key] = bool(key_value)
+						step_keys[key] = key_value == 'True'
 				else:
 					if key_value.isdigit():
 						step_keys[key] = int(key_value)
 					else:
 						if key_value in ('True','False'):
-							step_keys[key] = bool(key_value)
+							step_keys[key] = key_value == 'True'
 						else:
 							step_keys[key] = str(key_value)
 
