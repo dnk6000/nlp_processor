@@ -16,7 +16,7 @@ gvars = GlobVars(GD)
 
 ####################################################
 ####### begin: for PY environment only #############
-job_id = 1
+job_id = 101
 #job_id = None
 
 step_name = 'debug'
@@ -87,7 +87,7 @@ try:
 
             dp = processor.SentimentProcessor(db = cass_db,
                             id_project = ID_PROJECT_main,
-                            id_www_source = TG_SOURCE_ID,
+                            id_www_source = SOURCE_ID,
                             need_stop_cheker = need_stop_cheker,
                             debug_mode = DEBUG_MODE,
                             msg_func = plpy.notice,

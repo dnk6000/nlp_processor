@@ -347,6 +347,7 @@ try:
             step_params = job.get_step_params()
             step_name = step_params['step_name']
             ID_PROJECT_main = step_params['id_project']
+            DEBUG_MODE = step_params['debug_mode']
 
         cass_db.create_project(ID_PROJECT_main)
 

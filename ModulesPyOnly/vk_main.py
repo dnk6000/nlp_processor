@@ -356,6 +356,8 @@ try:
 
     job = jobs.JobManager(id_job = job_id, db = cass_db)
 
+    prev_project = None
+
     while job.get_next_step():
 
         if not job_id is None:
@@ -364,8 +366,11 @@ try:
             num_subscribers_1 = step_params['num_subscribers_1']
             num_subscribers_2 = step_params['num_subscribers_2']
             ID_PROJECT = step_params['id_project']
+            DEBUG_MODE = step_params['debug_mode']
 
-        cass_db.create_project(ID_PROJECT) #TODO do not create twice
+        if prev_project != ID_PROJECT:
+            cass_db.create_project(ID_PROJECT)
+            prev_project = ID_PROJECT
 
         #print(f'step_name: {step_name} ID_PROJECT: {ID_PROJECT} num_subscribers_1: {num_subscribers_1} num_subscribers_2: {num_subscribers_2}')
 
