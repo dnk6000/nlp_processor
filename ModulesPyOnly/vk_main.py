@@ -40,6 +40,7 @@ num_subscribers_1 = 1
 num_subscribers_2 = 10
 
 ID_PROJECT = 11
+queue_generate = True
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
@@ -367,6 +368,10 @@ try:
             num_subscribers_2 = step_params['num_subscribers_2']
             ID_PROJECT = step_params['id_project']
             DEBUG_MODE = step_params['debug_mode']
+            if 'queue_generate' in step_params:
+                queue_generate = step_params['queue_generate']
+            else:
+                queue_generate = True
 
         if prev_project != ID_PROJECT:
             cass_db.create_project(ID_PROJECT)
@@ -399,18 +404,20 @@ try:
         #--2--
         if step_name == 'crawl_subscribers':
             cass_db.log_info('Start '+step_name, ID_PROJECT,'')
-            #plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
-            #cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
-            #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT)
+            if queue_generate:
+                plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
+                cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
+                cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT)
             vk_crawl_wall_subscribers(ID_PROJECT, job)
 
         #--3--
         if step_name == 'crawl_wall':
             cass_db.log_info('Start '+step_name, ID_PROJECT, f'subscribers {num_subscribers_1} - {num_subscribers_2}')
-    
-            plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
-            cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
-            cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, num_subscribers_1, num_subscribers_2)
+            
+            if queue_generate:
+                plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
+                cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
+                cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, num_subscribers_1, num_subscribers_2)
    
             #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 10001)
             #cass_db.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 5000, 10000)

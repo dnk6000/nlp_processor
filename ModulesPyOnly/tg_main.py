@@ -37,6 +37,7 @@ step_name = 'crawl_groups'
 step_name = 'crawl_wall'
 step_name = 'debug'
 ID_PROJECT_main = 1
+queue_generate = True
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
@@ -348,6 +349,10 @@ try:
             step_name = step_params['step_name']
             ID_PROJECT_main = step_params['id_project']
             DEBUG_MODE = step_params['debug_mode']
+            if 'queue_generate' in step_params:
+                queue_generate = step_params['queue_generate']
+            else:
+                queue_generate = True
 
         cass_db.create_project(ID_PROJECT_main)
 
@@ -417,10 +422,11 @@ try:
             #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
             #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
-            #queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
-            #queue.regenerate()
+            if queue_generate:
+                queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
+                queue.regenerate()
 
-            #tg_crawl_messages_start(ID_PROJECT_main, queue)
+            tg_crawl_messages_start(ID_PROJECT_main, queue)
 
 except exceptions.StopProcess:
     #its ok  maybe user stop process

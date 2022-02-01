@@ -425,6 +425,16 @@ class MainDB:
 
         return convert_select_result(res)
 
+    def get_doubles_accounts(self, projects_arr = []):
+        plan_id = 'plan_get_doubles_account'
+        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            pg_func = 'select * from git200_crawl.get_doubles_accounts($1);'
+            gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk[]"])
+
+        res = self.plpy.execute(gvars.GD[plan_id], [projects_arr])
+
+        return convert_select_result(res)
+
     def _TestSelect(self):
         #    self.cursor.execute("SELECT id, network, account_type, account_id, account_name, account_screen_name, account_closed \
         #                        FROM git200_crawl.sn_accounts")
@@ -587,8 +597,9 @@ if __name__ == "__main__":
 
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
-    res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4, debug_sentence_id_arr = [3790780, 3790789])
-    print(res)
+    #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4, debug_sentence_id_arr = [3790780, 3790789])
+    res = cass_db.get_doubles_accounts([9,11])
+    #print(res)
     #cass_db.test_commit()
     #cass_db.test_rollback()
 
