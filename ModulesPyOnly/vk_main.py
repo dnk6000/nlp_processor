@@ -176,7 +176,12 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         _res_list = json.loads(res_list)
         n = len(_res_list)
         c = 0
-        msg('Add posts to DB: ' + str(n))
+
+        inf_msg = f'{date.date_now_str()}: Add posts to DB: {str(n)}'
+        if const.PY_ENVIRONMENT:
+            msg(inf_msg)
+        else:
+            print(inf_msg)
 
         for res_unit in _res_list:
             c += 1
@@ -307,6 +312,11 @@ def vk_crawling(id_project, job):
             break
 
         for elem in queue_portion:
+            inf_msg = f"{date.date_now_str()}: Crawl wall Project {id_project}  Group: {elem['sn_id']}"
+            if const.PY_ENVIRONMENT:
+                msg(inf_msg)
+            else:
+                print(inf_msg)
             vk_crawl_wall(id_project = id_project, 
                           id_group = elem['sn_id'], 
                           id_queue = elem['id'], 

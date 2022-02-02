@@ -34,9 +34,23 @@ class PlPy(object):
 
     def _connect(self):
         if self.connection is None:
-            self.connection = psycopg2.connect(**self.connection_par)
-            self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
-            self.cursor.tzinfo_factory = None #from psycopg2.tz import LocalTimezone
+            successfully = False
+            attempt = 0
+
+            while not successfully and attempt <= self._number_of_tries:
+                try:
+                    self.connection = psycopg2.connect(**self.connection_par)
+                    self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
+                    self.cursor.tzinfo_factory = None #from psycopg2.tz import LocalTimezone
+                    successfully = True
+                except Exception as expt:
+                    time.sleep(2)
+                    attempt += 1
+
+                    if attempt >= self._number_of_tries:
+                        raise expt
+                    else:
+                        print('Ошибка соединения с БД !!! Попытка '+str(attempt))
 
     @classmethod
     def __get_next_plan_num__(cls):
@@ -71,6 +85,9 @@ class PlPy(object):
                     raise expt
                 else:
                     print('Ошибка чтения/записи в БД !!! Попытка '+str(attempt))
+                    if type(expt) == psycopg2.OperationalError and 'server closed the connection' in expt.pgerror:
+                        self.connection = None
+                        self._connect()
                 #if attempt >= self._number_of_tries:
                 #    raise expt
                 #else:
