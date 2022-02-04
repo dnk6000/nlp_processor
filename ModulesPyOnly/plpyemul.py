@@ -85,7 +85,7 @@ class PlPy(object):
                 if not self._pauser.sleep():
                     raise expt
                 else:
-                    print(f'{date.date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
+                    print(f'{date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
                     if type(expt) == psycopg2.OperationalError and isinstance(expt.pgerror, str) and 'server closed the connection' in expt.pgerror \
                       or type(expt) == psycopg2.OperationalError and len(expt.args) >= 1 and isinstance(expt.args[0], str) and 'could not receive data from server' in expt.args[0]:
                         print('  Trying to reconnect...')
