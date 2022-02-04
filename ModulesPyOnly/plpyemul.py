@@ -87,8 +87,14 @@ class PlPy(object):
                     print('Ошибка чтения/записи в БД !!! Попытка '+str(attempt))
                     if type(expt) == psycopg2.OperationalError and isinstance(expt.pgerror, str) and 'server closed the connection' in expt.pgerror \
                       or type(expt) == psycopg2.OperationalError and len(expt.args) >= 1 and isinstance(expt.args[0], str) and 'could not receive data from server' in expt.args[0]:
+                        print('  Trying to reconnect...')
                         self.connection = None
                         self._connect()
+                    else:
+                        print('Error: ')
+                        print('     '+type(expt))
+                        print('     expt.pgerror: '+str(expt.pgerror))
+                        print('     '+str(expt.args))
                 #if attempt >= self._number_of_tries:
                 #    raise expt
                 #else:
