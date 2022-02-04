@@ -16,8 +16,8 @@ job_id = None
 
 step_name = 'process'
 step_name = 'process_shedule'
-step_name = 'debug'
 step_name = 'debug_sent_list'
+step_name = 'debug'
 
 #will be apply for debug only: when job_id is None
 ID_PROJECT_main = 10
@@ -85,11 +85,12 @@ try:
             TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
             VK_SOURCE_ID = gvars.get('VK_SOURCE_ID')
 
-            #import modules.parsing.ner as ner
-            #mld = ner.MixedLettersDetector()
-            #testString = r'- пpeдлoжeниe дeйcтвyeт тoлькo в oтнoшeнии тex лиц, ктo гoтoв зaключить дoгoвop нaймa yкaзaннoгo жилoгo пoмeщeния и aктyaльнo в тeчeниe мecяцa, * дoм нoвый; * oгopoжeннaя дeтcкaя плoщaдкa; * ecть вceгдa пapкoвoчнoe мecтo для мaшины вo двope дoмa; * зa дoмoм ecть плaтнaя aвтocтoянкa; * paзвитa инфpacтpyктypa: - в шaгoвoй дocтyпнocти ocтaнoвкa oбщecтвeннoгo тpaнcпopтa 51-й микpopaйoн (20 мeтpoв oт дoмa); - в coceднeм дoмe дeтcкий caд "Чyнгa-чaнгa" (Лoбыpинa, д.7); - в 10 минyтax xoдьбы oт дoмa Oбpaзoвaтeльный цeнтp №2, MAOУ шкoлa, дeтcкий caд 19, Дeтcкий caд 45; - Пpямo в дoмe: Kpacнoe и бeлoe, пapикмaxepcкaя; - B 5 минyтax oт дoмa мaгaзины ceтeвыe : Пятёpoчкa , Maгнит и т.д.; - дo цeнтpa гopoдa 10-ть минyт нa мaшинe и 20-ть нa oбщecтвeннoм тpaнcпopтe; - мнoгo paзвивaющиx цeнтpoв кaк для дeтeй дoшкoльнoгo и шкoльнoгo вoзpacтa, тaк и для взpocлыx.'
-            #res = mld.is_sentence_mixed(testString)
-            #print('result '+str(res))
+            if True:
+                import modules.parsing.ner as ner
+                mld = ner.MixedLettersDetector()
+                testString = r'PAДЫ ПРИВЕТСТВОВАТЬ BCEX KЛИEНTOB ДЯДИ НАPKOЛOГA   Розничная сеть NARKOLOG_ONLINE - магазин моментальных кладов в вашем городе 24/7'
+                res = mld.is_sentence_mixed(testString)
+                print('result '+str(res))
     
             #testString = r'- предложение Yдействует Yтолько в отношении тех лиц, кто готов заключить договор найма'
             #res = mld.is_sentence_mixed(testString)
@@ -152,38 +153,39 @@ try:
 
             pass
 
-            import modules.parsing.ner as ner
-            nerc = ner.UrlRecognizer()
+            if False:
+                import modules.parsing.ner as ner
+                nerc = ner.UrlRecognizer()
 
-            ##nerc.recognize(r'Hello www.google.com www.google.com World http://yahoo.com  http:\\yahoo.com   http://www.yahoo.com  ftp://www.yahoo.com')
+                ##nerc.recognize(r'Hello www.google.com www.google.com World http://yahoo.com  http:\\yahoo.com   http://www.yahoo.com  ftp://www.yahoo.com')
             
-            #res = nerc.recognize(r'bostonclub.ru  #челябинск #вчелябинске #английскиекурсы #английскийиндивидуально #английскийрепетитор #языковойцентр #языковаяшкола \
-            #                #бостонклуб  Компания "Бостон Клуб" в социальных сетях:  ВКонтакте => https://vk.com/bostonclubchelyabinsk \
-            #                #Одноклассники => https://ok.ru/group/57649564811421 Фейсбук => https://www.facebook.com/bostonclubchelyabinsk/ \
-            #                #Фейсбук => https://www.facebook.com/groups/bostonclub/ Твиттер => https://twitter.com/bostonclub_ru \
-            #                #Мой Мир => https://my.mail.ru/community/bostonclubchelyabinsk/ Пинтерест => https://www.pinterest.ru/bostonclubchelyabinsk/ \
-            #                #Инстаграм => https://www.instagram.com/bostonclubchelyabinsk/ Телеграм => https://t.me/bostonclubchelyabinsk  \
-            #                #Бостон Клуб - Курсы английского языка для детей и взрослых в Челябинске.')
+                #res = nerc.recognize(r'bostonclub.ru  #челябинск #вчелябинске #английскиекурсы #английскийиндивидуально #английскийрепетитор #языковойцентр #языковаяшкола \
+                #                #бостонклуб  Компания "Бостон Клуб" в социальных сетях:  ВКонтакте => https://vk.com/bostonclubchelyabinsk \
+                #                #Одноклассники => https://ok.ru/group/57649564811421 Фейсбук => https://www.facebook.com/bostonclubchelyabinsk/ \
+                #                #Фейсбук => https://www.facebook.com/groups/bostonclub/ Твиттер => https://twitter.com/bostonclub_ru \
+                #                #Мой Мир => https://my.mail.ru/community/bostonclubchelyabinsk/ Пинтерест => https://www.pinterest.ru/bostonclubchelyabinsk/ \
+                #                #Инстаграм => https://www.instagram.com/bostonclubchelyabinsk/ Телеграм => https://t.me/bostonclubchelyabinsk  \
+                #                #Бостон Клуб - Курсы английского языка для детей и взрослых в Челябинске.')
 
-            tstlst = [r'https://vk.com/id151183292), Ирина Κононова (https://vk.com/id395075905), Эльвира Асылхужина (https://vk.com/id377690170), \
-                                    Катерина Должина (https://vk.com/id202686765), Ксения Селютина (https://vk.com/id72663942), Елена Водолазова (https://vk.com/id11917119), \
-                                    Нина Арбузина (https://vk.com/id204323150), Анастасия Пястолова (https://vk.com/id132626821), Анна Луч (https://vk.com/id90594528), \
-                                    Екатерина Якушева (https://vk.com/id485916886), Юлия Алексеева (https://vk.com/id111931127), Екатерина Марьина (https://vk.com/id496687789), \
-                                    Диана Быкова (https://vk.com/id358449811), Наташа Михеенкова (https://vk.com/id255235153), Юлиана Муханова (https://vk.com/id155088539), \
-                                    Оля Маленькая вредина (https://vk.com/id135052683), Евгения Заварухина (https://vk.com/id134445826), Кристина Гренц (https://vk.com/id110775169), \
-                                    Марина Какушина (https://vk.com/id107662650), Катерина Гордеева (https://vk.com/id7793912), Tatyana Nails (https://vk.com/id492155573), \
-                                    Елена Ноготкова (https://vk.com/id482112910), Nastya Murashova (https://vk.com/id460967460), Anna Krasnova (https://vk.com/id442065690), \
-                                    Валентина Милехина (https://vk.com/id424672278), Юлия Ненадовец (https://vk.com/id249657264), Алёна Кузнецова (https://vk.com/id15869847), \
-                                    Ксения Калашникова (https://vk.com/id176490828), Регина Сомова (https://vk.com/id507304555), Наталья Натальевна (https://vk.com/id287518468), \
-                                    Светлана Плеханова (https://vk.com/id64542912), Милена Вениаминовна (https://vk.com/id336402536), Юлия Барисевич (https://vk.com/id21693083), \
-                                    Мидина Маймакова (https://vk.com/id422892795), Оксана Петрова (https://vk.com/id508712311), Анастасия Галкина (https://vk.com/id430093901), \
-                                    Людочка Калинова (https://vk.com/id469554172), Диана Минькина (https://vk.com/id373761695), Аня Лисовская (https://vk.com/id410138720), \
-                                    Оксана Кофман (https://vk.com/id548032773), Tatyana Brows (https://vk.com/id636568309), Ирина Шумакова (https://vk.com/id619269276), \
-                                    Tanya Silantyeva (https://vk.com/id590753993), Милана Синицына (https://vk.com/id577705685), Вера Переверзева (https://vk.com/id576121462), \
-                                    Ольга Гришина (https://vk.com/id572001478), Conor Leslie (https://vk.com/id562712381), Виктория Массажная (https://vk.com/id536686098), \
-                                    Алёна Кузнецова (https://vk.com/id525490068)  С Днем Рождения!']
+                tstlst = [r'https://vk.com/id151183292), Ирина Κононова (https://vk.com/id395075905), Эльвира Асылхужина (https://vk.com/id377690170), \
+                                        Катерина Должина (https://vk.com/id202686765), Ксения Селютина (https://vk.com/id72663942), Елена Водолазова (https://vk.com/id11917119), \
+                                        Нина Арбузина (https://vk.com/id204323150), Анастасия Пястолова (https://vk.com/id132626821), Анна Луч (https://vk.com/id90594528), \
+                                        Екатерина Якушева (https://vk.com/id485916886), Юлия Алексеева (https://vk.com/id111931127), Екатерина Марьина (https://vk.com/id496687789), \
+                                        Диана Быкова (https://vk.com/id358449811), Наташа Михеенкова (https://vk.com/id255235153), Юлиана Муханова (https://vk.com/id155088539), \
+                                        Оля Маленькая вредина (https://vk.com/id135052683), Евгения Заварухина (https://vk.com/id134445826), Кристина Гренц (https://vk.com/id110775169), \
+                                        Марина Какушина (https://vk.com/id107662650), Катерина Гордеева (https://vk.com/id7793912), Tatyana Nails (https://vk.com/id492155573), \
+                                        Елена Ноготкова (https://vk.com/id482112910), Nastya Murashova (https://vk.com/id460967460), Anna Krasnova (https://vk.com/id442065690), \
+                                        Валентина Милехина (https://vk.com/id424672278), Юлия Ненадовец (https://vk.com/id249657264), Алёна Кузнецова (https://vk.com/id15869847), \
+                                        Ксения Калашникова (https://vk.com/id176490828), Регина Сомова (https://vk.com/id507304555), Наталья Натальевна (https://vk.com/id287518468), \
+                                        Светлана Плеханова (https://vk.com/id64542912), Милена Вениаминовна (https://vk.com/id336402536), Юлия Барисевич (https://vk.com/id21693083), \
+                                        Мидина Маймакова (https://vk.com/id422892795), Оксана Петрова (https://vk.com/id508712311), Анастасия Галкина (https://vk.com/id430093901), \
+                                        Людочка Калинова (https://vk.com/id469554172), Диана Минькина (https://vk.com/id373761695), Аня Лисовская (https://vk.com/id410138720), \
+                                        Оксана Кофман (https://vk.com/id548032773), Tatyana Brows (https://vk.com/id636568309), Ирина Шумакова (https://vk.com/id619269276), \
+                                        Tanya Silantyeva (https://vk.com/id590753993), Милана Синицына (https://vk.com/id577705685), Вера Переверзева (https://vk.com/id576121462), \
+                                        Ольга Гришина (https://vk.com/id572001478), Conor Leslie (https://vk.com/id562712381), Виктория Массажная (https://vk.com/id536686098), \
+                                        Алёна Кузнецова (https://vk.com/id525490068)  С Днем Рождения!']
 
-            res = nerc.recognize(tstlst)
+                res = nerc.recognize(tstlst)
             pass
             
             #a = 1
