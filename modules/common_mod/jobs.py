@@ -143,6 +143,7 @@ class JobManager(common.CommonFunc):
 		step = self.job_steps[self.current_step]
 		if not step['_runing']:
 			step['_runing'] = True
+			self._log_step_start()
 			return True
 		step['_runing'] = False
 		if step['next_step'] == '' or not step['next_step'] in self.job_steps:

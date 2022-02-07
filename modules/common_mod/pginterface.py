@@ -13,6 +13,7 @@ class MainDB:
         self.db_error_limit = 10  #number errors in a row (=подряд)
         
         self.plpy = plpy
+        self.memo_pgconn_ptr = -1
 
         global gvars
         gvars = GlobVars(GD)
@@ -50,6 +51,29 @@ class MainDB:
             self._check_db_error_limit(e)
             return None
 
+    def _clear_query_plans(self):
+        keys_to_remove = []
+        for key in gvars.GD:
+            if key[0:5] == 'plan_':
+                keys_to_remove.append(key)
+        for key in keys_to_remove:
+            gvars.GD.pop(key)
+        pass
+
+    def _is_plan_exist(self, plan_id):
+        result = True
+        if const.PY_ENVIRONMENT:
+            if self.plpy.connection is None:
+                result = False
+            elif self.memo_pgconn_ptr != self.plpy.connection.pgconn_ptr:
+                self.memo_pgconn_ptr = self.plpy.connection.pgconn_ptr
+                self._clear_query_plans()
+                result = False
+        if result and (not plan_id in gvars.GD or gvars.GD[plan_id] is None):
+            result = False
+        return result
+
+
     def commit(self, autocommit = True):
         if autocommit:
             self.plpy.commit()
@@ -68,7 +92,7 @@ class MainDB:
     def update_sn_num_subscribers(self, sn_network, sn_id, num_subscribers, is_broken = False, broken_status_code = '', **kwargs):
         plan_id = 'plan_update_sn_num_subscribers'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
                                 ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
 
@@ -79,7 +103,7 @@ class MainDB:
                                 sn_id = None, sn_post_id = None, sn_post_parent_id = None, **kwargs):
         plan_id = 'plan_upsert_data_text'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 gvars.GD[plan_id] = self.plpy.prepare('''select git300_scrap.upsert_data_text($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
                 ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_text","dmn.git_text","dmn.git_datetime","dmn.git_sn_id","dmn.git_sn_id","dmn.git_sn_id"])
             res = self._execute(plan_id, [id_data_html, id_project, id_www_sources, content, content_header, content_date,
@@ -90,7 +114,7 @@ class MainDB:
     def upsert_data_html(self, url, content, id_project, id_www_sources, **kwargs):
         plan_id = 'plan_upsert_data_html'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''', 
                                             ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
@@ -103,7 +127,7 @@ class MainDB:
                                  account_screen_name, account_closed, account_extra_1 = '', num_subscribers = None, **kwargs):
         plan_id = 'plan_upsert_sn_accounts'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
                         ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_string", "dmn.git_integer"])
 
@@ -115,7 +139,7 @@ class MainDB:
     def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date, **kwargs):
         plan_id = 'plan_upsert_sn_activity'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 pg_func = 'select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);'
 
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
@@ -126,7 +150,7 @@ class MainDB:
     def get_www_source_id(self, www_source_name):
         ''' result syntax: res[0]['get_www_sources_id'] '''
         plan_id = 'plan_get_www_source_id'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT git010_dict.get_www_sources_id($1) 
@@ -138,7 +162,7 @@ class MainDB:
 
     def select_groups_id(self, id_project):
         plan_id = 'plan_select_groups_id'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT id, account_id 
@@ -171,7 +195,7 @@ class MainDB:
     def _log_write(self, log_level, record_type, id_project, description):
         plan_id = 'plan_log_write_'+const.LOG_LEVEL_FUNC[log_level]
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 pg_func = 'select git999_log.write($1, $2, $3, $4, $5);'
                 pg_func = pg_func.replace('write', const.LOG_LEVEL_FUNC[log_level])
 
@@ -183,7 +207,7 @@ class MainDB:
     def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999):
         plan_id = 'plan_queue_generate'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 pg_func = 'select * from git200_crawl.queue_generate($1, $2, $3, $4);'
 
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer"])
@@ -196,7 +220,7 @@ class MainDB:
                            date_deferred = None, attempts_counter = None):
         plan_id = 'plan_queue_update'
         with self.plpy.subtransaction():
-            if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+            if not self._is_plan_exist(plan_id):
                 pg_func = 'select * from git200_crawl.queue_update($1, $2, $3, $4, $5, $6);'
 
                 gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
@@ -207,7 +231,7 @@ class MainDB:
     
     def queue_select(self, id_www_source, id_project, number_records = 10):
         plan_id = 'plan_queue_select'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             pg_func = 'select * from git200_crawl.queue_select($1, $2, $3);'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
 
@@ -229,7 +253,7 @@ class MainDB:
     
     def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post):
         plan_id = 'plan_get_sn_activity'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3, $4)
@@ -241,7 +265,7 @@ class MainDB:
 
     def get_project_params(self, id_project):
         plan_id = 'plan_get_project_params'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.get_project_params($1)
@@ -253,7 +277,7 @@ class MainDB:
 
     def get_proxy_project(self, id_project):
         plan_id = 'plan_get_proxy_project'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.get_proxy_project($1)
@@ -272,7 +296,7 @@ class MainDB:
                        recrawl_days_reply = 0, 
                        requests_delay_sec = 0):
         plan_id = 'plan_create_project'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.create_project($1, $2, $3, $4, $5, $6, $7)
@@ -283,7 +307,7 @@ class MainDB:
 
     def need_stop_func(self, func_name, id_project):
         plan_id = 'plan_need_stop_func'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.need_stop_func($1, $2)
@@ -295,7 +319,7 @@ class MainDB:
 
     def set_config_param(self, key_name, key_value):
         plan_id = 'plan_set_config_param'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git000_cfg.set_config_param($1, $2)
@@ -308,7 +332,7 @@ class MainDB:
 
     def data_text_select_unprocess(self, id_www_source, id_project, number_records = 100):
         plan_id = 'plan_data_text_select_unprocess'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             pg_func = 'select * from git300_scrap.data_text_select_unprocess($1, $2, $3);'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
 
@@ -318,7 +342,7 @@ class MainDB:
 
     def data_text_set_is_process(self, id, autocommit = True):
         plan_id = 'plan_data_text_set_is_process'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git300_scrap.data_text_set_is_process($1)
@@ -330,7 +354,7 @@ class MainDB:
 
     def token_upsert_sentence(self, id_www_source, id_project, id_data_text, sentences_array, autocommit = True):
         plan_id = 'plan_token_upsert_sentence'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_sentence($1, $2, $3, $4)''', 
                             ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []"])
 
@@ -340,7 +364,7 @@ class MainDB:
 
     def sentiment_upsert_sentence(self, id_www_source, id_project, id_data_text, id_token_sentence, id_rating_type, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_sentence'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git700_rate.upsert_sentence($1, $2, $3, $4, $5)''', 
                                         ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
 
@@ -351,7 +375,7 @@ class MainDB:
 
     def sentiment_upsert_text(self, id_www_source, id_project, id_data_text, id_rating_type, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_text'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git700_rate.upsert_text($1, $2, $3, $4)''', 
                                         ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
 
@@ -362,7 +386,7 @@ class MainDB:
 
     def ent_type_insert(self, name, description, autocommit = True, **kwargs):
         plan_id = 'plan_ent_type_insert'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git430_ner.ent_type_insert($1, $2)''', 
                                         ["dmn.git_string","dmn.git_text"])
 
@@ -373,7 +397,7 @@ class MainDB:
 
     def ent_type_select_all(self):
         plan_id = 'plan_ent_type_select_all'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             pg_func = 'select * from git430_ner.ent_type_select_all();'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, [])
 
@@ -384,7 +408,7 @@ class MainDB:
 
     def entity_upsert(self, id_www_source, id_project, id_data_text, id_sentence, id_ent_type, txt_lemm, autocommit = True, **kwargs):
         plan_id = 'plan_sentiment_upsert_sentence'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git430_ner.entity_upsert($1, $2, $3, $4, $5, $6)''', 
                                         ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk []","dmn.git_string []"])
 
@@ -395,7 +419,7 @@ class MainDB:
 
     def token_upsert_word(self, id_www_source, id_project, id_data_text, id_sentence, words_array, lemms_array, id_entities_array, autocommit = True):
         plan_id = 'plan_token_upsert_word'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5, $6, $7)''', 
                             ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []", "dmn.git_text []", "dmn.git_pk []"])
 
@@ -405,7 +429,7 @@ class MainDB:
 
     def sentence_set_is_process(self, id, is_broken = False, id_broken_type = None, autocommit = True):
         plan_id = 'plan_sentence_set_is_process'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git400_token.sentence_set_is_process($1, $2, $3)
@@ -417,7 +441,7 @@ class MainDB:
 
     def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0, debug_sentence_id_arr = []):
         plan_id = 'plan_sentence_select_unprocess'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             pg_func = 'select * from git400_token.sentence_select_unprocess($1, $2, $3, $4, $5);'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk","dmn.git_pk[]"])
 
@@ -427,7 +451,7 @@ class MainDB:
 
     def get_doubles_accounts(self, projects_arr = []):
         plan_id = 'plan_get_doubles_account'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             pg_func = 'select * from git200_crawl.get_doubles_accounts($1);'
             gvars.GD[plan_id] = self.plpy.prepare(pg_func, ["dmn.git_pk[]"])
 
@@ -446,7 +470,7 @@ class MainDB:
 
     def upsert_trip_advisor(self, name, name_lemma, name2, address, category_str, longitude, latitude, url, autocommit = True):
         plan_id = 'plan_upsert_trip_advisor'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git010_dict.upsert_trip_advisor($1, $2, $3, $4, $5, $6, $7, $8)''', 
                             ["dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", 
                              "dmn.git_double", "dmn.git_double", "dmn.git_string"])
@@ -457,7 +481,7 @@ class MainDB:
 
     def job_read(self, id):
         plan_id = 'plan_job_read'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git100_main.job_read($1)
@@ -469,7 +493,7 @@ class MainDB:
 
     def job_turn_off(self, id):
         plan_id = 'plan_job_turn_off'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git100_main.job_turn_off($1)
@@ -481,7 +505,7 @@ class MainDB:
 
     def job_need_stop(self, id):
         plan_id = 'plan_job_need_stop'
-        if not plan_id in gvars.GD or gvars.GD[plan_id] is None:
+        if not self._is_plan_exist(plan_id):
             gvars.GD[plan_id] = self.plpy.prepare(
                 '''
                 SELECT * FROM git100_main.job_need_stop($1)
