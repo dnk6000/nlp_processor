@@ -25,18 +25,18 @@ else:
 gvars = GlobVars(GD)
 
 
-#DEBUG_MODE = True
-DEBUG_MODE = False
+DEBUG_MODE = True
+#DEBUG_MODE = False
 
 ####################################################
 ####### begin: for PY environment only #############
 job_id = 1
-#job_id = None
+job_id = None
 
-step_name = 'crawl_groups'
-step_name = 'crawl_wall'
 step_name = 'debug'
-ID_PROJECT_main = 1
+step_name = 'crawl_wall'
+step_name = 'crawl_groups'
+ID_PROJECT_main = 12
 queue_generate = True
 
 if const.PY_ENVIRONMENT:
@@ -207,6 +207,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                 wall_processed = True
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_SUCCESS:
+                cass_db.set_sn_activity_fin_date(TG_SOURCE_ID, id_project, id_group, date.date_now_str())
                 cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
                 wall_processed = True
             

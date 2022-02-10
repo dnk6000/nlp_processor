@@ -263,6 +263,18 @@ class MainDB:
         res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, sn_id, recrawl_days_post])
         return convert_select_result(res, ['last_date', 'upd_date'])
 
+    def set_sn_activity_fin_date(self, id_www_sources, id_project, sn_id, fin_date):
+        plan_id = 'plan_set_sn_activity_fin_date'
+        if not self._is_plan_exist(plan_id):
+            gvars.GD[plan_id] = self.plpy.prepare(
+                '''
+                SELECT * FROM git200_crawl.set_sn_activity_fin_date($1, $2, $3, $4)
+                ''', 
+                ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_datetime"])
+
+        self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, sn_id, fin_date])
+        self.plpy.commit()
+
     def get_project_params(self, id_project):
         plan_id = 'plan_get_project_params'
         if not self._is_plan_exist(plan_id):
@@ -622,7 +634,9 @@ if __name__ == "__main__":
     #res = cass_db.token_upsert_word(id_www_source = 11, id_project = 22, id_data_text = 33, id_sentence = 44, words_array = ['ghtlk 1','предл 2'])
     #cass_db.sentence_set_is_process(786)
     #res = cass_db.sentence_select_unprocess(id_www_source = 4, id_project = 10, number_records = 4, debug_sentence_id_arr = [3790780, 3790789])
-    res = cass_db.get_doubles_accounts([9,11])
+    #res = cass_db.get_doubles_accounts([9,11])
+    #cass_db.set_sn_activity_fin_date(4, 10, '1461444614', '01.01.2022')
+    cass_db.set_sn_activity_fin_date(4, 10, '1275512360', date.date_now_str())
     #print(res)
     #cass_db.test_commit()
     #cass_db.test_rollback()

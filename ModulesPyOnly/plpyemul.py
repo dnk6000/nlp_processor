@@ -93,7 +93,7 @@ class PlPy(object):
                         self._connect()
                     else:
                         print('Error: ')
-                        print('     '+type(expt))
+                        print('     '+str(type(expt)))
                         print('     expt.pgerror: '+str(expt.pgerror))
                         print('     '+str(expt.args))
                 #if attempt >= self._number_of_tries:

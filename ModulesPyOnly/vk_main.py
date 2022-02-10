@@ -140,8 +140,10 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
 
+    vk_source_id = gvars.get('VK_SOURCE_ID')
+
     sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
-                                                gvars.get('VK_SOURCE_ID'), 
+                                                vk_source_id, 
                                                 id_project, 
                                                 sn_id = id_group, 
                                                 recrawl_days_post = project_params['recrawl_days_post'], 
@@ -214,6 +216,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 wall_processed = True
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
+                cass_db.set_sn_activity_fin_date(vk_source_id, id_project, id_group, date.date_now_str())
                 cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
                 wall_processed = True
             
