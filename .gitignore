@@ -344,5 +344,5 @@ healthchecksdb
 /Test/txttmp2.txt
 
 # Cassandra
-/CasCrawl37.pyproj
+*.pyproj
 *.sln

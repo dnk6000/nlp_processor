@@ -1,4 +1,5 @@
 import logging
+from configparser import ConfigParser
 
 import modules.common_mod.const as const
 
@@ -37,6 +38,35 @@ class Logger:
 
 	def info(self, message):
 		self.logger.info(str(message))
+
+class ConfigParserNoSection(ConfigParser):
+	def __init__(self, *args, debug_mode=True, msg_func=None, **kwargs):
+		ConfigParser.__init__(self, *args, **kwargs)
+		self.FAKE_SECTION = 'fake_section'
+
+	def read_string(self, string):
+		super(ConfigParser, self).read_string(f'[{self.FAKE_SECTION}]\n'+string)
+
+	@property
+	def keys(self):
+		keys_dict = {}
+		if self.FAKE_SECTION in self:
+			for key in self[self.FAKE_SECTION]:
+				if self[self.FAKE_SECTION][key] == 'True':
+					keys_dict[key] = True
+				elif self[self.FAKE_SECTION][key] == 'False':
+					keys_dict[key] = False
+				else:
+					keys_dict[key] = self[self.FAKE_SECTION][key]
+		return keys_dict
+
+	@staticmethod
+	def get_parameters_str(params:dict):
+		res = ''
+		for i in params:
+			res = res + f'{str(i)} = {str(params[i])}\n'
+		return res
+
 
 def clear_file(fname):
     f = open(fname, 'w')

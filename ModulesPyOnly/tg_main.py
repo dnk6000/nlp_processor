@@ -33,10 +33,10 @@ DEBUG_MODE = True
 job_id = 1
 job_id = None
 
-step_name = 'debug'
 step_name = 'crawl_wall'
 step_name = 'crawl_groups'
-ID_PROJECT_main = 12
+step_name = 'debug'
+ID_PROJECT_main = 1
 queue_generate = True
 
 if const.PY_ENVIRONMENT:
@@ -377,12 +377,41 @@ try:
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
 
+            import configparser
+            #config = configparser.ConfigParser()
+            config = common.ConfigParserNoSection()
+            #config.add_section("params")
+            #config.set("params", "broadcast", "True")
+            #config.set("params", "fake", "False")
+            
+            res = common.ConfigParserNoSection.get_parameters_str({'broadcast':True, 'fake':False})
+
+            config.read_string(res)
+            #config.read_string('[fake_section]\n'+res)
+
+            #ggg = config.keys()
+            ggg = config.keys
+
+            #https://t.me/blogo
+            tg_add_group(id_project = 1, name_group = 'blogo') 
+
+            #https://t.me/fursovchat
+            #tg_add_group(id_project = 1, name_group = 'fursovchat') 
+
+            #https://t.me/govoritfursov
+            #tg_add_group(id_project = 1, name_group = 'govoritfursov') 
+
+            #1430295016
+            tg_add_group(id_project = 1, name_group = 'AllDatingChe') 
+            #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '')
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'bmchel23', id_post = '')
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'mdpschel174', id_post = '') 
-            tg_add_group(id_project = 1, name_group = 'meduzalive')
-            tg_add_group(id_project = 1, name_group = 'breakingmash')
+
+            #tg_add_group(id_project = 1, name_group = 'meduzalive')  
+            #tg_add_group(id_project = 1, name_group = 'breakingmash')
+
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'chelyabinsky_znakomstva', id_post = '')
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1036240821', 
             #                      name_group = 'meduzalive', hash_group = '-2943065673075768629', id_post = '')

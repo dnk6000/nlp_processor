@@ -419,7 +419,8 @@ class ScrapeResult(list, common.CommonFunc):
                                account_screen_name='',
                                account_closed=False,
                                num_subscribers=0,
-                               account_extra_1=''):
+                               account_extra_1='',
+                               parameters=''):
 		res_element = self.base_res_element.copy()
 		res_element['result_type']         = self.RESULT_TYPE_ACCOUNT
 		res_element['account_id']          = account_id
@@ -428,6 +429,7 @@ class ScrapeResult(list, common.CommonFunc):
 		res_element['account_closed']	   = account_closed
 		res_element['num_subscribers']	   = num_subscribers
 		res_element['account_extra_1']	   = account_extra_1
+		res_element['parameters']	       = parameters
 
 		super().append(res_element)
 
