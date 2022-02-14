@@ -370,12 +370,22 @@ try:
 	        #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
+            #clear_tables_by_project(id_project = 1)
+            #cass_db.clear_table_by_project('git200_crawl.sn_activity', id_project = 1)
+            #tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 
+            #tg_add_group(id_project = 1, name_group = 'govoritfursov')
+            #tg_crawl_messages_channel(id_project = 1, id_group = '1436234144', name_group = 'govoritfursov', id_post = '') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogo', id_post = '') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'che_history', id_post = '') 
+            tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogosfer', id_post = '') 
 
-	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '', name_group = 'afk_che', id_post = '') #1378397816
 	        #cass_db.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
 	        #tg_crawl_groups(ID_PROJECT_main)
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
+
+            import sys
+            sys.exit(0)
 
             import configparser
             #config = configparser.ConfigParser()

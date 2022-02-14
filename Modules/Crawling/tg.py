@@ -254,6 +254,10 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post = str(debug_id_post)
 		self.debug_id_post_processed = False
 
+		self.broadcast = False
+		self.has_link = False
+		self.have_comments = False
+
 	def crawling(self, id_group):
 
 		if str(id_group).isdigit():
@@ -266,9 +270,15 @@ class TelegramMessagesCrawler(Telegram):
 
 		try:
 			self.requests_pauser.smart_sleep()
+			entity = self.get_peer_entity(self.id_group, self.name_group, self.hash_group)
+
+			self.broadcast = entity.broadcast
+			self.has_link = entity.has_link
+			self.have_comments = self.broadcast and self.has_link
+
 			req_group_params = { 
 				#'peer': self._url + self.name_group, 
-				'peer': self.get_peer_entity(self.id_group, self.name_group, self.hash_group), 
+				'peer': entity, 
 				'offset_id': 0,
 				'offset_date': None, 
 				'add_offset': 0,
@@ -368,22 +378,27 @@ class TelegramMessagesCrawler(Telegram):
 				#_message.sender_id
 				#_message.views
 				
-				self.activity_registrator.registrate(message.id, message.date)
+				if self.have_comments:
+					self.activity_registrator.registrate(message.id, message.date)
+				else:
+					self.activity_registrator.registrate_common_date(message.date)
 
 				#Replyes
-				if message.replies is not None and message.replies.replies > 0:
-					for _ in self._crawling_replies(req_reply_params, self.id_group, message.id):
-						pass
+				if self.have_comments:
+					if message.replies is not None and message.replies.replies > 0:
+						for _ in self._crawling_replies(req_reply_params, self.id_group, message.id):
+							pass
 
 			if crawled_post_encounter:
-				for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
-					if self.check_debug_post_id(post_for_recrawl_reply):
-						continue
-					id_message = int(post_for_recrawl_reply)
-					message = self.client.get_messages(req_message_params['peer'], ids=id_message)
-					if message is not None and message.replies is not None and message.replies.replies > 0:
-						for _ in self._crawling_replies(req_reply_params, self.id_group, id_message):
-							pass
+				if self.have_comments:
+					for post_for_recrawl_reply in self._sn_recrawler_checker.get_post_list():
+						if self.check_debug_post_id(post_for_recrawl_reply):
+							continue
+						id_message = int(post_for_recrawl_reply)
+						message = self.client.get_messages(req_message_params['peer'], ids=id_message)
+						if message is not None and message.replies is not None and message.replies.replies > 0:
+							for _ in self._crawling_replies(req_reply_params, self.id_group, id_message):
+								pass
 
 			self.activity_registrator.move_to_scrape_result(self.scrape_result, move_common_date = self.debug_id_post == '')		
 			yield self.scrape_result.to_json() #return result per one post-request
@@ -461,7 +476,10 @@ class TelegramMessagesCrawler(Telegram):
 				#reply.reply_to_msg_id - this field contains the id of the reply to which the response is being sent #TODO
 				self.scrape_result.add_reply(reply, self.get_reply_url(reply.id, id_message),  id_group, id_message)
 				if first_request:
-					self.activity_registrator.registrate(id_message, reply.date)
+					if self.have_comments:
+						self.activity_registrator.registrate(id_message, reply.date)
+					else:
+						self.activity_registrator.registrate_common_date(reply.date)
 					first_request = False
 			
 			req_reply_params['offset_id'] = history_repl.messages[-1].id
@@ -542,6 +560,13 @@ class ActivityRegistrator(dict, common.CommonFunc):
 			self[sn_post_id] = dt
 		elif self[sn_post_id] < dt:	#register the latest datetime
 			self[sn_post_id] = dt
+
+		if self.common_last_date < dt:
+			self.common_last_date = dt
+
+	def registrate_common_date(self, dt):
+		if dt is None or dt == self.EMPTY_DATE: 
+			return
 
 		if self.common_last_date < dt:
 			self.common_last_date = dt
