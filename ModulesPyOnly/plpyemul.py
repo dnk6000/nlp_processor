@@ -51,7 +51,7 @@ class PlPy(object):
                     if attempt >= self._number_of_tries:
                         raise expt
                     else:
-                        print('Ошибка соединения с БД !!! Попытка '+str(attempt))
+                        print(f'{date.date_now_str()}: Ошибка соединения с БД !!! Попытка {str(attempt)}')
 
     @classmethod
     def __get_next_plan_num__(cls):

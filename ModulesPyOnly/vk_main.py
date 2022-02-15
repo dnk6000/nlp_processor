@@ -181,9 +181,9 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
         inf_msg = f'{date.date_now_str()}: Add posts to DB: {str(n)}'
         if const.PY_ENVIRONMENT:
-            msg(inf_msg)
-        else:
             print(inf_msg)
+        else:
+            msg(inf_msg)
 
         for res_unit in _res_list:
             c += 1
@@ -229,7 +229,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
-                    plpy.notice('Request error: pause before repeating...') #DEBUG
+                    plpy.notice(f'{date.date_now_str()}: Request error: pause before repeating...') #DEBUG
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)

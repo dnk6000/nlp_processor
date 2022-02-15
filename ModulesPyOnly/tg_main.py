@@ -221,7 +221,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                 cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
-                    msg('Request error: pause before repeating...') #DEBUG
+                    msg(f'{date.date_now_str()}: Request error: pause before repeating...') #DEBUG
                     cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         tg_crawler.close_session()
