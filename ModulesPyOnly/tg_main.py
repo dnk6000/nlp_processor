@@ -158,7 +158,8 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                                                 recrawl_days_reply = project_params['recrawl_days_reply'],
                                                 plpy = plpy,
                                                 msg_func = msg, #plpy.notice,
-                                                tzinfo = datetime.timezone.utc)
+                                                tzinfo = datetime.timezone.utc,
+                                                utc_hours_delta = const.HOURS_TZ_UTC_OFFSET)
 
     tg_crawler = tg.TelegramMessagesCrawler(debug_mode = DEBUG_MODE, 
                                             msg_func = msg, #plpy.notice, 
@@ -372,12 +373,25 @@ try:
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
             #clear_tables_by_project(id_project = 1)
             #cass_db.clear_table_by_project('git200_crawl.sn_activity', id_project = 1)
-            #tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 
+
+            #import datetime
+            #offset = datetime.timedelta(hours=3)
+            #tz = datetime.timezone(offset, name='МСК')
+            
+            #dtutc = datetime.datetime.utcnow()
+            #dt = datetime.datetime.now()
+
+            #dtutc+offset == dt
+
+            #dt11 = tz.fromutc(dtutc)
+
+
+            tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 
             #tg_add_group(id_project = 1, name_group = 'govoritfursov')
             #tg_crawl_messages_channel(id_project = 1, id_group = '1436234144', name_group = 'govoritfursov', id_post = '') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogo', id_post = '') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'che_history', id_post = '') 
-            tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogosfer', id_post = '') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogosfer', id_post = '') 
 
 	        #cass_db.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
 	        #tg_crawl_groups(ID_PROJECT_main)

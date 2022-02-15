@@ -248,6 +248,7 @@ class SnRecrawlerCheker(common.CommonFunc):
 					   recrawl_days_reply = None, 
 					   plpy = None,
 					   tzinfo = None,
+                       utc_hours_delta = 0,
 					   **kwargs):
 		super().__init__(**kwargs)
 
@@ -258,6 +259,7 @@ class SnRecrawlerCheker(common.CommonFunc):
 		self.group_upd_date = self.EMPTY_DATE
 		self.group_last_date = self.EMPTY_DATE  #last activity date
 		self.str_to_date = date.StrToDate('%Y-%m-%d %H:%M:%S+.*')
+		self.utc_hours_delta = datetime.timedelta(hours=utc_hours_delta)
 
 		if cass_db is not None:
 			if not sn_id.isdigit():
@@ -269,7 +271,7 @@ class SnRecrawlerCheker(common.CommonFunc):
 
 				for i in res:
 					_post_id = i['sn_post_id']
-					_upd_date = self._get_date(i['upd_date'])
+					_upd_date = self._get_date(i['upd_date']) + self.utc_hours_delta
 					if _post_id == '':
 						self.group_upd_date = _upd_date
 						self.group_last_date = self._get_date(i['last_date'])

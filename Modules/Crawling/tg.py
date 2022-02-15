@@ -240,7 +240,7 @@ class TelegramMessagesCrawler(Telegram):
 		self.name_group = name_group
 		self.hash_group = hash_group
 
-		self.date_deep = date.date_as_utc(date_deep)
+		self.date_deep = date.date_local_tz(date_deep)
 
 		self.scrape_result = ScrapeResultTG(**kwargs)
 

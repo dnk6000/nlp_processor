@@ -1,6 +1,6 @@
 '''Constants'''
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from os.path import expanduser
 
 HOME = expanduser("~")
@@ -79,6 +79,8 @@ SENTIM_RATE = {'negative':1,'neutral':2,'positive':3,'skip':4,'speech':5, 'error
 
 EMPTY_DATE = datetime(1,1,1)
 EMPTY_DATE_UTC = datetime(1,1,1,tzinfo = timezone.utc)
+HOURS_TZ_UTC_OFFSET = -3
+LOCAL_TZ_UTC_OFFSET = timedelta(hours = HOURS_TZ_UTC_OFFSET)
 
 
 if PG_ENVIRONMENT:

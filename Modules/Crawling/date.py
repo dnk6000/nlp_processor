@@ -113,12 +113,19 @@ def date_now_str():
 def date_as_utc(dt):
     if dt is None:
         return const.EMPTY_DATE_UTC
-    elif dt.tzinfo is not None:
+    elif dt.tzinfo is not None: #TODO   ???converter needed?
         return dt
     elif dt == const.EMPTY_DATE:
         return const.EMPTY_DATE_UTC
     else:
         return datetime.datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, tzinfo = datetime.timezone.utc)
+
+def date_local_tz(dt):
+    dt_utc = date_as_utc(dt)
+    if dt_utc == const.EMPTY_DATE_UTC:
+        return dt_utc
+    else:
+        return dt_utc + const.LOCAL_TZ_UTC_OFFSET
 
 if __name__ == "__main__":
     st = StrToDate()
