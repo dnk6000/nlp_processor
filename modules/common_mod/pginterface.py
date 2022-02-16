@@ -124,15 +124,17 @@ class MainDB:
         return None if res is None else res[0]
 
     def upsert_sn_accounts(self, id_www_sources, id_project, account_type, account_id, account_name,
-                                 account_screen_name, account_closed, account_extra_1 = '', num_subscribers = None, **kwargs):
+                                 account_screen_name, account_closed, account_extra_1 = '', 
+                                 num_subscribers = None, parameters = '', **kwargs):
         plan_id = 'plan_upsert_sn_accounts'
         with self.plpy.subtransaction():
             if not self._is_plan_exist(plan_id):
-                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8, $9)''', 
-                        ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", "dmn.git_string", "dmn.git_boolean", "dmn.git_string", "dmn.git_integer"])
+                gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)''', 
+                        ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", 
+                         "dmn.git_string", "dmn.git_boolean", "dmn.git_string", "dmn.git_integer", "dmn.git_string"])
 
             res = self.plpy.execute(gvars.GD[plan_id], [id_www_sources, id_project, account_type, account_id, account_name,
-                                 account_screen_name, account_closed, account_extra_1, num_subscribers])
+                                 account_screen_name, account_closed, account_extra_1, num_subscribers, parameters])
         self.plpy.commit()
         return None if res is None else res[0]
 

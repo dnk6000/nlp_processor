@@ -173,6 +173,9 @@ class TelegramChannelsCrawler(Telegram):
 		self.search_keys = crawler.SearchKeysGenerator(search_keys = search_keys, **kwargs)
 		self.search_keys.generate_double_sequence()
 
+		self.parameters_dict = {'broadcast','has_link','megagroup','supergroup','fake','has_geo'}
+		self.config_parser = common.ConfigParserNoSection()
+
 	def crawling(self):
 
 		for search_key in self.search_keys.search_keys_iter():
@@ -217,20 +220,44 @@ class TelegramChannelsCrawler(Telegram):
 													account_screen_name = channel['title'],
 													account_closed = False,
 													num_subscribers = channel['participants_count'],
-													account_extra_1 = str(channel['access_hash']))
+													account_extra_1 = str(channel['access_hash']),
+													parameters = self.get_channel_parameters(channel)
+													)
 
 		yield self.scrape_result.to_json()
 		return		
 
 	def direct_add_group(self, name_group):
-		peer = self.get_peer_entity(name_group = name_group)
-		self.scrape_result.add_type_ACCOUNT(account_id   = str(peer.id),
-											account_name = peer.username,
-											account_screen_name = peer.title,
-											account_closed = False,
-											num_subscribers = 999999,   #TODO get num subscribers correctly
-											account_extra_1 = str(peer.access_hash))  
-		return self.scrape_result.to_json()
+		for search_res_in_json in self._crawling(name_group):
+			break
+		self.scrape_result = json.loads(search_res_in_json)
+		if len(self.scrape_result) > 0:
+			for i in range(len(self.scrape_result)-1,0,-1):
+				if self.scrape_result[i]['account_name'] != name_group:
+					self.scrape_result.pop(i)
+
+		if len(self.scrape_result) > 0:
+			return json.dumps(self.scrape_result)
+		else:
+			peer = self.get_peer_entity(name_group = name_group)
+			self.scrape_result.add_type_ACCOUNT(account_id   = str(peer.id),
+												account_name = peer.username,
+												account_screen_name = peer.title,
+												account_closed = False,
+												num_subscribers = 999999,
+												account_extra_1 = str(peer.access_hash),
+												parameters = self.get_channel_parameters(peer)
+												)  
+
+			return self.scrape_result.to_json()
+
+	def get_channel_parameters(self, channel):
+		par_dict = {}
+		for key in self.parameters_dict:
+			if key in channel:
+				par_dict[key] = channel[key]
+		
+		return self.config_parser.get_parameters_str(par_dict)
 
 class TelegramMessagesCrawler(Telegram):
 

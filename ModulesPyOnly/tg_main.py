@@ -274,6 +274,7 @@ def tg_crawl_messages_start(id_project, queue, job = None):
                           id_group = elem['sn_id'], 
                           name_group = elem['account_name'], 
                           hash_group = elem['account_extra_1'], 
+                          parameters = elem['parameters'],
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
                           critical_error_counter = critical_error_counter,
@@ -281,7 +282,7 @@ def tg_crawl_messages_start(id_project, queue, job = None):
                           tg_client = tg_client,
                           job = job)
 
-def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', id_post = '', job = None):
+def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', parameters = '', id_post = '', job = None):
 
     project_params = cass_db.get_project_params(id_project)[0]
 
@@ -289,6 +290,7 @@ def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '',
                       id_group = id_group, 
                       name_group = name_group, 
                       hash_group = hash_group, 
+                      parameters = parameters,
                       project_params = project_params, 
                       debug_id_post = id_post,
                       job = job)
@@ -385,8 +387,11 @@ try:
 
             #dt11 = tz.fromutc(dtutc)
 
+            tg_add_group(id_project = 1, name_group = 'meduzalive')
+            #tg_crawl_messages_channel(id_project = 1, id_group = '1036240821', name_group = 'meduzalive', id_post = '', hash_group = '2994531093415596401') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'meduzalive', id_post = '', hash_group = '') 
 
-            tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 
             #tg_add_group(id_project = 1, name_group = 'govoritfursov')
             #tg_crawl_messages_channel(id_project = 1, id_group = '1436234144', name_group = 'govoritfursov', id_post = '') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogo', id_post = '') 
@@ -398,26 +403,8 @@ try:
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
 
-            import sys
-            sys.exit(0)
-
-            import configparser
-            #config = configparser.ConfigParser()
-            config = common.ConfigParserNoSection()
-            #config.add_section("params")
-            #config.set("params", "broadcast", "True")
-            #config.set("params", "fake", "False")
-            
-            res = common.ConfigParserNoSection.get_parameters_str({'broadcast':True, 'fake':False})
-
-            config.read_string(res)
-            #config.read_string('[fake_section]\n'+res)
-
-            #ggg = config.keys()
-            ggg = config.keys
-
             #https://t.me/blogo
-            tg_add_group(id_project = 1, name_group = 'blogo') 
+            #tg_add_group(id_project = 1, name_group = 'blogo') 
 
             #https://t.me/fursovchat
             #tg_add_group(id_project = 1, name_group = 'fursovchat') 
@@ -426,7 +413,7 @@ try:
             #tg_add_group(id_project = 1, name_group = 'govoritfursov') 
 
             #1430295016
-            tg_add_group(id_project = 1, name_group = 'AllDatingChe') 
+            #tg_add_group(id_project = 1, name_group = 'AllDatingChe') 
             #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '')
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1342565932', name_group = '', id_post = '') #voljskiy_rabota
