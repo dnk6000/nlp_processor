@@ -94,8 +94,9 @@ class PlPy(object):
                     else:
                         print('Error: ')
                         print('     '+str(type(expt)))
-                        print('     expt.pgerror: '+str(expt.pgerror))
+                        #print('     expt.pgerror: '+str(expt.pgerror))
                         print('     '+str(expt.args))
+                        print('     '+str(expt))
                 #if attempt >= self._number_of_tries:
                 #    raise expt
                 #else:
