@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ModulesPyOnly\tg_main.py</StartupFile>
+    <StartupFile>ModulesPyOnly\srv_maintenance1.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -28,10 +28,10 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ModulesPyOnly\srv_maintenance.py">
+    <Compile Include="ModulesPyOnly\srv_maintenance1.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ModulesPyOnly\service_func.py">
+    <Compile Include="ModulesPyOnly\srv_maintenance2.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\ner_main.py">

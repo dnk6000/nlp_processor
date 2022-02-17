@@ -126,6 +126,7 @@ def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
 
 def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                   project_params,
+                  parameters = '',
                   job = None,
                   attempts_counter = 0, 
                   critical_error_counter = {'counter': 0},
@@ -166,6 +167,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                                             id_group = id_group,
                                             name_group = name_group,
                                             hash_group = hash_group,
+                                            parameters = parameters,
                                             debug_id_post = debug_id_post,
                                             need_stop_cheker = need_stop_cheker,
                                             sn_recrawler_checker = sn_recrawler_checker,
@@ -286,6 +288,20 @@ def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '',
 
     project_params = cass_db.get_project_params(id_project)[0]
 
+    if parameters == '':
+        res = cass_db.custom_simple_request(f"SELECT \
+                                          parameters \
+                                        FROM \
+                                          git200_crawl.sn_accounts \
+                                        WHERE \
+                                          account_id = {id_group}::dmn.git_string \
+                                          AND coalesce(parameters,'') <> '' \
+                                        ORDER BY updated DESC \
+                                        LIMIT 1")
+        
+        if res is not None and len(res) > 0:
+            parameters = res[0]['parameters']
+
     tg_crawl_messages(id_project = id_project, 
                       id_group = id_group, 
                       name_group = name_group, 
@@ -387,8 +403,8 @@ try:
 
             #dt11 = tz.fromutc(dtutc)
 
-            tg_add_group(id_project = 1, name_group = 'meduzalive')
-            #tg_crawl_messages_channel(id_project = 1, id_group = '1036240821', name_group = 'meduzalive', id_post = '', hash_group = '2994531093415596401') 
+            #tg_add_group(id_project = 1, name_group = 'meduzalive')
+            tg_crawl_messages_channel(id_project = 1, id_group = '1036240821', name_group = 'meduzalive', id_post = '', hash_group = '2994531093415596401') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'meduzalive', id_post = '', hash_group = '') 
 
             #tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 

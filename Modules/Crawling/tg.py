@@ -84,6 +84,14 @@ class Telegram(CrawlerCommon):
 		self._url = r'https://t.me/'
 
 		self.session_file_name = const.TOKEN_FOLDER + 'tg_session_'+self.username+'.txt'
+		
+		self.channel_parameters = {'broadcast' :True, #set true by default to crawling comments
+							       'has_link'  :True, #set true by default to crawling comments
+								   'megagroup' :False,
+								   'supergroup':False,
+								   'fake'      :False,
+								   'has_geo'   :False
+								  }
 
 	def connect(self):
 		#session, its_new_session = self.get_session()  #for cache in string
@@ -173,7 +181,6 @@ class TelegramChannelsCrawler(Telegram):
 		self.search_keys = crawler.SearchKeysGenerator(search_keys = search_keys, **kwargs)
 		self.search_keys.generate_double_sequence()
 
-		self.parameters_dict = {'broadcast','has_link','megagroup','supergroup','fake','has_geo'}
 		self.config_parser = common.ConfigParserNoSection()
 
 	def crawling(self):
@@ -253,7 +260,7 @@ class TelegramChannelsCrawler(Telegram):
 
 	def get_channel_parameters(self, channel):
 		par_dict = {}
-		for key in self.parameters_dict:
+		for key in self.channel_parameters:
 			if key in channel:
 				par_dict[key] = channel[key]
 		
@@ -261,11 +268,12 @@ class TelegramChannelsCrawler(Telegram):
 
 class TelegramMessagesCrawler(Telegram):
 
-	def __init__(self, id_group, name_group, hash_group, date_deep, sn_recrawler_checker = None, debug_id_post = '', **kwargs):
+	def __init__(self, id_group, name_group, hash_group, date_deep, parameters = '', sn_recrawler_checker = None, debug_id_post = '', **kwargs):
 		super().__init__(**kwargs)
 		self.id_group = id_group
 		self.name_group = name_group
 		self.hash_group = hash_group
+		self.parameters = self.channel_params_to_dict(parameters)
 
 		self.date_deep = date.date_local_tz(date_deep)
 
@@ -281,9 +289,16 @@ class TelegramMessagesCrawler(Telegram):
 		self.debug_id_post = str(debug_id_post)
 		self.debug_id_post_processed = False
 
-		self.broadcast = False
-		self.has_link = False
-		self.have_comments = False
+		self.have_comments = self.parameters['broadcast'] and self.parameters['has_link']
+
+	def channel_params_to_dict(self, parameters_str):
+		config_parser = common.ConfigParserNoSection()
+		config_parser.read_string(parameters_str)
+		loaded_pars = config_parser.keys
+		for key in self.channel_parameters:
+			if not key in loaded_pars:
+				loaded_pars[key] = self.channel_parameters[key]
+		return loaded_pars
 
 	def crawling(self, id_group):
 
@@ -298,10 +313,6 @@ class TelegramMessagesCrawler(Telegram):
 		try:
 			self.requests_pauser.smart_sleep()
 			entity = self.get_peer_entity(self.id_group, self.name_group, self.hash_group)
-
-			self.broadcast = entity.broadcast
-			self.has_link = entity.has_link
-			self.have_comments = self.broadcast and self.has_link
 
 			req_group_params = { 
 				#'peer': self._url + self.name_group, 
