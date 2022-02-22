@@ -333,6 +333,60 @@ def tg_add_group(id_project, name_group):
 
     pass
 
+def tg_fill_group_parameters(id_project):
+    select = f"\
+        SELECT \
+          id, id_www_sources, id_project, account_type, account_id, account_name, account_screen_name, \
+          account_closed, num_subscribers, is_broken \
+        FROM \
+          git200_crawl.sn_accounts \
+        WHERE id_project = {id_project}::dmn.git_integer AND suitable_degree = 100 \
+	        AND coalesce(parameters,'') = '' \
+        "
+
+    res = cass_db.custom_simple_request(select)
+
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+
+    tg_crawler = tg.TelegramChannelsCrawler(debug_mode = DEBUG_MODE, 
+                                            msg_func = msg, #plpy.notice, 
+                                            proxy = project_proxy,
+                                            **accounts.TG_ACCOUNT[0])
+    
+    tg_crawler.connect()
+
+    for acc in res:
+        time.sleep(3)
+        msg('Processing: ' + acc['account_name'])
+        try:
+            res = tg_crawler.direct_add_group_light(acc['account_name'])
+            res_list = json.loads(res)
+            if len(res_list) > 0:
+                res_unit = res_list[0]
+                msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
+                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
+            else:
+                msg('   Not found')
+
+                upd_select = f"\
+                    UPDATE \
+                        git200_crawl.sn_accounts \
+                    SET \
+                        suitable_degree = 10::dmn.git_integer \
+                    WHERE \
+                        id = {acc['id']}::dmn.git_pk \
+                    "
+                res = cass_db.custom_simple_request(upd_select)
+        except:
+            msg('   Error was raised')
+            msg(exceptions.get_err_description(e))
+
+    tg_crawler.close_session()
+
+    pass
+
+
+
 def msg(msgstr):
     if DEBUG_MODE:
         if logger is not None:
@@ -384,6 +438,8 @@ try:
 
         #--0-- debug
         if step_name == 'debug':
+            tg_fill_group_parameters(10)
+
 	        #clear_tables_by_project(ID_PROJECT_main)
 	        #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
 	        #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
@@ -404,7 +460,7 @@ try:
             #dt11 = tz.fromutc(dtutc)
 
             #tg_add_group(id_project = 1, name_group = 'meduzalive')
-            tg_crawl_messages_channel(id_project = 1, id_group = '1036240821', name_group = 'meduzalive', id_post = '', hash_group = '2994531093415596401') 
+            #tg_crawl_messages_channel(id_project = 1, id_group = '1036240821', name_group = 'meduzalive', id_post = '', hash_group = '2994531093415596401') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'meduzalive', id_post = '', hash_group = '') 
 
             #tg_crawl_messages_channel(id_project = 1, id_group = '1430295016', name_group = 'AllDatingChe', id_post = '') 

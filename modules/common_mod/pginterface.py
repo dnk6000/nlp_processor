@@ -3,7 +3,8 @@ import modules.crawling.exceptions as exceptions
 import modules.crawling.date as date
 
 from modules.common_mod.globvars import GlobVars
-if const.PY_ENVIRONMENT: GD = None
+if const.PY_ENVIRONMENT: 
+    GD = None
 gvars = None
 
 class MainDB:
@@ -18,7 +19,6 @@ class MainDB:
         global gvars
         gvars = GlobVars(GD)
         self._initialize_gvars()
-
 
     def _initialize_gvars(self):
         if not gvars.initialized:
@@ -587,6 +587,7 @@ def convert_select_result(res, str_to_date_conv_fields = [], decimal_to_float_co
         
 
 if __name__ == "__main__":
+    #db.cassandra_new.
     #import ModulesPyOnly.self_psw as self_psw
     #from modules.common_mod.globvars import GlobVars
     #if const.PY_ENVIRONMENT: 

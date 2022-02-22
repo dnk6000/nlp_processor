@@ -234,35 +234,40 @@ class TelegramChannelsCrawler(Telegram):
 		yield self.scrape_result.to_json()
 		return		
 
-	def direct_add_group(self, name_group):
+	def direct_add_group_light(self, name_group):
+		'''add group throw the search api method'''
 		for search_res_in_json in self._crawling(name_group):
 			break
-		self.scrape_result = json.loads(search_res_in_json)
-		if len(self.scrape_result) > 0:
-			for i in range(len(self.scrape_result)-1,0,-1):
-				if self.scrape_result[i]['account_name'] != name_group:
-					self.scrape_result.pop(i)
+		_scrape_result = json.loads(search_res_in_json)
+		if len(_scrape_result) > 0:
+			for i in range(len(_scrape_result)-1,0,-1):
+				if _scrape_result[i]['account_name'] != name_group:
+					_scrape_result.pop(i)
 
-		if len(self.scrape_result) > 0:
-			return json.dumps(self.scrape_result)
-		else:
-			peer = self.get_peer_entity(name_group = name_group)
-			self.scrape_result.add_type_ACCOUNT(account_id   = str(peer.id),
-												account_name = peer.username,
-												account_screen_name = peer.title,
-												account_closed = False,
-												num_subscribers = 999999,
-												account_extra_1 = str(peer.access_hash),
-												parameters = self.get_channel_parameters(peer)
-												)  
+		return json.dumps(_scrape_result)
 
-			return self.scrape_result.to_json()
+	def direct_add_group(self, name_group, only_):
+		'''add group throw the direct get-peer api method. it can't be used too often'''
+		peer = self.get_peer_entity(name_group = name_group)
+		self.scrape_result.add_type_ACCOUNT(account_id   = str(peer.id),
+											account_name = peer.username,
+											account_screen_name = peer.title,
+											account_closed = False,
+											num_subscribers = 999999,
+											account_extra_1 = str(peer.access_hash),
+											parameters = self.get_channel_parameters(peer)
+											)  
+
+		return self.scrape_result.to_json()
 
 	def get_channel_parameters(self, channel):
 		par_dict = {}
 		for key in self.channel_parameters:
-			if key in channel:
-				par_dict[key] = channel[key]
+			if isinstance(channel, dict):
+				if key in channel:
+					par_dict[key] = channel[key]
+			elif hasattr(channel, key):
+				par_dict[key] = getattr(channel, key)
 		
 		return self.config_parser.get_parameters_str(par_dict)
 
