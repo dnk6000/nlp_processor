@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>modules\common_mod\pginterface - Copy.py</StartupFile>
+    <StartupFile>modules\db\cassandra.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -46,7 +46,7 @@
     <Compile Include="modules\common_mod\jobs.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="modules\common_mod\pginterface - Copy.py" />
+    <Compile Include="modules\db\RESERVE.py" />
     <Compile Include="modules\common_mod\venv.py">
       <SubType>Code</SubType>
     </Compile>
@@ -81,6 +81,11 @@
     <Compile Include="ModulesPyOnly\tg_main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\db\pg_cassandra.py" />
+    <Compile Include="modules\db\git430_ner.py" />
+    <Compile Include="modules\db\git010_dict.py" />
+    <Compile Include="modules\db\cassandra.py" />
+    <Compile Include="modules\db\pg.py" />
     <Compile Include="modules\parsing\lemma.py">
       <SubType>Code</SubType>
     </Compile>
@@ -177,6 +182,7 @@
     <Folder Include="Config\" />
     <Folder Include="modules\" />
     <Folder Include="ModulesPyOnly\" />
+    <Folder Include="modules\db\" />
     <Folder Include="modules\parsing\" />
     <Folder Include="ModulesTemp\" />
     <Folder Include="ModulesTest\" />
