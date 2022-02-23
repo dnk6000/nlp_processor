@@ -17,6 +17,9 @@ class PgDbCassandra(PgDb):
 
     def _convert_select_result(self, res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = []):
 
+        if res is None:
+            return res
+
         #plpy in PG return date fields in str format, therefore, a conversion is required
         if const.PG_ENVIRONMENT and len(str_to_date_conv_fields) > 0:
 

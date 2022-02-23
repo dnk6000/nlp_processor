@@ -6,7 +6,36 @@ from modules.common_mod.globvars import GlobVars
 gvars = None
 
 #common wrapper 
-def execute_with_select_plan(func):
+def execute_with_select_plan(func, res_first_row = False):
+    def execute_with_plan(*args, autocommit = True, **kwargs):
+        plan_id = 'plan_'+func.__qualname__
+        self = args[0]
+
+        if not self._is_plan_exist(plan_id):
+            select = func(*args, **kwargs)
+            gvars.GD[plan_id] = self._prepare(select[0], select[1])
+
+        params = list(args[1:])
+        for kwarg in kwargs:
+            params.append(kwargs[kwarg])
+        res = self._execute(plan_id, params)
+
+        self.commit(autocommit)
+
+        conv_res = self._convert_select_result(res)
+
+        if conv_res is None:
+            return None
+
+        if res_first_row:
+            return conv_res[0]
+        else:
+            return conv_res
+
+    return execute_with_plan
+
+#common wrapper 
+def select_with_select_plan(func, res_first_row = False):
     def execute_with_plan(*args, **kwargs):
         plan_id = 'plan_'+func.__qualname__
         self = args[0]
@@ -17,10 +46,18 @@ def execute_with_select_plan(func):
 
         params = list(args[1:])
         for kwarg in kwargs:
-            params.append[kwargs[kwarg]] 
+            params.append(kwargs[kwarg])
         res = self._execute(plan_id, params)
 
-        return self._convert_select_result(res)
+        conv_res = self._convert_select_result(res)
+
+        if conv_res is None:
+            return None
+
+        if res_first_row:
+            return conv_res[0]
+        else:
+            return conv_res
 
     return execute_with_plan
 
@@ -86,6 +123,9 @@ class PgDb(common.CommonFunc):
             exept = {'exeption': e, 'description': exceptions.get_err_description(e, plan_id = plan_id, var_list = var_list)}
             self._check_db_error_limit(plan_id, e)
             return None
+
+    def subtransaction(self):
+        return PgDb.plpy.subtransaction()
 
     def commit(self, autocommit = True):
         if autocommit:

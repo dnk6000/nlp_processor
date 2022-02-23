@@ -46,6 +46,9 @@
     <Compile Include="modules\common_mod\jobs.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\db\git300_scrap.py" />
+    <Compile Include="modules\db\git200_crawl.py" />
+    <Compile Include="modules\db\git999_log.py" />
     <Compile Include="modules\db\RESERVE.py" />
     <Compile Include="modules\common_mod\venv.py">
       <SubType>Code</SubType>
