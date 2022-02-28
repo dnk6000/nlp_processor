@@ -63,7 +63,7 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
     group_search_str = project_params['group_search_str']
 
     if group_search_str.isspace():
-        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, 'Search string is empty!')
+        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, description='Search string is empty!')
         return
 
     project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
@@ -100,13 +100,13 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
                                      gr['id'], gr['name'], gr['screen_name'], gr['is_closed'] == 1 )
         
         #elif res_unit['result_type'] == const.CW_RESULT_TYPE_WARNING:
-        #    cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+        #    cass_db.log_warn(res_unit['result_type'], id_project, description=res_unit['event_description'])
         #    if 'wall_processed' in res_unit:
         #        wall_processed = res_unit['wall_processed']
             
         elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
             plpy.notice(res_unit['result_type'])
-            cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+            cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
             plpy.notice(res_unit['err_type'])
             if res_unit['err_type'] in (const.ERROR_REQUEST_READ_TIMEOUT):
                 plpy.notice(date.date_now_str()+' Request error: pause before repeating...')
@@ -114,7 +114,7 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
                 
         elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
             plpy.notice(res_unit['result_type'])
-            cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+            cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
             critical_error_counter['counter'] += 1
 
             if res_unit['stop_process']:
@@ -136,7 +136,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if id_queue is not None:
         res = cass_db.queue_update(id_queue, date_start_process = date.date_now_str())
         if not res[0]['Success']:
-            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
+            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
     project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
 
@@ -195,7 +195,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 cass_db.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), **res_unit)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
-                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = subscribers_only
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_DT_POST_ACTIVITY:
@@ -212,31 +212,31 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                 id_data_html = res['id_modified']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_NOT_FOUND:
-                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_FINISH_SUCCESS:
                 cass_db.set_sn_activity_fin_date(vk_source_id, id_project, id_group, date.date_now_str())
-                cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_trace(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_WARNING:
-                cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_warn(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 if 'wall_processed' in res_unit:
                     wall_processed = res_unit['wall_processed']
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_ERROR:
-                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
                     plpy.notice(f'{date.date_now_str()}: Request error: pause before repeating...') #DEBUG
-                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
                 
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -245,7 +245,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                     date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=30)
                     res = cass_db.queue_update(id_queue, attempts_counter = attempts_counter, date_deferred = date.date_to_str(date_deferred))
                     if not res[0]['Success']:
-                        cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
+                        cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('attempts_counter', id_project, id_queue))
 
                 if res_unit['stop_process']:
                     raise exceptions.StopProcess()
@@ -260,7 +260,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
     if id_queue is not None:
         res = cass_db.queue_update(id_queue, is_process = wall_processed, date_end_process = date.date_now_str())
         if not res[0]['Success']:
-            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
+            cass_db.log_error(const.LOG_LEVEL_ERROR, id_project, description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 
 def vk_crawl_wall_subscribers(id_project, job):
     select_result = cass_db.select_groups_id(id_project = id_project)
@@ -411,12 +411,12 @@ try:
 
         #--1--
         if step_name == 'crawl_groups':
-            cass_db.log_info('Start '+step_name, ID_PROJECT,'')
+            cass_db.log_info('Start '+step_name, ID_PROJECT, description='')
             vk_crawl_groups(ID_PROJECT, job)
 
         #--2--
         if step_name == 'crawl_subscribers':
-            cass_db.log_info('Start '+step_name, ID_PROJECT,'')
+            cass_db.log_info('Start '+step_name, ID_PROJECT, description='')
             if queue_generate:
                 plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
                 cass_db.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
@@ -425,7 +425,7 @@ try:
 
         #--3--
         if step_name == 'crawl_wall':
-            cass_db.log_info('Start '+step_name, ID_PROJECT, f'subscribers {num_subscribers_1} - {num_subscribers_2}')
+            cass_db.log_info('Start '+step_name, ID_PROJECT, description=f'subscribers {num_subscribers_1} - {num_subscribers_2}')
             
             if queue_generate:
                 plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
@@ -457,5 +457,5 @@ except exceptions.StopProcess:
     #its ok  maybe user stop process
     pass
 except Exception as e:
-    cass_db.log_fatal('CriticalErr on main_vk', ID_PROJECT, exceptions.get_err_description(e))
+    cass_db.log_fatal('CriticalErr on main_vk', ID_PROJECT, description=exceptions.get_err_description(e))
     raise

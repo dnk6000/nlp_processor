@@ -2,7 +2,6 @@ import modules.common_mod.const as const
 import modules.crawling.date as date
 
 import modules.db.pg as pg
-from modules.db.pg import execute_with_select_plan, select_with_select_plan
 from modules.db.pg_cassandra import PgDbCassandra
 from modules.db.git010_dict import Cassandra_git010_dict
 from modules.db.git200_crawl import Cassandra_git200_crawl
@@ -39,14 +38,25 @@ class Cassandra(PgDbCassandra):
             pg.gvars.initialize()
 
 if __name__ == "__main__":
+    #import re
+    #match = re.search(r'prepared statement \"(\w*)\" does not exist', 'prepared statement "py_plan_11" does not exist\n') 
+
+    #if match:
+    #    a=1
+
+    #import sys
+    #sys.exit(0)
+    
     if const.PY_ENVIRONMENT:
         import ModulesPyOnly.plpyemul as plpyemul
         plpy = plpyemul.get_plpy()    
 
     cass_db = Cassandra(plpy, GD)
 
-    #cass_db.git999_log.log_trace('TEST new PY structure', 0, 'No description')
+    cass_db.git999_log.log_trace('TEST new PY structure', 0, description='No description')
     #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, '502', autocommit = False)
-    cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, broken_status_code = '502', autocommit = True)
-
+    #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, broken_status_code = '502', autocommit = True)
+    
+    #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
+    #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)
     f=1

@@ -1,7 +1,7 @@
-from modules.db.pg import execute_with_select_plan, select_with_select_plan
 from modules.db.pg import PgDb
 from modules.db.pg_cassandra import PgDbCassandra
 import modules.db.pg as pg
+import modules.db.wrap as wrap
 import modules.common_mod.const as const
 
 
@@ -28,25 +28,56 @@ class LogFunc(PgDbCassandra):
             pass
         return res
 
-    def log_trace(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_TRACE, record_type, id_project, description)
+    def log_trace(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description):
+            return ('select git999_log.trace($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node, node_table, description, autocommit = autocommit)
 
-    def log_debug(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_DEBUG, record_type, id_project, description)
 
-    def log_info(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_INFO, record_type, id_project, description)
+    def log_debug(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description, autocommit):
+            return ('select git999_log.debug($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node = node, node_table = node_table, description = '', autocommit = autocommit)
 
-    def log_warn(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_WARN, record_type, id_project, description)
+    def log_info(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description, autocommit):
+            return ('select git999_log.info($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node = node, node_table = node_table, description = '', autocommit = autocommit)
 
-    def log_error(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_ERROR, record_type, id_project, description)
+    def log_warn(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description, autocommit):
+            return ('select git999_log.warn($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node = node, node_table = node_table, description = '', autocommit = autocommit)
 
-    def log_fatal(self, record_type, id_project, description):
-        self._log_write(const.LOG_LEVEL_FATAL, record_type, id_project, description)
+    def log_error(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description, autocommit):
+            return ('select git999_log.error($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node = node, node_table = node_table, description = '', autocommit = autocommit)
 
-    def _log_write(self, log_level, record_type, id_project, description):
+    def log_fatal(self, record_type, id_project, node = None, node_table = None, description = '', autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, record_type, id_project, node, node_table, description, autocommit):
+            return ('select git999_log.fatal($1, $2, $3, $4, $5);',
+                    ["dmn.git_text","dmn.git_pk","dmn.git_pk","dmn.git_string","dmn.git_string"]
+                   )
+        return local(self, record_type, id_project, node = node, node_table = node_table, description = '', autocommit = autocommit)
+
+    def OLD_log_write(self, log_level, record_type, id_project, description):
         plan_id = 'plan_log_write_'+const.LOG_LEVEL_FUNC[log_level]
         with self.subtransaction():
             if not self._is_plan_exist(plan_id):

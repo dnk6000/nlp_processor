@@ -1,4 +1,4 @@
-from modules.db.pg import execute_with_select_plan, select_with_select_plan
+import modules.db.wrap as wrap
 from modules.db.pg_cassandra import PgDbCassandra
 
 class Cassandra_git430_ner(PgDbCassandra):
@@ -8,7 +8,7 @@ class Cassandra_git430_ner(PgDbCassandra):
         ''' initialized only from class Cassandra '''
         super().__init__(**kwargs)
 
-    @select_with_select_plan
+    @wrap.select_with_query_plan
     def ent_type_select_all(self):
         return ('select * from git430_ner.ent_type_select_all();', 
                 [])

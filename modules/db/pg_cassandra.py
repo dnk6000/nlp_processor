@@ -12,7 +12,7 @@ class PgDbCassandra(PgDb):
         exept = None
         res = super()._execute(plan_id, var_list, exept)
         if exept is not None:
-            self.log_error(const.CW_RESULT_TYPE_DB_ERROR, id_project, exept['description'])
+            self.log_error(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exept['description'])
         return res
 
     def _convert_select_result(self, res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = []):

@@ -58,7 +58,7 @@ def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
     group_search_str = project_params['group_search_str']
 
     if group_search_str.isspace():
-        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, 'Search string is empty!')
+        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, description='Search string is empty!')
         return
 
     base_search_words = group_search_str.split(',')
@@ -100,17 +100,17 @@ def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
                 cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
         
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
                     msg('Request error: pause before repeating...') #DEBUG
-                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -199,38 +199,38 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
                 #cass_db.update_sn_num_subscribers(TG_SOURCE_ID, **res_unit)
             
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
-            #    cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+            #    cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
                 msg('post id = {} dt = {}'.format(res_unit['sn_post_id'], res_unit['last_date']))
                 cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_NOT_FOUND:
-                cass_db.log_error(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_SUCCESS:
                 cass_db.set_sn_activity_fin_date(TG_SOURCE_ID, id_project, id_group, date.date_now_str())
-                cass_db.log_trace(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_trace(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_WARNING:
-                cass_db.log_warn(res_unit['result_type'], id_project, res_unit['event_description'])
+                cass_db.log_warn(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 if 'wall_processed' in res_unit:
                     wall_processed = res_unit['wall_processed']
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-                cass_db.log_error(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
                     msg(f'{date.date_now_str()}: Request error: pause before repeating...') #DEBUG
-                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, request_error_pauser.get_description())
+                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.log_fatal(res_unit['err_type'], id_project, res_unit['err_description'])
+                cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -524,13 +524,13 @@ try:
         #--1--
         if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
             update_hash = step_name == 'crawl_groups_upd_hash'
-            cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main,'')
+            cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main, description='')
             tg_crawl_groups(ID_PROJECT_main, job = job, update_hash = update_hash)
             pass
 
         #--2--
         if step_name == 'crawl_wall':
-            cass_db.log_info('Start '+step_name, ID_PROJECT_main,'')
+            cass_db.log_info('Start '+step_name, ID_PROJECT_main, description='')
 
             #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
             #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
@@ -545,7 +545,7 @@ except exceptions.StopProcess:
     #its ok  maybe user stop process
     pass
 except Exception as e: 
-    cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, exceptions.get_err_description(e))
+    cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, description=exceptions.get_err_description(e))
     raise
 
 

@@ -56,7 +56,7 @@ class DataProcessor(common.CommonFunc):
     
     def log_start_process(self):
         self.debug_msg('{}: Batch start. Project: {}  {}'.format(date.date_now_str(), self.id_project, self.process_description))
-        self.db.log_info(const.LOG_INFO_DATA_PROCESSOR, self.id_project, 'Started: '+self.process_description)
+        self.db.log_info(const.LOG_INFO_DATA_PROCESSOR, self.id_project, description='Started: '+self.process_description)
 
 class SentimentProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -77,7 +77,7 @@ class SentimentProcessor(DataProcessor):
     def _process(self):
         portion_counter = 1
         self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
+        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
         self.get_text_portion()
 
         while len(self.raw_text) > 0:
@@ -153,7 +153,7 @@ class SentimentProcessor(DataProcessor):
 
             portion_counter += 1
             self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
+            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_text_portion()
         pass
 
@@ -175,7 +175,7 @@ class SentimentProcessor(DataProcessor):
     def log_critical_error(self, raised_exeption):
         err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+        self.db.log_fatal(str(raised_exeption), self.id_project, description=err_description)
 
 class NerProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -269,7 +269,7 @@ class NerProcessor(DataProcessor):
 
             portion_counter += 1
             self.debug_msg('{}: Get portion for NerProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-            self.db.log_trace('Get portion for NerProcessor', self.id_project, 'Portion: {} {}'.format(portion_counter, self.process_description))
+            self.db.log_trace('Get portion for NerProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_raw_sentences()
             if len(self.raw_sentences) == 0:
                 break
@@ -311,7 +311,7 @@ class NerProcessor(DataProcessor):
                     #check ne-recognition errors
                     ner_error = result[5]
                     if ner_error == ner.ERROR_NER_512TOKENS:
-                        self.log_error_too_many_entity(id_data_text, id_sentence, result[0]['txt'])
+                        self.log_error_too_many_entity(id_data_text, id_sentence, description=result[0]['txt'])
                         continue
 
                     #record word tokens
@@ -413,37 +413,37 @@ class NerProcessor(DataProcessor):
         debug_array_id = 'debug_id_sent_list = ['+ ','.join([str(i['id']) for i in self.raw_sentences]) + ']'
         err_description = err_description + '\n' + debug_array_id
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, err_description)
+        self.db.log_fatal(str(raised_exeption), self.id_project, description=err_description)
 
     def log_error_ner_vs_lemma_mismatch(self, id_data_text, id_sentence, words_array, lemms_array):
         err_description = "Ner's mismatch Lemma's. id_project = {} id_data_text = {} id_sentence = {}\n words_ner = {}\n lemmas = {}\n".\
               format(self.id_project, id_data_text, id_sentence, words_array, lemms_array)
 
-        self.db.log_error("Ner's mismatch Lemma's Error", self.id_project, err_description)
+        self.db.log_error("Ner's mismatch Lemma's Error", self.id_project, description=err_description)
 
     def log_error_too_long_sentence(self, id_data_text, id_sentence, txt):
         err_description = "Sentence is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Sentence is too long", self.id_project, err_description)
+        self.db.log_error("Sentence is too long", self.id_project, description=err_description)
 
     def log_error_mixed_sentence(self, id_data_text, id_sentence, txt):
         err_description = "Sentence consists of words with mixed Russian-English letters. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Sentence with mix-letters words", self.id_project, err_description)
+        self.db.log_error("Sentence with mix-letters words", self.id_project, description=err_description)
 
     def log_error_too_long_word(self, id_data_text, id_sentence, txt):
         err_description = "Word is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Word is too long", self.id_project, err_description)
+        self.db.log_error("Word is too long", self.id_project, description=err_description)
 
     def log_error_too_many_entity(self, id_data_text, id_sentence, txt):
         err_description = "Too many entities in sentence. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Too many entities in sentence", self.id_project, err_description)
+        self.db.log_error("Too many entities in sentence", self.id_project, description=err_description)
 
 
     def debug_sentence_id_list_one_by_one(self,sentence_id_list):

@@ -358,7 +358,7 @@ class QueueManager(common.CommonFunc):
                                    date_start_process = self.date_start_str)
 		if not res[0]['Success']:
 			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
-						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
+						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'date_start_process', self.id_project, self.curr_portion_elem['id'])
 						 )
 	def reg_finish(self, is_process):
@@ -368,7 +368,7 @@ class QueueManager(common.CommonFunc):
                              date_end_process = self.date_end_process)
 		if not res[0]['Success']:
 			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
-						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
+						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'date_end_process', self.id_project, self.curr_portion_elem['id'])
 						 )
 
@@ -381,7 +381,7 @@ class QueueManager(common.CommonFunc):
 							  date_deferred = date.date_to_str(date_deferred))
 		if not res[0]['Success']:
 			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
-						 'Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
+						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'attempts_counter', self.id_project, self.curr_portion_elem['id']))
 
 

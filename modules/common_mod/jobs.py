@@ -157,19 +157,19 @@ class JobManager(common.CommonFunc):
 		return True
 
 	def _log_start(self):
-		self.db.log_info(const.LOG_INFO_JOB_START, 0, self.__repr__())
+		self.db.log_info(const.LOG_INFO_JOB_START, 0, description=self.__repr__())
 		pass
 
 	def _log_step_start(self):
-		self.db.log_info(const.LOG_INFO_JOB_STEP_START, 0, f'{self.__repr__()} Step: {self.current_step}')
+		self.db.log_info(const.LOG_INFO_JOB_STEP_START, 0, description=f'{self.__repr__()} Step: {self.current_step}')
 		pass
 
 	def _log_program_reload(self):
-		self.db.log_info(const.LOG_INFO_JOB_RELOAD_PROGRAM, 0, self.__repr__())
+		self.db.log_info(const.LOG_INFO_JOB_RELOAD_PROGRAM, 0, description=self.__repr__())
 		pass
 
 	def _log_finish(self):
-		self.db.log_info(const.LOG_INFO_JOB_FINISH, 0, self.__repr__())
+		self.db.log_info(const.LOG_INFO_JOB_FINISH, 0, description=self.__repr__())
 		pass
 
 	def need_stop(self):

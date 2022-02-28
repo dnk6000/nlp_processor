@@ -279,7 +279,7 @@ except exceptions.StopProcess:
     #its ok  maybe user stop process
     pass
 except Exception as e: 
-    cass_db.log_fatal('CriticalErr on sentiment_main', ID_PROJECT_main, exceptions.get_err_description(e))
+    cass_db.log_fatal('CriticalErr on sentiment_main', ID_PROJECT_main, description=exceptions.get_err_description(e))
     raise
 
 

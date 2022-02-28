@@ -1,5 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.errors import InvalidSqlStatementName as InvalidSqlStatementName_psycopg
+
 import re
 import time
 
@@ -33,6 +35,21 @@ class PlPy(object):
 
         self._pauser = pauser.ExpPauser(delay_seconds = 3.9, number_intervals = self._number_of_tries) #~15 мин
 
+        #self._cached_plans = {}
+        pass
+
+    def __del__(self):
+        #print('__del__')
+        if self.connection is not None:
+            self.connection.close()
+
+
+    @classmethod
+    def __get_next_plan_num__(cls):
+        cls.NUM_PREP_PLAN += 1
+        return cls.NUM_PREP_PLAN
+
+
     def _connect(self):
         if self.connection is None:
             successfully = False
@@ -53,20 +70,6 @@ class PlPy(object):
                     else:
                         print(f'{date.date_now_str()}: Ошибка соединения с БД !!! Попытка {str(attempt)}')
 
-    @classmethod
-    def __get_next_plan_num__(cls):
-        cls.NUM_PREP_PLAN += 1
-        return cls.NUM_PREP_PLAN
-
-    def subtransaction(self):
-        #https://stackoverflow.com/questions/29773002/creating-transactions-with-with-statements-in-psycopg2
-        self._connect()
-        return self.connection
-
-    @staticmethod
-    def notice(message):
-        print(message)
-
     def _execute(self, *args, **kwargs):
         self._connect()
         
@@ -79,6 +82,16 @@ class PlPy(object):
             try:
                 result = self.cursor.execute(*args, **kwargs)
                 successfully = True
+            
+            except InvalidSqlStatementName_psycopg as expt:
+                self.rollback()
+                match = re.search(r'prepared statement \"(\w*)\" does not exist', expt.args[0]) 
+                if match:
+                    plan = match.groups()[0]
+                else:
+                    plan = ''
+                raise InvalidSqlStatementName(plan)
+
             except Exception as expt:
                 attempt += 1
 
@@ -86,8 +99,13 @@ class PlPy(object):
                     raise expt
                 else:
                     print(f'{date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
-                    if type(expt) == psycopg2.OperationalError and isinstance(expt.pgerror, str) and 'server closed the connection' in expt.pgerror \
-                      or type(expt) == psycopg2.OperationalError and len(expt.args) >= 1 and isinstance(expt.args[0], str) and 'could not receive data from server' in expt.args[0]:
+
+                    # <class 'psycopg2.errors.InvalidSqlStatementName'>
+                    # expt.args[0] = InvalidSqlStatementName('prepared statement "py_plan_11" does not exist\n')
+
+                    if type(expt) == psycopg2.OperationalError and len(expt.args) >= 1 and isinstance(expt.args[0], str) \
+                        and ('server closed the connection' in expt.args[0] \
+                             or 'could not receive data from server' in expt.args[0]):
                         print('  Trying to reconnect...')
                         self.connection = None
                         self._connect()
@@ -102,13 +120,71 @@ class PlPy(object):
                 #else:
                 #    print('Ошибка записи в БД !!! Попытка '+str(attempt))
                 #    time.sleep(self._tries_pause)
-                    
+        
+        if not successfully:
+            raise expt
 
         return result
+
+    def _convert_select_result(self, res):
+        #!!now returning the list of tuple, but plpy returning the list of dict !!
+        #!!need refactoring later
+        return res
+
+    def _define_return_result(self, pgstatement, plan_name):
+        self._return_select_result[plan_name] = False
+
+        re_vars = re.search(r'RETURNING', pgstatement, re.IGNORECASE)
+        if re_vars is not None:
+            self._return_var_names[plan_name] = True
+        else:
+            self._return_var_names[plan_name] = False
+
+            re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
+            if re_select is not None:
+                self._return_select_result[plan_name] = True
+
+
+    @staticmethod
+    def notice(message):
+        print(message)
+        pass
+
+    def subtransaction(self):
+        #https://stackoverflow.com/questions/29773002/creating-transactions-with-with-statements-in-psycopg2
+        self._connect()
+        return self.connection
+
+    def commit(self, *args, **kwargs):
+        self._connect()
+        return self.connection.commit(*args, **kwargs)
+
+    def rollback(self, *args, **kwargs):
+        self._connect()
+        return self.connection.rollback(*args, **kwargs)
 
     def cursor(self, *args, **kwargs):
         #https://postgrespro.ru/docs/postgrespro/9.5/plpython-database
         pass
+
+    def prepare(self, pgstatement, params):
+        ''' example params: ["text", "text", "integer", "text", "text", "boolean", "integer"]
+            sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)
+        '''
+        self._connect()
+
+        plan_name = 'py_plan_' + str(PlPy.__get_next_plan_num__())
+
+        _pgstatement = 'prepare ' + plan_name + ' as ' + pgstatement
+
+        #self.cursor.execute(_pgstatement, params)
+        self._execute(_pgstatement, params)
+
+        self._define_return_result(pgstatement, plan_name)
+
+        #self._cached_plans[plan_name] = (pgstatement, params)
+
+        return plan_name
 
     def execute(self, *args, **kwargs):
         self._connect()
@@ -159,53 +235,6 @@ class PlPy(object):
         else:
             return self.cursor.execute(*args, **kwargs)
 
-    def _convert_select_result(self, res):
-        #!!now returning the list of tuple, but plpy returning the list of dict !!
-        #!!need refactoring later
-        return res
-
-    def commit(self, *args, **kwargs):
-        self._connect()
-        return self.connection.commit(*args, **kwargs)
-
-    def rollback(self, *args, **kwargs):
-        self._connect()
-        return self.connection.rollback(*args, **kwargs)
-
-    def prepare(self, pgstatement, params):
-        ''' example params: ["text", "text", "integer", "text", "text", "boolean", "integer"]
-            sql syntax for returning vars must be:  "RETURNING xxx AS yyy" (case ignore)
-        '''
-        self._connect()
-
-        plan_name = 'py_plan_' + str(PlPy.__get_next_plan_num__())
-
-        _pgstatement = 'prepare ' + plan_name + ' as ' + pgstatement
-
-        #self.cursor.execute(_pgstatement, params)
-        self._execute(_pgstatement, params)
-
-        self._define_return_result(pgstatement, plan_name)
-
-        return plan_name
-
-    def _define_return_result(self, pgstatement, plan_name):
-        self._return_select_result[plan_name] = False
-
-        re_vars = re.search(r'RETURNING', pgstatement, re.IGNORECASE)
-        if re_vars is not None:
-            self._return_var_names[plan_name] = True
-        else:
-            self._return_var_names[plan_name] = False
-
-            re_select = re.search(r'^(\n|\s)*SELECT', pgstatement, re.IGNORECASE)
-            if re_select is not None:
-                self._return_select_result[plan_name] = True
-
-    def __del__(self):
-        #print('__del__')
-        if self.connection is not None:
-            self.connection.close()
 
 def get_plpy():
 
@@ -217,3 +246,10 @@ def get_plpy():
         'password': self_psw.get_psw_db_mtyurin()
     }
     return PlPy(**cassandra_db_conn_par)
+
+class spiexceptions(Exception):
+    pass
+
+class InvalidSqlStatementName(spiexceptions):
+    def __init__(*args, plan = '', **kwargs):
+        plan = plan

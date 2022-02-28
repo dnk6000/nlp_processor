@@ -9,7 +9,7 @@ if const.PY_ENVIRONMENT:
 gvars = None
 
 #common wrapper 
-def execute_with_select_plan(func):
+def execute_with_query_plan(func):
     def execute_with_plan(*args, **kwargs):
         plan_id = 'plan_'+func.__qualname__
         self = args[0]
@@ -170,7 +170,7 @@ class Cassandra_git010_dict(PgDbCassandra):
         ''' initialized only from class Cassandra '''
         super().__init__(**kwargs)
 
-    @execute_with_select_plan
+    @execute_with_query_plan
     def _get_www_source_id(self, www_source_name):
         return (''' SELECT git010_dict.get_www_sources_id($1) ''', 
                 ["text"])
@@ -187,7 +187,7 @@ class Cassandra_git430_ner(PgDbCassandra):
         ''' initialized only from class Cassandra '''
         super().__init__(**kwargs)
 
-    @execute_with_select_plan
+    @execute_with_query_plan
     def ent_type_select_all(self):
         return ('select * from git430_ner.ent_type_select_all();', 
                 [])
