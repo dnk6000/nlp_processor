@@ -67,10 +67,10 @@
     <Compile Include="ModulesPyOnly\tripadv_main.py" />
     <Compile Include="modules\crawling_scrapy\__init__.py" />
     <Compile Include="modules\crawling\crawler.py" />
-    <Compile Include="modules\crawling\exceptions.py">
+    <Compile Include="modules\common_mod\exceptions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="modules\crawling\date.py">
+    <Compile Include="modules\common_mod\date.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\crawling\accounts.py">

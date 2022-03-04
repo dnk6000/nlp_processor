@@ -7,9 +7,9 @@ import modules.parsing.lemma as lemma
 import modules.parsing.token as token
 import modules.parsing.sentiment as sentiment
 
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 
-import modules.crawling.date as date
+import modules.common_mod.date as date
 
 from modules.crawling.crawler import remove_empty_symbols
 

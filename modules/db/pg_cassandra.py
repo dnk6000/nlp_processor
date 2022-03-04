@@ -1,5 +1,6 @@
 import modules.common_mod.const as const
-import modules.crawling.date as date
+import modules.common_mod.date as date
+import modules.common_mod.exceptions as exceptions
 
 from modules.db.pg import PgDb
 
@@ -8,11 +9,21 @@ class PgDbCassandra(PgDb):
     def __init__(self, plpy = None, GD = None):
         super().__init__(plpy, GD)
 
-    def _execute(self, plan_id, var_list, id_project = 0):
-        exept = None
-        res = super()._execute(plan_id, var_list, exept)
-        if exept is not None:
-            self.log_error(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exept['description'])
+    def _execute(self, plan_id, var_list, id_project = 0, fix_log_on_expt = True):
+        exept = {}
+        try:
+            res = super()._execute(plan_id, var_list, exept)
+        except Exception as expt:
+            if hasattr(self,'db'):
+                self.rollback()
+                self.db.git999_log.log_fatal(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exceptions.get_err_description(expt, id_project = id_project, var_list = var_list))
+            raise
+
+        if len(exept) != 0:
+            if fix_log_on_expt and hasattr(self,'db'):
+                self.db.git999_log.log_error(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exept['description'])
+            else:
+                self.notice('Exeption raised: '+exept['description'])
         return res
 
     def _convert_select_result(self, res, str_to_date_conv_fields = [], decimal_to_float_conv_fields = []):

@@ -10,8 +10,8 @@ import modules.common_mod.pauser as pauser
 import modules.common_mod.jobs as jobs
 import modules.crawling.crawler as crawler
 import modules.crawling.scraper as scraper
-import modules.crawling.exceptions as exceptions
-import modules.crawling.date as date
+import modules.common_mod.exceptions as exceptions
+import modules.common_mod.date as date
 import modules.crawling.accounts as accounts
 import modules.crawling.vk as vk
 

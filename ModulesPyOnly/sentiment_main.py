@@ -4,7 +4,7 @@ import modules.common_mod.const as const
 import modules.common_mod.pginterface as pginterface
 import modules.common_mod.pauser as pauser
 import modules.common_mod.jobs as jobs
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 import modules.parsing.processor as processor
 
 from modules.common_mod.globvars import GlobVars

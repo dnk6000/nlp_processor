@@ -17,9 +17,9 @@ from telethon.tl.functions.contacts import SearchRequest
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
 import modules.crawling.crawler as crawler
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 import modules.common_mod.const as const
-import modules.crawling.date as date
+import modules.common_mod.date as date
 import modules.common_mod.pauser as pauser
 import modules.crawling.scraper as scraper
 import modules.common_mod.common as common

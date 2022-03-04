@@ -4,8 +4,9 @@ from modules.db.pg_cassandra import PgDbCassandra
 class Cassandra_git010_dict(PgDbCassandra):
     ''' Functions of db scheme git010_dict '''
     
-    def __init__(self, **kwargs):
+    def __init__(self, db, **kwargs):
         ''' initialized only from class Cassandra '''
+        self.db = db
         super().__init__(**kwargs)
 
     

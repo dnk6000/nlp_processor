@@ -3,7 +3,7 @@ import time
 
 import modules.common_mod.const as const
 import modules.common_mod.common as common
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 
 class JobManager(common.CommonFunc):
 	'''The job-task should be described in the config file

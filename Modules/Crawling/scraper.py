@@ -2,9 +2,9 @@
 
 import modules.common_mod.const as const
 import modules.crawling.crawler as crawler
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 import modules.common_mod.common as common
-import modules.crawling.date as date
+import modules.common_mod.date as date
 
 import re
 from html.parser import HTMLParser  

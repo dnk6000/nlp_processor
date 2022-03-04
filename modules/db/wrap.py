@@ -6,22 +6,27 @@ def do_with_query_plan(*args, func, autocommit = True, **kwargs):
     self = args[0]
 
     if not self._is_plan_exist(plan_id):
-        select = func(*args, **kwargs)                          #x
-        pg.gvars.GD[plan_id] = self._prepare(select[0], select[1]) #y
+        query = func(*args, **kwargs)                             #x
+        pg.gvars.GD[plan_id] = self._prepare(query[0], query[1]) #y
 
     params = list(args[1:])
     for kwarg in kwargs:
         params.append(kwargs[kwarg])
-        
+    
     try:
-        res = self._execute(plan_id, params)      #z
+        res = self._execute(plan_id, params)                       #z
     except Exception as e:
         if self._is_it_InvalidSqlStatementName(e):
-            select = func(*args, **kwargs)                          #x
-            pg.gvars.GD[plan_id] = self._prepare(select[0], select[1]) #y
-            res = self._execute(plan_id, params)  #z
+            if autocommit:
+                self.rollback()
+                self.subtransaction()
+            query = func(*args, **kwargs)                             #x
+            pg.gvars.GD[plan_id] = self._prepare(query[0], query[1]) #y
+            res = self._execute(plan_id, params)                       #z
         else:
             raise
+
+    self.commit(autocommit)
 
     return res
 
@@ -30,7 +35,6 @@ def execute_with_query_plan(func):
     def execute_with_plan(*args, autocommit = True, **kwargs):
         res = do_with_query_plan(*args, func = func, autocommit = autocommit, **kwargs)
         self = args[0]
-        self.commit(autocommit)
         return self._convert_select_result(res)
 
     return execute_with_plan
@@ -40,7 +44,6 @@ def execute_with_query_plan_0(func):
     def execute_with_plan(*args, autocommit = True, **kwargs):
         res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
-        self.commit(autocommit)
         res = self._convert_select_result(res)
         return None if res is None else res[0]
 
@@ -49,7 +52,7 @@ def execute_with_query_plan_0(func):
 #wrapper 
 def select_with_query_plan(func):
     def execute_with_plan(*args, **kwargs):
-        res = do_with_query_plan(*args, func = func, **kwargs)
+        res = do_with_query_plan(*args, func = func, autocommit = False, **kwargs)
         self = args[0]
         return self._convert_select_result(res)
 
@@ -58,7 +61,7 @@ def select_with_query_plan(func):
 #wrapper 
 def select_with_query_plan_0(func):
     def execute_with_plan(*args, **kwargs):
-        res = do_with_query_plan(*args, func = func, **kwargs)
+        res = do_with_query_plan(*args, func = func, autocommit = False, **kwargs)
         self = args[0]
         res = self._convert_select_result(res)
         return None if res is None else res[0]

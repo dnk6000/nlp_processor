@@ -1,6 +1,6 @@
 import modules.common_mod.const as const
 import modules.common_mod.common as common
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 
 from modules.common_mod.globvars import GlobVars
 gvars = None
@@ -58,17 +58,19 @@ class PgDb(common.CommonFunc):
     def _prepare(self, pgstatement, params):
         return PgDb.plpy.prepare(pgstatement, params)
 
-    def _execute(self, plan_id, var_list, exept = None):
+    def _execute(self, plan_id, var_list, exept = {}):
         try:
             res = PgDb.plpy.execute(gvars.GD[plan_id], var_list)
             self._check_db_error_limit(plan_id, None)
             return res
         except Exception as e:
             exept = {'exeption': e, 'description': exceptions.get_err_description(e, plan_id = plan_id, var_list = var_list)}
+            self.plpy.notice(str(exept))
             self._check_db_error_limit(plan_id, e)
             if self._is_it_InvalidSqlStatementName(e):
                 raise
-            return None
+            #return None
+            raise
 
     def _is_it_InvalidSqlStatementName(self, _exeption: Exception):
         return 'InvalidSqlStatementName' in str(type(_exeption))
@@ -92,4 +94,7 @@ class PgDb(common.CommonFunc):
 
     def _convert_select_result(self, res):
         return res
+
+    def _debug_close_connection(self):
+        PgDb.plpy.connection = None
 

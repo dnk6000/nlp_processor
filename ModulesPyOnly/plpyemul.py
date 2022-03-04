@@ -1,13 +1,14 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2.errors import InvalidSqlStatementName as InvalidSqlStatementName_psycopg
+from psycopg2.errors import InFailedSqlTransaction as InFailedSqlTransaction_psycopg
 
 import re
 import time
 
 import modules.common_mod.const as const
 import modules.common_mod.pauser as pauser
-import modules.crawling.date as date
+import modules.common_mod.date as date
 
 import ModulesPyOnly.self_psw as self_psw
 
@@ -92,34 +93,32 @@ class PlPy(object):
                     plan = ''
                 raise InvalidSqlStatementName(plan)
 
+            except InFailedSqlTransaction_psycopg as expt:
+                self.rollback()
+                raise InFailedSqlTransaction()
+
             except Exception as expt:
                 attempt += 1
+                self.notice(str(expt))
 
                 if not self._pauser.sleep():
                     raise expt
                 else:
-                    print(f'{date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
-
-                    # <class 'psycopg2.errors.InvalidSqlStatementName'>
-                    # expt.args[0] = InvalidSqlStatementName('prepared statement "py_plan_11" does not exist\n')
-
                     if type(expt) == psycopg2.OperationalError and len(expt.args) >= 1 and isinstance(expt.args[0], str) \
                         and ('server closed the connection' in expt.args[0] \
                              or 'could not receive data from server' in expt.args[0]):
-                        print('  Trying to reconnect...')
+                        self.notice(f'{date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
+                        self.notice('  Trying to reconnect...')
                         self.connection = None
                         self._connect()
                     else:
+                        self.notice(f'{date.date_now_str()} Ошибка чтения/записи в БД !!!')
+                        raise expt
                         print('Error: ')
                         print('     '+str(type(expt)))
                         #print('     expt.pgerror: '+str(expt.pgerror))
                         print('     '+str(expt.args))
                         print('     '+str(expt))
-                #if attempt >= self._number_of_tries:
-                #    raise expt
-                #else:
-                #    print('Ошибка записи в БД !!! Попытка '+str(attempt))
-                #    time.sleep(self._tries_pause)
         
         if not successfully:
             raise expt
@@ -253,3 +252,6 @@ class spiexceptions(Exception):
 class InvalidSqlStatementName(spiexceptions):
     def __init__(*args, plan = '', **kwargs):
         plan = plan
+
+class InFailedSqlTransaction(spiexceptions):
+    pass

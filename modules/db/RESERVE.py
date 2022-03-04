@@ -1,7 +1,7 @@
 import modules.common_mod.const as const
 import modules.common_mod.common as common
-import modules.crawling.exceptions as exceptions
-import modules.crawling.date as date
+import modules.common_mod.exceptions as exceptions
+import modules.common_mod.date as date
 
 from modules.common_mod.globvars import GlobVars
 if const.PY_ENVIRONMENT: 

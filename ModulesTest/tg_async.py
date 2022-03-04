@@ -13,9 +13,9 @@ from telethon.tl.types import ChannelParticipantsSearch
 from telethon.tl.functions.messages import GetHistoryRequest, GetRepliesRequest
 
 import modules.crawling.crawler as crawler
-import modules.crawling.exceptions as exceptions
+import modules.common_mod.exceptions as exceptions
 import modules.common_mod.const as const
-import modules.crawling.date as date
+import modules.common_mod.date as date
 import modules.common_mod.pauser as pauser
 
 class CommonFunc:
