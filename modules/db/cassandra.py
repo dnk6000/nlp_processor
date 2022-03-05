@@ -3,11 +3,12 @@ import modules.common_mod.date as date
 
 import modules.db.pg as pg
 from modules.db.pg_cassandra import PgDbCassandra
-from modules.db.git010_dict import Cassandra_git010_dict
+from modules.db.queries      import Cassandra_queries
+from modules.db.git010_dict  import Cassandra_git010_dict
 from modules.db.git200_crawl import Cassandra_git200_crawl
 from modules.db.git300_scrap import Cassandra_git300_scrap
-from modules.db.git430_ner import Cassandra_git430_ner
-from modules.db.git999_log import Cassandra_git999_log
+from modules.db.git430_ner   import Cassandra_git430_ner
+from modules.db.git999_log   import Cassandra_git999_log
 
 if const.PY_ENVIRONMENT: 
     GD = None
@@ -21,6 +22,7 @@ class Cassandra(PgDbCassandra):
         self.git300_scrap = Cassandra_git300_scrap(db = self, **kwargs)
         self.git430_ner   = Cassandra_git430_ner  (db = self, **kwargs)
         self.git999_log   = Cassandra_git999_log  (db = self, **kwargs)
+        self.query        = Cassandra_queries     (db = self, **kwargs)
 
         if pg.gvars is not None and not pg.gvars.initialized:
             self._initialize_gvars()
@@ -54,7 +56,7 @@ if __name__ == "__main__":
 
     cass_db = Cassandra(plpy, GD)
 
-    cass_db.git999_log.log_trace('TEST new PY structure', 0, 'No description', autocommit = True)
+    #cass_db.git999_log.log_trace('TEST new PY structure', 0, 'No description', autocommit = True)
     #cass_db.git999_log.log_trace('TEST new PY structure', 0, description='No description', autocommit = True)
     #cass_db.commit()
     #cass_db.git999_log.log_debug('TEST new PY structure', 0, description='No description')
@@ -65,10 +67,15 @@ if __name__ == "__main__":
 
     #cass_db.git300_scrap.upsert_data_text(11111, 1, 1, 'Test content', content_header = 'Test header', content_date = date.date_now_str(),
     #                            sn_id = 1, sn_post_id = 2, sn_post_parent_id = 3, autocommit = True)
-
-    #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, '503', autocommit = True)
+    #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, '502', autocommit = True)
     #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, broken_status_code = '502', autocommit = True)
-    
+    #cass_db.git200_crawl.upsert_data_html('tst.ru', 'test content', 1, 1)
+    #res = cass_db.git200_crawl.upsert_sn_accounts(1,      1,     'G',         1036240821,             'meduzalive',
+    #                             'Медуза — LIVE', False, account_extra_1 = '', num_subscribers = 435435, parameters = '', 
+    #                             autocommit = True)
+    #res = cass_db.git200_crawl.upsert_sn_activity(1, 1, '50369640', 12, '2022.03.04', '2022.03.06')
+    res = cass_db.query.select_groups_id(10)
+    print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
     #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)
     f=1

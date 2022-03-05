@@ -14,9 +14,9 @@ class PgDbCassandra(PgDb):
         try:
             res = super()._execute(plan_id, var_list, exept)
         except Exception as expt:
-            if hasattr(self,'db'):
-                self.rollback()
-                self.db.git999_log.log_fatal(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exceptions.get_err_description(expt, id_project = id_project, var_list = var_list))
+            #if hasattr(self,'db'):
+            #    self.rollback()  # is it right ?
+            #    self.db.git999_log.log_fatal(const.CW_RESULT_TYPE_DB_ERROR, id_project, description=exceptions.get_err_description(expt, id_project = id_project, var_list = var_list))
             raise
 
         if len(exept) != 0:

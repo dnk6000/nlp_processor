@@ -113,12 +113,11 @@ class PlPy(object):
                         self._connect()
                     else:
                         self.notice(f'{date.date_now_str()} Ошибка чтения/записи в БД !!!')
+                        #print('Error: ')
+                        #print('     '+str(type(expt)))
+                        #print('     '+str(expt.args))
+                        #print('     '+str(expt))
                         raise expt
-                        print('Error: ')
-                        print('     '+str(type(expt)))
-                        #print('     expt.pgerror: '+str(expt.pgerror))
-                        print('     '+str(expt.args))
-                        print('     '+str(expt))
         
         if not successfully:
             raise expt

@@ -8,9 +8,8 @@ import modules.common_mod.const as const
 class StatisticFunc(PgDbCassandra):
     ''' Statistic Functions of db scheme git999_log '''
     
-    def __init__(self, db, **kwargs):
+    def __init__(self, **kwargs):
         ''' initialized only from class Cassandra '''
-        self.db = db
         super().__init__(**kwargs)
 
 
@@ -78,7 +77,8 @@ class LogFunc(PgDbCassandra):
 class Cassandra_git999_log(LogFunc, StatisticFunc):
     ''' Functions of db scheme git999_log '''
     
-    def __init__(self, **kwargs):
+    def __init__(self, db, **kwargs):
         ''' initialized only from class Cassandra '''
+        self.db = db
         super().__init__(**kwargs)
 
