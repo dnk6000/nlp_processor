@@ -19,4 +19,14 @@ class Cassandra_queries(PgDbCassandra):
                 ''', 
                 ["integer"])
 
+    @wrap.execute_with_query_plan
+    def clear_table_by_project(self, table_name, id_project, autocommit = True):
+        return (f'delete from {table_name} where id_project = {id_project};',
+                [])
+    
+    @wrap.execute_with_query_plan
+    def clear_table(self, table_name, autocommit = True):
+        return (f'delete from {table_name};',
+                [])
+    
 

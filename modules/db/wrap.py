@@ -1,7 +1,11 @@
 import modules.db.pg as pg
 
 #core of wrappers
-def do_with_query_plan(*args, func, autocommit = True, **kwargs):
+def do_with_query_plan(*args, func, 
+                              autocommit = True, 
+                              str_to_date_conv_fields = [],      #param used here only to exclude from kwargs 
+                              decimal_to_float_conv_fields = [], #param used here only to exclude from kwargs
+                              **kwargs):
     plan_id = 'plan_'+func.__qualname__
     self = args[0]
 
@@ -32,8 +36,15 @@ def do_with_query_plan(*args, func, autocommit = True, **kwargs):
 
 #wrapper 
 def execute_with_query_plan(func):
-    def execute_with_plan(*args, autocommit = True, **kwargs):
-        res = do_with_query_plan(*args, func = func, autocommit = autocommit, **kwargs)
+    def execute_with_plan(*args, **kwargs):
+        if not 'str_to_date_conv_fields' in kwargs:
+            kwargs['str_to_date_conv_fields'] = []
+        if not 'decimal_to_float_conv_fields' in kwargs:
+            kwargs['decimal_to_float_conv_fields'] = []
+        if not 'autocommit' in kwargs:
+            kwargs['autocommit'] = True
+
+        res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
         return self._convert_select_result(res)
 
@@ -41,8 +52,15 @@ def execute_with_query_plan(func):
 
 #wrapper 
 def execute_with_query_plan_0(func):
-    def execute_with_plan(*args, autocommit = True, **kwargs):
-        res = do_with_query_plan(*args, func = func, autocommit = autocommit, **kwargs)
+    def execute_with_plan(*args, **kwargs):
+        if not 'str_to_date_conv_fields' in kwargs:
+            kwargs['str_to_date_conv_fields'] = []
+        if not 'decimal_to_float_conv_fields' in kwargs:
+            kwargs['decimal_to_float_conv_fields'] = []
+        if not 'autocommit' in kwargs:
+            kwargs['autocommit'] = True
+
+        res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
         res = self._convert_select_result(res)
         return None if res is None else res[0]
@@ -52,18 +70,36 @@ def execute_with_query_plan_0(func):
 #wrapper 
 def select_with_query_plan(func):
     def execute_with_plan(*args, **kwargs):
-        res = do_with_query_plan(*args, func = func, autocommit = False, **kwargs)
+        if not 'str_to_date_conv_fields' in kwargs:
+            kwargs['str_to_date_conv_fields'] = []
+        if not 'decimal_to_float_conv_fields' in kwargs:
+            kwargs['decimal_to_float_conv_fields'] = []
+        if not 'autocommit' in kwargs:
+            kwargs['autocommit'] = False
+
+        res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
-        return self._convert_select_result(res)
+        return self._convert_select_result(res, 
+                                           str_to_date_conv_fields = kwargs['str_to_date_conv_fields'],
+                                           decimal_to_float_conv_fields = kwargs['decimal_to_float_conv_fields'])
 
     return execute_with_plan
 
 #wrapper 
 def select_with_query_plan_0(func):
     def execute_with_plan(*args, **kwargs):
-        res = do_with_query_plan(*args, func = func, autocommit = False, **kwargs)
+        if not 'str_to_date_conv_fields' in kwargs:
+            kwargs['str_to_date_conv_fields'] = []
+        if not 'decimal_to_float_conv_fields' in kwargs:
+            kwargs['decimal_to_float_conv_fields'] = []
+        if not 'autocommit' in kwargs:
+            kwargs['autocommit'] = False
+
+        res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
-        res = self._convert_select_result(res)
+        res = self._convert_select_result(res, 
+                                          str_to_date_conv_fields = kwargs['str_to_date_conv_fields'],
+                                          decimal_to_float_conv_fields = kwargs['decimal_to_float_conv_fields'])
         return None if res is None else res[0]
 
     return execute_with_plan

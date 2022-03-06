@@ -4,6 +4,7 @@ import modules.common_mod.date as date
 import modules.db.pg as pg
 from modules.db.pg_cassandra import PgDbCassandra
 from modules.db.queries      import Cassandra_queries
+from modules.db.git000_cfg   import Cassandra_git000_cfg
 from modules.db.git010_dict  import Cassandra_git010_dict
 from modules.db.git200_crawl import Cassandra_git200_crawl
 from modules.db.git300_scrap import Cassandra_git300_scrap
@@ -74,8 +75,14 @@ if __name__ == "__main__":
     #                             'Медуза — LIVE', False, account_extra_1 = '', num_subscribers = 435435, parameters = '', 
     #                             autocommit = True)
     #res = cass_db.git200_crawl.upsert_sn_activity(1, 1, '50369640', 12, '2022.03.04', '2022.03.06')
-    res = cass_db.query.select_groups_id(10)
-    print(str(res))
+    #res = cass_db.query.select_groups_id(10)
+    #cass_db.query.clear_table_by_project('git200_crawl.queue', 10)
+    #res = cass_db.git200_crawl.queue_generate(4, 10, min_num_subscribers = 15000, max_num_subscribers = 99999999, autocommit = True)
+    #res = cass_db.git200_crawl.queue_update(id_queue=2135587, is_process = True,    date_start_process = '2022.03.04')
+    #res = cass_db.git200_crawl.queue_select(4, id_project=10)
+    #res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
+    res = cass_db.git200_crawl.set_sn_activity_fin_date(id_www_sources = 4, id_project = 1, sn_id = '1430295016', fin_date = '2022.03.05', autocommit = True)
+    #print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
     #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)
     f=1
