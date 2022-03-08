@@ -47,6 +47,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\db\git000_cfg.py" />
+    <Compile Include="modules\db\git700_rate.py" />
+    <Compile Include="modules\db\git400_token.py" />
     <Compile Include="modules\db\queries.py" />
     <Compile Include="modules\db\git300_scrap.py" />
     <Compile Include="modules\db\git200_crawl.py" />

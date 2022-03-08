@@ -8,7 +8,9 @@ from modules.db.git000_cfg   import Cassandra_git000_cfg
 from modules.db.git010_dict  import Cassandra_git010_dict
 from modules.db.git200_crawl import Cassandra_git200_crawl
 from modules.db.git300_scrap import Cassandra_git300_scrap
+from modules.db.git400_token import Cassandra_git400_token
 from modules.db.git430_ner   import Cassandra_git430_ner
+from modules.db.git700_rate  import Cassandra_git700_rate
 from modules.db.git999_log   import Cassandra_git999_log
 
 if const.PY_ENVIRONMENT: 
@@ -18,10 +20,13 @@ class Cassandra(PgDbCassandra):
     def __init__(self, plpy, GD, **kwargs):
         super().__init__(plpy, GD)
         self.db = self
+        self.git000_cfg   = Cassandra_git000_cfg  (db = self, **kwargs)
         self.git010_dict  = Cassandra_git010_dict (db = self, **kwargs)
         self.git200_crawl = Cassandra_git200_crawl(db = self, **kwargs)
         self.git300_scrap = Cassandra_git300_scrap(db = self, **kwargs)
+        self.git400_token = Cassandra_git400_token(db = self, **kwargs)
         self.git430_ner   = Cassandra_git430_ner  (db = self, **kwargs)
+        self.git700_rate  = Cassandra_git700_rate (db = self, **kwargs)
         self.git999_log   = Cassandra_git999_log  (db = self, **kwargs)
         self.query        = Cassandra_queries     (db = self, **kwargs)
 
@@ -81,7 +86,20 @@ if __name__ == "__main__":
     #res = cass_db.git200_crawl.queue_update(id_queue=2135587, is_process = True,    date_start_process = '2022.03.04')
     #res = cass_db.git200_crawl.queue_select(4, id_project=10)
     #res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
-    res = cass_db.git200_crawl.set_sn_activity_fin_date(id_www_sources = 4, id_project = 1, sn_id = '1430295016', fin_date = '2022.03.05', autocommit = True)
+    #res = cass_db.git200_crawl.set_sn_activity_fin_date(id_www_sources = 4, id_project = 1, sn_id = '1430295016', fin_date = '2022.03.05', autocommit = True)
+    #res = cass_db.git000_cfg.get_proxy_project(1)
+    #res = cass_db.git000_cfg.get_project_params(10)
+    #res = cass_db.git000_cfg.create_project(1)
+    #res = cass_db.git000_cfg.need_stop_func('crawl_wall',1)
+    #res = cass_db.git000_cfg.set_config_param('stop_func_crawl_wall','234')
+
+    #res = cass_db.git300_scrap.data_text_select_unprocess(4, 10, 10)
+    #res = cass_db.git300_scrap.data_text_set_is_process(11947684)
+
+    #res = cass_db.git400_token.token_upsert_sentence(1, 1, 1111, ['Test1', 'Test2 Sent'], autocommit = True)
+    #res = cass_db.git700_rate.sentiment_upsert_sentence(1, 1, 2, 3, 4, autocommit = False)
+    res = cass_db.git700_rate.sentiment_upsert_text(1, 1, 2, 3, autocommit = False)
+    cass_db.commit()
     #print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
     #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)

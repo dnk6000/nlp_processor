@@ -59,7 +59,7 @@ else:
 
 def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}):
 
-    project_params = cass_db.get_project_params(id_project)[0]
+    project_params = cass_db.get_project_params(id_project)
     group_search_str = project_params['group_search_str']
 
     if group_search_str.isspace():
@@ -264,7 +264,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
 def vk_crawl_wall_subscribers(id_project, job):
     select_result = cass_db.select_groups_id(id_project = id_project)
-    project_params = cass_db.get_project_params(id_project)[0]
+    project_params = cass_db.get_project_params(id_project)
 
     number_of_groups = len(select_result)
 
@@ -304,7 +304,7 @@ def vk_crawling(id_project, job):
     critical_error_counter = {'counter': 0}
 
     while True:
-        project_params = cass_db.get_project_params(id_project)[0]  #temporarily in the loop to adjust the pause 
+        project_params = cass_db.get_project_params(id_project)  #temporarily in the loop to adjust the pause 
 
         queue_portion = cass_db.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
 
@@ -330,7 +330,7 @@ def vk_crawling(id_project, job):
 
 def vk_crawling_wall_group(id_project, id_group, id_post = '', job = None):
 
-    project_params = cass_db.get_project_params(id_project)[0]
+    project_params = cass_db.get_project_params(id_project)
 
     vk_crawl_wall(id_project = id_project, 
                   job = job,

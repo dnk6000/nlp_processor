@@ -99,7 +99,7 @@ class ProxyCassandra(Proxy):
 
 	def load_proxy_by_project(self, id_project):
 		res = self.cass_db.get_proxy_project(id_project)
-		if len(res) == 0:
+		if res is None or len(res) == 0:
 			self.msg(f'Proxy by project id = {id_project} not found')
 			return
 		params = res[0]

@@ -46,7 +46,9 @@ def execute_with_query_plan(func):
 
         res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
-        return self._convert_select_result(res)
+        return self._convert_select_result(res, 
+                                           str_to_date_conv_fields = kwargs['str_to_date_conv_fields'],
+                                           decimal_to_float_conv_fields = kwargs['decimal_to_float_conv_fields'])
 
     return execute_with_plan
 
@@ -62,8 +64,10 @@ def execute_with_query_plan_0(func):
 
         res = do_with_query_plan(*args, func = func, **kwargs)
         self = args[0]
-        res = self._convert_select_result(res)
-        return None if res is None else res[0]
+        res = self._convert_select_result(res, 
+                                          str_to_date_conv_fields = kwargs['str_to_date_conv_fields'],
+                                          decimal_to_float_conv_fields = kwargs['decimal_to_float_conv_fields'])
+        return None if res is None or len(res) == 0 else res[0]
 
     return execute_with_plan
 
@@ -100,7 +104,7 @@ def select_with_query_plan_0(func):
         res = self._convert_select_result(res, 
                                           str_to_date_conv_fields = kwargs['str_to_date_conv_fields'],
                                           decimal_to_float_conv_fields = kwargs['decimal_to_float_conv_fields'])
-        return None if res is None else res[0]
+        return None if res is None or len(res) == 0 else res[0]
 
     return execute_with_plan
 

@@ -54,7 +54,7 @@ else:
 
 def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}, update_hash = False):
 
-    project_params = cass_db.get_project_params(id_project)[0] 
+    project_params = cass_db.get_project_params(id_project)
     group_search_str = project_params['group_search_str']
 
     if group_search_str.isspace():
@@ -259,13 +259,13 @@ def tg_crawl_messages_start(id_project, queue, job = None):
 
     critical_error_counter = {'counter': 0}
 
-    #project_params = cass_db.get_project_params(id_project)[0]          #DEBUG
+    #project_params = cass_db.get_project_params(id_project)          #DEBUG
 
     portion_counter = 0
     tg_client = { 'client': None }
 
     while True:
-        project_params = cass_db.get_project_params(id_project)[0]  #temporarily in the loop to adjust the pause 
+        project_params = cass_db.get_project_params(id_project)  #temporarily in the loop to adjust the pause 
 
         if not queue.read_portion(portion_size = 1):
             break
@@ -286,7 +286,7 @@ def tg_crawl_messages_start(id_project, queue, job = None):
 
 def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', parameters = '', id_post = '', job = None):
 
-    project_params = cass_db.get_project_params(id_project)[0]
+    project_params = cass_db.get_project_params(id_project)
 
     if parameters == '':
         res = cass_db.custom_simple_request(f"SELECT \
