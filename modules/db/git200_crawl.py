@@ -80,3 +80,7 @@ class Cassandra_git200_crawl(PgDbCassandra):
                     ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
         return local(self, id_www_source, id_project, number_records)
 
+    @wrap.select_with_query_plan
+    def get_doubles_accounts(self, projects_arr: list):
+        return ('select * from git200_crawl.get_doubles_accounts($1);',
+                ["dmn.git_pk[]"])

@@ -18,3 +18,9 @@ class Cassandra_git010_dict(PgDbCassandra):
         res = _get_www_source_id(self, www_source_name)
         return res['get_www_sources_id']
 
+    @wrap.execute_with_query_plan
+    def upsert_trip_advisor(self, name, name_lemma, name2, address, category_str, longitude, latitude, url):
+        return (''' SELECT * FROM git010_dict.upsert_trip_advisor($1, $2, $3, $4, $5, $6, $7, $8) ''', 
+                ["dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", "dmn.git_string", 
+                             "dmn.git_double", "dmn.git_double", "dmn.git_string"])
+

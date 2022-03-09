@@ -6,6 +6,7 @@ from modules.db.pg_cassandra import PgDbCassandra
 from modules.db.queries      import Cassandra_queries
 from modules.db.git000_cfg   import Cassandra_git000_cfg
 from modules.db.git010_dict  import Cassandra_git010_dict
+from modules.db.git100_main  import Cassandra_git100_main
 from modules.db.git200_crawl import Cassandra_git200_crawl
 from modules.db.git300_scrap import Cassandra_git300_scrap
 from modules.db.git400_token import Cassandra_git400_token
@@ -22,6 +23,7 @@ class Cassandra(PgDbCassandra):
         self.db = self
         self.git000_cfg   = Cassandra_git000_cfg  (db = self, **kwargs)
         self.git010_dict  = Cassandra_git010_dict (db = self, **kwargs)
+        self.git100_main  = Cassandra_git100_main (db = self, **kwargs)
         self.git200_crawl = Cassandra_git200_crawl(db = self, **kwargs)
         self.git300_scrap = Cassandra_git300_scrap(db = self, **kwargs)
         self.git400_token = Cassandra_git400_token(db = self, **kwargs)
@@ -45,6 +47,44 @@ class Cassandra(PgDbCassandra):
             pg.gvars.set('NER_ENT_TYPES', ner_ent_types)
 
             pg.gvars.initialize()
+
+
+class NeedStopChecker:
+    def __init__(self, cass_db, id_project, func_name, state = None):
+        self.cass_db = cass_db
+        self.id_project = id_project
+        self.func_name = func_name
+        if state == 'off':
+            self.set_stop_off()
+        elif state == 'on':
+            self.set_stop_on()
+
+    def set_stop_off(self):
+        self.cass_db.git000_cfg.set_config_param('stop_func_'+self.func_name, '')
+
+    def set_stop_on(self):
+        self.cass_db.git000_cfg.set_config_param('stop_func_'+self.func_name, str(self.id_project))
+
+    def need_stop(self):
+        res = self.cass_db.git000_cfg.need_stop_func(self.func_name, self.id_project)
+        if res[0]['result']:
+            raise exceptions.UserInterruptByDB()
+        #else:  #DEBUG
+        #    return self.func_name+' res:' + str(res[0]['result'])  #DEBUG
+
+    @staticmethod
+    def get_need_stop_cheker(job, cass_db, id_project, cheker_name):
+        ''' returns either <cheker from job-object> or <NeedStopChecker-object identified via cheker_name>'''
+        need_stop_cheker = None
+
+        if not job is None:
+            need_stop_cheker = job.get_need_stop_checker()
+
+        if need_stop_cheker is None:
+            need_stop_cheker = NeedStopChecker(cass_db, id_project, cheker_name, state = 'off')
+
+        return need_stop_cheker
+
 
 if __name__ == "__main__":
     #import re
@@ -98,8 +138,15 @@ if __name__ == "__main__":
 
     #res = cass_db.git400_token.token_upsert_sentence(1, 1, 1111, ['Test1', 'Test2 Sent'], autocommit = True)
     #res = cass_db.git700_rate.sentiment_upsert_sentence(1, 1, 2, 3, 4, autocommit = False)
-    res = cass_db.git700_rate.sentiment_upsert_text(1, 1, 2, 3, autocommit = False)
-    cass_db.commit()
+    #res = cass_db.git700_rate.sentiment_upsert_text(1, 1, 2, 3, autocommit = False)
+    #res = cass_db.git430_ner.ent_type_insert('TST 123', description = 'desr tst 123', autocommit = False)
+    #res = cass_db.git430_ner.entity_upsert(1, 1, 123, 234, [10,14,15], ['ent10 tst','ent14 tst','ent15 tst'], autocommit = False)
+    #res = cass_db.git400_token.sentence_set_is_process(8812188, is_broken = True)
+    #res = cass_db.git400_token.sentence_select_unprocess(1, 1, debug_sentence_id_arr = [8812190])
+    #res = cass_db.git200_crawl.get_doubles_accounts([14,15,16])
+    #res = cass_db.git010_dict.upsert_trip_advisor('TST 2022!', 'name_lemma 123', 'name2 456', 'address 777', 'category_str 3', 123, 456, 'url', autocommit = False)
+    res = cass_db.git100_main.job_need_stop(1)
+    #cass_db.commit()
     #print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
     #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)
