@@ -1,4 +1,4 @@
-import modules.common_mod.pginterface as pginterface 
+from modules.db.cassandra import Cassandra, NeedStopChecker 
 import modules.common_mod.const as const 
  
 from modules.common_mod.globvars import GlobVars 
@@ -34,7 +34,7 @@ def clear_tables_by_project(cass_db, id_project):
         ] 
     for t in tables: 
         plpy.notice('Delete table {} by project {}'.format(t,id_project)) 
-        cass_db.clear_table_by_project(t, id_project) 
+        cass_db.query.clear_table_by_project(t, id_project) 
 
 
 class Turn_off_doublegroups():
@@ -73,7 +73,7 @@ class Turn_off_doublegroups():
         res = self.db.custom_simple_request(upd_select)
 
     def turn_off_doublegroups(self): 
-        res = self.db.get_doubles_accounts(self.projects_arr)
+        res = self.db.git200_crawl.get_doubles_accounts(self.projects_arr)
 
         founded = []
         
@@ -95,7 +95,7 @@ class Turn_off_doublegroups():
         pass
  
 def main(): 
-    cass_db = pginterface.MainDB(plpy, GD) 
+    cass_db = Cassandra(plpy, GD) 
  
     ID_PROJECT = 16 # VK  Краснодар 
  

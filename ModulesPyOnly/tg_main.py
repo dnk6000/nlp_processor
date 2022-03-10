@@ -5,7 +5,7 @@ import json
 import modules.common_mod.venv as venv
 import modules.common_mod.const as const
 import modules.common_mod.common as common
-import modules.common_mod.pginterface as pginterface
+from modules.db.cassandra import Cassandra, NeedStopChecker
 import modules.common_mod.proxy as proxy
 import modules.common_mod.pauser as pauser
 import modules.common_mod.jobs as jobs
@@ -54,16 +54,16 @@ else:
 
 def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}, update_hash = False):
 
-    project_params = cass_db.get_project_params(id_project)
+    project_params = cass_db.git000_cfg.get_project_params(id_project)
     group_search_str = project_params['group_search_str']
 
     if group_search_str.isspace():
-        cass_db.log_error(const.CW_RESULT_TYPE_ERROR, id_project, description='Search string is empty!')
+        cass_db.git999_log.log_error(const.CW_RESULT_TYPE_ERROR, id_project, description='Search string is empty!')
         return
 
     base_search_words = group_search_str.split(',')
 
-    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_group')
+    need_stop_cheker = NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_group')
 
     request_error_pauser = pauser.ExpPauser()
 
@@ -81,7 +81,7 @@ def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
     tg_crawler.connect()
 
     if not update_hash:
-        select_result = cass_db.select_groups_id(id_project)
+        select_result = cass_db.query.select_groups_id(id_project)
         tg_crawler.id_cash = list(i['account_id'] for i in select_result)
 
     CriticalErrorsLimit = 3
@@ -97,20 +97,20 @@ def tg_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
 
             if res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ACCOUNT:
                 msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
-                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
+                cass_db.git200_crawl.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
         
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-                cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
+                cass_db.git999_log.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
                     msg('Request error: pause before repeating...') #DEBUG
-                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
+                    cass_db.git999_log.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
+                cass_db.git999_log.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -145,7 +145,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
     wall_processed = False
     CriticalErrorsLimit = 3
 
-    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
+    need_stop_cheker = NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
     
     request_error_pauser = pauser.ExpPauser()
 
@@ -196,41 +196,41 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
             
             if res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS:
                 msg(res_unit['num_subscribers'])
-                #cass_db.update_sn_num_subscribers(TG_SOURCE_ID, **res_unit)
+                #cass_db.git200_crawl.update_sn_num_subscribers(TG_SOURCE_ID, **res_unit)
             
             #elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
-            #    cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
+            #    cass_db.git999_log.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_DT_POST_ACTIVITY:
                 msg('post id = {} dt = {}'.format(res_unit['sn_post_id'], res_unit['last_date']))
-                cass_db.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
+                cass_db.git200_crawl.upsert_sn_activity(TG_SOURCE_ID, id_project, upd_date = dt_start, **res_unit) 
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_NOT_FOUND:
-                cass_db.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
+                cass_db.git999_log.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_FINISH_SUCCESS:
-                cass_db.set_sn_activity_fin_date(TG_SOURCE_ID, id_project, id_group, date.date_now_str())
-                cass_db.log_trace(res_unit['result_type'], id_project, description=res_unit['event_description'])
+                cass_db.git200_crawl.set_sn_activity_fin_date(TG_SOURCE_ID, id_project, id_group, date.date_now_str())
+                cass_db.git999_log.log_trace(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 wall_processed = True
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_WARNING:
-                cass_db.log_warn(res_unit['result_type'], id_project, description=res_unit['event_description'])
+                cass_db.git999_log.log_warn(res_unit['result_type'], id_project, description=res_unit['event_description'])
                 if 'wall_processed' in res_unit:
                     wall_processed = res_unit['wall_processed']
             
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_ERROR:
-                cass_db.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
+                cass_db.git999_log.log_error(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 msg(res_unit['err_type'])
                 if res_unit['err_type'] in (const.ERROR_CONNECTION, const.ERROR_REQUEST_GET, const.ERROR_REQUEST_POST, const.ERROR_REQUEST_READ_TIMEOUT):
                     msg(f'{date.date_now_str()}: Request error: pause before repeating...') #DEBUG
-                    cass_db.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
+                    cass_db.git999_log.log_info(const.LOG_INFO_REQUEST_PAUSE, id_project, description=request_error_pauser.get_description())
                     if not request_error_pauser.sleep():
                         tg_crawler.close_session()
                         raise exceptions.CrawlCriticalErrorsLimit(request_error_pauser.number_intervals)
 
             elif res_unit['result_type'] == scraper.ScrapeResult.RESULT_TYPE_CRITICAL_ERROR:
-                cass_db.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
+                cass_db.git999_log.log_fatal(res_unit['err_type'], id_project, description=res_unit['err_description'])
                 wall_processed = False
                 critical_error_counter['counter'] += 1
 
@@ -247,7 +247,7 @@ def tg_crawl_messages(id_project, id_group, name_group, hash_group,
 
             elif res_unit['result_type'] in (scraper.ScrapeResult.RESULT_TYPE_POST, scraper.ScrapeResult.RESULT_TYPE_REPLY, scraper.ScrapeResult.RESULT_TYPE_REPLY_TO_REPLY):
                 msg('Add posts to DB: ' + str(c) + ' / ' + str(n) + '  ' + str(res_unit['sn_id']) + ' ' + res_unit['url'])
-                cass_db.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
+                cass_db.git300_scrap.upsert_data_text(id_data_html = 0, id_project = id_project,  id_www_sources = TG_SOURCE_ID, **res_unit)
     
     tg_crawler.close_session()
 
@@ -259,13 +259,13 @@ def tg_crawl_messages_start(id_project, queue, job = None):
 
     critical_error_counter = {'counter': 0}
 
-    #project_params = cass_db.get_project_params(id_project)          #DEBUG
+    #project_params = cass_db.git000_cfg.get_project_params(id_project)          #DEBUG
 
     portion_counter = 0
     tg_client = { 'client': None }
 
     while True:
-        project_params = cass_db.get_project_params(id_project)  #temporarily in the loop to adjust the pause 
+        project_params = cass_db.git000_cfg.get_project_params(id_project)  #temporarily in the loop to adjust the pause 
 
         if not queue.read_portion(portion_size = 1):
             break
@@ -286,7 +286,7 @@ def tg_crawl_messages_start(id_project, queue, job = None):
 
 def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '', parameters = '', id_post = '', job = None):
 
-    project_params = cass_db.get_project_params(id_project)
+    project_params = cass_db.git000_cfg.get_project_params(id_project)
 
     if parameters == '':
         res = cass_db.custom_simple_request(f"SELECT \
@@ -327,7 +327,7 @@ def tg_add_group(id_project, name_group):
     res_list = json.loads(res)
     res_unit = res_list[0]
     msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
-    cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
+    cass_db.git200_crawl.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
 
     tg_crawler.close_session()
 
@@ -364,7 +364,7 @@ def tg_fill_group_parameters(id_project):
             if len(res_list) > 0:
                 res_unit = res_list[0]
                 msg('Add account to DB: ' + str(res_unit['account_id']) + ' ' + res_unit['account_name'])
-                cass_db.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
+                cass_db.git200_crawl.upsert_sn_accounts(TG_SOURCE_ID, id_project, const.SN_GROUP_MARK, **res_unit)
             else:
                 msg('   Not found')
 
@@ -404,13 +404,13 @@ def clear_tables_by_project(id_project):
         ]
     for t in tables:
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
-        cass_db.clear_table_by_project(t, id_project)
+        cass_db.query.clear_table_by_project(t, id_project)
 
 logger = None
 
 try:
 
-    cass_db = pginterface.MainDB(plpy, GD)
+    cass_db = Cassandra(plpy, GD)
 
     TG_SOURCE_ID = gvars.get('TG_SOURCE_ID')
 
@@ -428,7 +428,7 @@ try:
             else:
                 queue_generate = True
 
-        cass_db.create_project(ID_PROJECT_main)
+        cass_db.git000_cfg.create_project(ID_PROJECT_main)
 
         print(f'step_name: {step_name} ID_PROJECT: {ID_PROJECT_main}')
 
@@ -441,12 +441,12 @@ try:
             tg_fill_group_parameters(10)
 
 	        #clear_tables_by_project(ID_PROJECT_main)
-	        #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-	        #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+	        #cass_db.query.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+	        #cass_db.query.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = 'govoritfursov', id_post = '')
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1436234144', id_post = '')
             #clear_tables_by_project(id_project = 1)
-            #cass_db.clear_table_by_project('git200_crawl.sn_activity', id_project = 1)
+            #cass_db.query.clear_table_by_project('git200_crawl.sn_activity', id_project = 1)
 
             #import datetime
             #offset = datetime.timedelta(hours=3)
@@ -470,7 +470,7 @@ try:
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'che_history', id_post = '') 
             #tg_crawl_messages_channel(id_project = 1, id_group = '', name_group = 'blogosfer', id_post = '') 
 
-	        #cass_db.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
+	        #cass_db.query.clear_table_by_project('git200_crawl.sn_accounts', ID_PROJECT_main)
 	        #tg_crawl_groups(ID_PROJECT_main)
 
 	        #tg_crawl_messages_channel(id_project = ID_PROJECT_main, id_group = '1225634558', name_group = 'zhartwork', id_post = '') #
@@ -524,16 +524,16 @@ try:
         #--1--
         if step_name == 'crawl_groups' or step_name == 'crawl_groups_upd_hash':
             update_hash = step_name == 'crawl_groups_upd_hash'
-            cass_db.log_info('Start crawl groups '+step_name, ID_PROJECT_main, description='')
+            cass_db.git999_log.log_info('Start crawl groups '+step_name, ID_PROJECT_main, description='')
             tg_crawl_groups(ID_PROJECT_main, job = job, update_hash = update_hash)
             pass
 
         #--2--
         if step_name == 'crawl_wall':
-            cass_db.log_info('Start '+step_name, ID_PROJECT_main, description='')
+            cass_db.git999_log.log_info('Start '+step_name, ID_PROJECT_main, description='')
 
-            #cass_db.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
-            #cass_db.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
+            #cass_db.query.clear_table_by_project('git300_scrap.data_text', ID_PROJECT_main)
+            #cass_db.query.clear_table_by_project('git200_crawl.sn_activity', ID_PROJECT_main)
 
             if queue_generate:
                 queue = crawler.QueueManager(id_source = TG_SOURCE_ID, id_project = ID_PROJECT_main, db = cass_db, min_subscribers=0)
@@ -545,7 +545,7 @@ except exceptions.StopProcess:
     #its ok  maybe user stop process
     pass
 except Exception as e: 
-    cass_db.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, description=exceptions.get_err_description(e))
+    cass_db.git999_log.log_fatal('CriticalErr on main_tg', ID_PROJECT_main, description=exceptions.get_err_description(e))
     raise
 
 

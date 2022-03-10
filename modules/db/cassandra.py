@@ -125,7 +125,7 @@ if __name__ == "__main__":
     #res = cass_db.git200_crawl.queue_generate(4, 10, min_num_subscribers = 15000, max_num_subscribers = 99999999, autocommit = True)
     #res = cass_db.git200_crawl.queue_update(id_queue=2135587, is_process = True,    date_start_process = '2022.03.04')
     #res = cass_db.git200_crawl.queue_select(4, id_project=10)
-    #res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
+    res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
     #res = cass_db.git200_crawl.set_sn_activity_fin_date(id_www_sources = 4, id_project = 1, sn_id = '1430295016', fin_date = '2022.03.05', autocommit = True)
     #res = cass_db.git000_cfg.get_proxy_project(1)
     #res = cass_db.git000_cfg.get_project_params(10)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     #res = cass_db.git400_token.sentence_select_unprocess(1, 1, debug_sentence_id_arr = [8812190])
     #res = cass_db.git200_crawl.get_doubles_accounts([14,15,16])
     #res = cass_db.git010_dict.upsert_trip_advisor('TST 2022!', 'name_lemma 123', 'name2 456', 'address 777', 'category_str 3', 123, 456, 'url', autocommit = False)
-    res = cass_db.git100_main.job_need_stop(1)
+    #res = cass_db.git100_main.job_need_stop(1)
     #cass_db.commit()
     #print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,

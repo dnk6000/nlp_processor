@@ -55,7 +55,7 @@
     <Compile Include="modules\db\git200_crawl.py" />
     <Compile Include="modules\db\git999_log.py" />
     <Compile Include="modules\db\wrap.py" />
-    <Compile Include="modules\db\RESERVE.py" />
+    <Compile Include="ModulesArchive\RESERVE.py" />
     <Compile Include="modules\common_mod\venv.py">
       <SubType>Code</SubType>
     </Compile>
@@ -166,7 +166,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesTest\z_ParserAddressByNatasha.py" />
-    <Compile Include="modules\common_mod\pginterface.py" />
+    <Compile Include="ModulesArchive\pginterface.py" />
     <Compile Include="modules\crawling\scraper.py" />
     <Compile Include="modules\crawling\vk.py" />
   </ItemGroup>
@@ -196,6 +196,7 @@
     <Folder Include="ModulesTemp\" />
     <Folder Include="ModulesTest\" />
     <Folder Include="Logs\" />
+    <Folder Include="ModulesArchive\" />
     <Folder Include="PGscripts\" />
     <Folder Include="ServiceInfo\" />
   </ItemGroup>

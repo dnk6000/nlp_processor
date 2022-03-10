@@ -53,7 +53,7 @@ class SentenceTokenizer(Tokenizer):
 
     def get_text_portion(self):
         if self.id_www_source is not None and self.id_project is not None:
-            self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = 50)
+            self.raw_text = self.db.git300_scrap.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = 50)
         else:
             self.raw_text = {}
 
@@ -91,7 +91,7 @@ class SentenceTokenizer(Tokenizer):
 
     def save_result(self, id_data_text, sentence_tokens):
         if self.db is not None:
-            self.db.token_upsert_sentence(self.id_www_source, self.id_project, id_data_text, sentence_tokens)
+            self.db.git400_token.token_upsert_sentence(self.id_www_source, self.id_project, id_data_text, sentence_tokens)
 
 if __name__ == "__main__":
     if const.PY_ENVIRONMENT:
@@ -104,10 +104,10 @@ if __name__ == "__main__":
     from modules.common_mod.globvars import GlobVars
     gvars = GlobVars(GD)
 
-    import modules.common_mod.pginterface as pginterface
+    from modules.db.cassandra import Cassandra, NeedStopChecker
 
-    cass_db = pginterface.MainDB(plpy, GD)
-    need_stop_cheker = pginterface.NeedStopChecker(cass_db, 10, 'tokenize', state = 'off')
+    cass_db = Cassandra(plpy, GD)
+    need_stop_cheker = NeedStopChecker(cass_db, 10, 'tokenize', state = 'off')
 
     st = SentenceTokenizer(db = cass_db,
                  id_project = 10,

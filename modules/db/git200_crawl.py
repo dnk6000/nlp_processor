@@ -1,7 +1,39 @@
 import modules.db.wrap as wrap
 from modules.db.pg_cassandra import PgDbCassandra
 
-class Cassandra_git200_crawl(PgDbCassandra):
+class QueueFunc(PgDbCassandra):
+    ''' Statistic Functions of db scheme git999_log '''
+    
+    def __init__(self, **kwargs):
+        ''' initialized only from class Cassandra '''
+        super().__init__(**kwargs)
+
+    def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999, autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers):
+            return ('select * from git200_crawl.queue_generate($1, $2, $3, $4);',
+                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer"])
+        return local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers, autocommit=autocommit)
+
+    def queue_update(self, id_queue,                is_process = None,    date_start_process = None, 
+                           date_end_process = None, date_deferred = None, attempts_counter = None, 
+                           autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self, id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter):
+            return ('select * from git200_crawl.queue_update($1, $2, $3, $4, $5, $6);',
+                    ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
+        return local(self, id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter, autocommit=autocommit)
+    
+    def queue_select(self, id_www_source, id_project, number_records = 10):
+        @wrap.select_with_query_plan
+        def local(self, id_www_source, id_project, number_records):
+            return ('select * from git200_crawl.queue_select($1, $2, $3);',
+                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
+        return local(self, id_www_source, id_project, number_records)
+
+
+
+class Cassandra_git200_crawl(QueueFunc):
     ''' Functions of db scheme git200_crawl '''
     
     def __init__(self, db, **kwargs):
@@ -56,29 +88,6 @@ class Cassandra_git200_crawl(PgDbCassandra):
                 ''', 
                 ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_datetime"])
 
-
-    def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999, autocommit = True):
-        @wrap.execute_with_query_plan
-        def local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers):
-            return ('select * from git200_crawl.queue_generate($1, $2, $3, $4);',
-                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer"])
-        return local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers, autocommit=autocommit)
-
-    def queue_update(self, id_queue,                is_process = None,    date_start_process = None, 
-                           date_end_process = None, date_deferred = None, attempts_counter = None, 
-                           autocommit = True):
-        @wrap.execute_with_query_plan
-        def local(self, id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter):
-            return ('select * from git200_crawl.queue_update($1, $2, $3, $4, $5, $6);',
-                    ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
-        return local(self, id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter, autocommit=autocommit)
-    
-    def queue_select(self, id_www_source, id_project, number_records = 10):
-        @wrap.select_with_query_plan
-        def local(self, id_www_source, id_project, number_records):
-            return ('select * from git200_crawl.queue_select($1, $2, $3);',
-                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
-        return local(self, id_www_source, id_project, number_records)
 
     @wrap.select_with_query_plan
     def get_doubles_accounts(self, projects_arr: list):

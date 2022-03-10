@@ -98,7 +98,7 @@ class ProxyCassandra(Proxy):
 			self.load_proxy_by_project(id_project)
 
 	def load_proxy_by_project(self, id_project):
-		res = self.cass_db.get_proxy_project(id_project)
+		res = self.cass_db.git000_cfg.get_proxy_project(id_project)
 		if res is None or len(res) == 0:
 			self.msg(f'Proxy by project id = {id_project} not found')
 			return

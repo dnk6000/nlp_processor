@@ -56,7 +56,7 @@ class DataProcessor(common.CommonFunc):
     
     def log_start_process(self):
         self.debug_msg('{}: Batch start. Project: {}  {}'.format(date.date_now_str(), self.id_project, self.process_description))
-        self.db.log_info(const.LOG_INFO_DATA_PROCESSOR, self.id_project, description='Started: '+self.process_description)
+        self.db.git999_log.log_info(const.LOG_INFO_DATA_PROCESSOR, self.id_project, description='Started: '+self.process_description)
 
 class SentimentProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -72,12 +72,12 @@ class SentimentProcessor(DataProcessor):
         self.process_description = 'Tonalization. Source: '+str(self.id_www_source)
 
     def get_text_portion(self):
-        self.raw_text = self.db.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
+        self.raw_text = self.db.git300_scrap.data_text_select_unprocess(self.id_www_source, self.id_project, number_records = self.portion_size)
 
     def _process(self):
         portion_counter = 1
         self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-        self.db.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
+        self.db.git999_log.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
         self.get_text_portion()
 
         while len(self.raw_text) > 0:
@@ -144,7 +144,7 @@ class SentimentProcessor(DataProcessor):
                     #self.debug_msg('Upsert sentiment sentence: id data text = {}  RATE: {} ID SENT TOKEN: {}'.format(id_data_text, rating_sent, id_token_sentence))
                     self.save_sentim_sentence(id_data_text, id_token_sentence, self.get_rating_id(rating_sent))
 
-                self.db.data_text_set_is_process(id_data_text, autocommit = False)
+                self.db.git300_scrap.data_text_set_is_process(id_data_text, autocommit = False)
 
                 self.db.commit()
 
@@ -153,7 +153,7 @@ class SentimentProcessor(DataProcessor):
 
             portion_counter += 1
             self.debug_msg('{}: Get portion for SentimentProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-            self.db.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
+            self.db.git999_log.log_trace('Get portion for SentimentProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_text_portion()
         pass
 
@@ -164,18 +164,18 @@ class SentimentProcessor(DataProcessor):
             return const.SENTIM_RATE['error']
 
     def save_token_result(self, id_data_text, sentence_tokens):
-        return self.db.token_upsert_sentence(self.id_www_source, self.id_project, id_data_text, sentence_tokens, autocommit = False)
+        return self.db.git400_token.token_upsert_sentence(self.id_www_source, self.id_project, id_data_text, sentence_tokens, autocommit = False)
 
     def save_sentim_text(self, id_data_text, id_rating):
-        self.db.sentiment_upsert_text(self.id_www_source, self.id_project, id_data_text, id_rating, autocommit = False) 
+        self.db.git700_rate.sentiment_upsert_text(self.id_www_source, self.id_project, id_data_text, id_rating, autocommit = False) 
 
     def save_sentim_sentence(self, id_data_text, id_token_sentence, id_rating):
-        self.db.sentiment_upsert_sentence(self.id_www_source, self.id_project, id_data_text, id_token_sentence, id_rating, autocommit = False) 
+        self.db.git700_rate.sentiment_upsert_sentence(self.id_www_source, self.id_project, id_data_text, id_token_sentence, id_rating, autocommit = False) 
 
     def log_critical_error(self, raised_exeption):
         err_description = exceptions.get_err_description(raised_exeption, raw_text = str(self.raw_text))
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, description=err_description)
+        self.db.git999_log.log_fatal(str(raised_exeption), self.id_project, description=err_description)
 
 class NerProcessor(DataProcessor):
     def __init__(self, *args, **kwargs):
@@ -216,7 +216,7 @@ class NerProcessor(DataProcessor):
             else:
                 dbg_sent_id = self.debug_sentence_id
 
-        self.raw_sentences = self.db.sentence_select_unprocess(self.id_www_source, 
+        self.raw_sentences = self.db.git400_token.sentence_select_unprocess(self.id_www_source, 
                                                                self.id_project, 
                                                                number_records = self.portion_size,
                                                                debug_sentence_id = dbg_sent_id,
@@ -269,7 +269,7 @@ class NerProcessor(DataProcessor):
 
             portion_counter += 1
             self.debug_msg('{}: Get portion for NerProcessor Portion: {} Project: {}  {}'.format(date.date_now_str(), portion_counter, self.id_project, self.process_description))
-            self.db.log_trace('Get portion for NerProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
+            self.db.git999_log.log_trace('Get portion for NerProcessor', self.id_project, description='Portion: {} {}'.format(portion_counter, self.process_description))
             self.get_raw_sentences()
             if len(self.raw_sentences) == 0:
                 break
@@ -339,7 +339,7 @@ class NerProcessor(DataProcessor):
                     #record named entities
                     ners_type_id = self.convert_ners_to_id(ners_cons)
 
-                    _ners_id = self.db.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, ners_type_id, lemms_array_cons, autocommit = False)
+                    _ners_id = self.db.git430_ner.entity_upsert(self.id_www_source, self.id_project, id_data_text, id_sentence, ners_type_id, lemms_array_cons, autocommit = False)
                     ners_id = [_['id'] for _ in _ners_id]
 
                     ners_idx_array = []
@@ -350,7 +350,7 @@ class NerProcessor(DataProcessor):
                             ners_idx_array.append(ners_id[i])
                     
                     #record words tokens
-                    word_id_list = self.db.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, ners_idx_array, autocommit = False)
+                    word_id_list = self.db.git400_token.token_upsert_word(self.id_www_source, self.id_project, id_data_text, id_sentence, words_array, lemms_array, ners_idx_array, autocommit = False)
 
                     pass #end for result in zip(...)
                 pass #end if len(self.raw_sentences) > 0
@@ -391,14 +391,14 @@ class NerProcessor(DataProcessor):
         #return words_list
 
     def save_set_is_process(self,id_sentence, is_broken = False, id_broken_type = None):
-        self.db.sentence_set_is_process(id = id_sentence, is_broken = is_broken, id_broken_type = id_broken_type, autocommit = False)
+        self.db.git400_token.sentence_set_is_process(id = id_sentence, is_broken = is_broken, id_broken_type = id_broken_type, autocommit = False)
 
 
     def convert_ners_to_id(self, ner_list):
         _ner_id_list = []
         for ner_code in ner_list:
             if not ner_code in self.NER_ENT_TYPES:
-                new_ent_type_id = self.db.ent_type_insert(ner_code, 'its new entity', autocommit = False)
+                new_ent_type_id = self.db.git430_ner.ent_type_insert(ner_code, 'its new entity', autocommit = False)
                 self.NER_ENT_TYPES[ner_code] = { 'id': new_ent_type_id['id'], 'not_entity': False }
             if self.NER_ENT_TYPES[ner_code]['not_entity']:
                 _ner_id_list.append(None) 
@@ -413,37 +413,37 @@ class NerProcessor(DataProcessor):
         debug_array_id = 'debug_id_sent_list = ['+ ','.join([str(i['id']) for i in self.raw_sentences]) + ']'
         err_description = err_description + '\n' + debug_array_id
 
-        self.db.log_fatal(str(raised_exeption), self.id_project, description=err_description)
+        self.db.git999_log.log_fatal(str(raised_exeption), self.id_project, description=err_description)
 
     def log_error_ner_vs_lemma_mismatch(self, id_data_text, id_sentence, words_array, lemms_array):
         err_description = "Ner's mismatch Lemma's. id_project = {} id_data_text = {} id_sentence = {}\n words_ner = {}\n lemmas = {}\n".\
               format(self.id_project, id_data_text, id_sentence, words_array, lemms_array)
 
-        self.db.log_error("Ner's mismatch Lemma's Error", self.id_project, description=err_description)
+        self.db.git999_log.log_error("Ner's mismatch Lemma's Error", self.id_project, description=err_description)
 
     def log_error_too_long_sentence(self, id_data_text, id_sentence, txt):
         err_description = "Sentence is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Sentence is too long", self.id_project, description=err_description)
+        self.db.git999_log.log_error("Sentence is too long", self.id_project, description=err_description)
 
     def log_error_mixed_sentence(self, id_data_text, id_sentence, txt):
         err_description = "Sentence consists of words with mixed Russian-English letters. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Sentence with mix-letters words", self.id_project, description=err_description)
+        self.db.git999_log.log_error("Sentence with mix-letters words", self.id_project, description=err_description)
 
     def log_error_too_long_word(self, id_data_text, id_sentence, txt):
         err_description = "Word is too long. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Word is too long", self.id_project, description=err_description)
+        self.db.git999_log.log_error("Word is too long", self.id_project, description=err_description)
 
     def log_error_too_many_entity(self, id_data_text, id_sentence, txt):
         err_description = "Too many entities in sentence. id_project = {} id_data_text = {} id_sentence = {}\n txt = {}\n".\
               format(self.id_project, id_data_text, id_sentence, txt)
 
-        self.db.log_error("Too many entities in sentence", self.id_project, description=err_description)
+        self.db.git999_log.log_error("Too many entities in sentence", self.id_project, description=err_description)
 
 
     def debug_sentence_id_list_one_by_one(self,sentence_id_list):

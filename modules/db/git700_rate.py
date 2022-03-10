@@ -18,13 +18,4 @@ class Cassandra_git700_rate(PgDbCassandra):
     def sentiment_upsert_text(self, id_www_source, id_project, id_data_text, id_rating_type, autocommit = True, **kwargs):
         return (''' SELECT * FROM git700_rate.upsert_text($1, $2, $3, $4) ''', 
                 ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
-        #plan_id = 'plan_sentiment_upsert_text'
-        #if not self._is_plan_exist(plan_id):
-        #    gvars.GD[plan_id] = self.plpy.prepare('''SELECT * FROM git700_rate.upsert_text($1, $2, $3, $4)''', 
-        #                                ["dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk","dmn.git_pk"])
-
-        #res = self._execute(plan_id,[id_www_source, id_project, id_data_text, id_rating_type])
-
-        #self.commit(autocommit)
-        #return None if res is None else res[0]
 

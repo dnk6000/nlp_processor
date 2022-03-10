@@ -1,7 +1,7 @@
 from datetime import time as timedt
 
 import modules.common_mod.const as const
-import modules.common_mod.pginterface as pginterface
+from modules.db.cassandra import Cassandra, NeedStopChecker
 import modules.common_mod.pauser as pauser
 import modules.common_mod.jobs as jobs
 
@@ -49,21 +49,21 @@ def clear_tables_by_project(id_project):
         ]
     for t in tables:
         plpy.notice('Delete table {} by project {}'.format(t,id_project))
-        cass_db.clear_table_by_project(t, id_project)
+        cass_db.query.clear_table_by_project(t, id_project)
 
 
-cass_db = pginterface.MainDB(plpy, GD)
-need_stop_cheker = pginterface.NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_recognize', state = 'off')
+cass_db = Cassandra(plpy, GD)
+need_stop_cheker = NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_recognize', state = 'off')
 
 
 
 try:
 
-    cass_db = pginterface.MainDB(plpy, GD)
+    cass_db = Cassandra(plpy, GD)
 
     job = jobs.JobManager(id_job = job_id, db = cass_db)
 
-    need_stop_cheker = pginterface.NeedStopChecker.get_need_stop_cheker(job, cass_db, ID_PROJECT_main, 'tokenize')
+    need_stop_cheker = NeedStopChecker.get_need_stop_cheker(job, cass_db, ID_PROJECT_main, 'tokenize')
 
     while job.get_next_step():
 
@@ -76,7 +76,7 @@ try:
             DEBUG_NUM_PORTIONS = step_params['debug_num_portions']
             DEBUG_MODE = step_params['debug_mode']
 
-        cass_db.create_project(ID_PROJECT_main)
+        cass_db.git000_cfg.create_project(ID_PROJECT_main)
 
         print(f'step_name: {step_name} ID_PROJECT: {ID_PROJECT_main}    SOURCE_ID: {SOURCE_ID}    PORTION_SIZE: {PORTION_SIZE}     DEBUG_NUM_PORTIONS: {DEBUG_NUM_PORTIONS}')
 
@@ -279,7 +279,7 @@ except exceptions.StopProcess:
     #its ok  maybe user stop process
     pass
 except Exception as e: 
-    cass_db.log_fatal('CriticalErr on sentiment_main', ID_PROJECT_main, description=exceptions.get_err_description(e))
+    cass_db.git999_log.log_fatal('CriticalErr on sentiment_main', ID_PROJECT_main, description=exceptions.get_err_description(e))
     raise
 
 

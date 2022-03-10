@@ -1,5 +1,5 @@
 import modules.common_mod.const as const
-import modules.common_mod.pginterface as pginterface
+from modules.db.cassandra import Cassandra, NeedStopChecker
 
 import modules.crawling_scrapy.spiders as spiders
 from modules.crawling_scrapy.spiders.tripadv import TripAdvisorSpider
@@ -35,11 +35,11 @@ def clear_tables():
         ]
     for t in tables:
         plpy.notice('Delete table {}'.format(t))
-        cass_db.clear_table(t)
+        cass_db.query.clear_table(t)
 
 
-cass_db = pginterface.MainDB(plpy, GD)
-#need_stop_cheker = pginterface.NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_recognize', state = 'off')
+cass_db = Cassandra(plpy, GD)
+#need_stop_cheker = NeedStopChecker(cass_db, ID_PROJECT_main, 'ner_recognize', state = 'off')
 
 if step_name == 'debug':
     #clear_tables()

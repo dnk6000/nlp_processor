@@ -8,8 +8,8 @@ def LemmatizeAddrBase():
     plpy = plpyemul.get_plpy()    
     from modules.common_mod.globvars import GlobVars
     gvars = GlobVars(GD)
-    import modules.common_mod.pginterface as pginterface
-    cass_db = pginterface.MainDB(plpy, GD)
+    from modules.db.cassandra import Cassandra, NeedStopChecker
+    cass_db = Cassandra(plpy, GD)
     #connect to PG
 
     import modules.parsing.lemma as lemma

@@ -17,7 +17,7 @@ class GitScrapyPipeline:
         latitude = item['geo_latitude'] if 'geo_latitude' in item else 0
         name2 = item['name2'] if 'name2' in item else ''
 
-        spider.db.upsert_trip_advisor(name = item['name'], 
+        spider.db.git010_dict.upsert_trip_advisor(name = item['name'], 
                                         name_lemma = '', 
                                         name2 = name2, 
                                         address = item['address'], 

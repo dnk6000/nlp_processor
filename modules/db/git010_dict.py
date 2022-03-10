@@ -12,10 +12,10 @@ class Cassandra_git010_dict(PgDbCassandra):
     
     def get_www_source_id(self, www_source_name):
         @wrap.select_with_query_plan_0
-        def _get_www_source_id(self, www_source_name):
+        def local(self, www_source_name):
             return (''' SELECT git010_dict.get_www_sources_id($1) ''', 
                     ["text"])
-        res = _get_www_source_id(self, www_source_name)
+        res = local(self, www_source_name)
         return res['get_www_sources_id']
 
     @wrap.execute_with_query_plan

@@ -265,7 +265,7 @@ class SnRecrawlerCheker(common.CommonFunc):
 			if not sn_id.isdigit():
 				self.debug_msg(f'Social net id {sn_id} is not digit - recrawler function disabled')
 			else:
-				res = cass_db.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
+				res = cass_db.git200_crawl.get_sn_activity(id_www_sources, id_project, sn_id, recrawl_days_post)
 
 				_td = datetime.timedelta(days=recrawl_days_reply)
 
@@ -331,11 +331,11 @@ class QueueManager(common.CommonFunc):
 
 	def clear(self):
 		self.debug_msg('CLEARING QUEUE id_project = {}'.format(self.id_project))
-		self.db.clear_table_by_project('git200_crawl.queue', self.id_project)
+		self.db.query.clear_table_by_project('git200_crawl.queue', self.id_project)
 
 	def generate(self):
 		self.debug_msg('GENERATE QUEUE id_project = {}'.format(self.id_project));
-		self.db.queue_generate(self.id_source, self.id_project, self.min_subscribers, self.max_subscribers)
+		self.db.git200_crawl.queue_generate(self.id_source, self.id_project, self.min_subscribers, self.max_subscribers)
 
 	def regenerate(self):
 		self.clear()
@@ -344,7 +344,7 @@ class QueueManager(common.CommonFunc):
 	def read_portion(self, portion_size):
 		self.portion_counter += 1
 		self.debug_msg('GET QUEUE PORTION № {}'.format(self.portion_counter));
-		self.portion = self.db.queue_select(self.id_source, self.id_project, number_records = portion_size)
+		self.portion = self.db.git200_crawl.queue_select(self.id_source, self.id_project, number_records = portion_size)
 		return len(self.portion) != 0
 
 	def portion_elements(self):
@@ -354,20 +354,20 @@ class QueueManager(common.CommonFunc):
 
 	def reg_start(self):
 		self.date_start_str = date.date_now_str()
-		res = self.db.queue_update(self.curr_portion_elem['id'], 
+		res = self.db.git200_crawl.queue_update(self.curr_portion_elem['id'], 
                                    date_start_process = self.date_start_str)
 		if not res[0]['Success']:
-			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
+			self.db.git999_log.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
 						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'date_start_process', self.id_project, self.curr_portion_elem['id'])
 						 )
 	def reg_finish(self, is_process):
 		self.date_end_process = date.date_now_str()
-		res = self.db.queue_update(self.curr_portion_elem['id'], 
+		res = self.db.git200_crawl.queue_update(self.curr_portion_elem['id'], 
                              is_process = is_process, 
                              date_end_process = self.date_end_process)
 		if not res[0]['Success']:
-			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
+			self.db.git999_log.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
 						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'date_end_process', self.id_project, self.curr_portion_elem['id'])
 						 )
@@ -376,11 +376,11 @@ class QueueManager(common.CommonFunc):
 		date_deferred = datetime.datetime.now() + datetime.timedelta(minutes=suspend_time_min)
 		self.curr_portion_elem['attempts_counter'] += 1
 
-		res = self.db.queue_update(self.curr_portion_elem['id'], 
+		res = self.db.git200_crawl.queue_update(self.curr_portion_elem['id'], 
 							  self.curr_portion_elem['attempts_counter'], 
 							  date_deferred = date.date_to_str(date_deferred))
 		if not res[0]['Success']:
-			self.db.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
+			self.db.git999_log.log_error(const.LOG_LEVEL_ERROR, self.id_project, 
 						 description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format(
 							 'attempts_counter', self.id_project, self.curr_portion_elem['id']))
 
