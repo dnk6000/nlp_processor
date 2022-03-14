@@ -85,7 +85,7 @@ class PgDb(common.CommonFunc):
     def rollback(self):
         PgDb.plpy.rollback()
 
-    def query(self, request_txt, autocommit = True, **kwargs):
+    def free_query(self, request_txt, autocommit = True, **kwargs):
         plan_id = 'plan_custom_query'
         gvars.GD[plan_id] = PgDb.plpy.prepare(request_txt, [])
         res = self._execute(plan_id,[])

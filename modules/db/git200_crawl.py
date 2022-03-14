@@ -42,25 +42,24 @@ class Cassandra_git200_crawl(QueueFunc):
         super().__init__(**kwargs)
 
     @wrap.execute_with_query_plan_0
-    def upsert_data_html(self, url, content, id_project, id_www_sources, **kwargs):
+    def upsert_data_html(self, url, content, id_project, id_www_sources):
         return ('''SELECT * FROM git200_crawl.upsert_data_html($1, $2, $3, $4)''',
                 ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
 
-    def update_sn_num_subscribers(self, id_www_source, account_id, num_subscribers, is_broken = False, broken_status_code = '', autocommit = True, **kwargs):
+    def update_sn_num_subscribers(self, id_www_source=0, account_id='', num_subscribers=0, is_broken = False, broken_status_code = '', autocommit = True, **kwargs):
         @wrap.execute_with_query_plan
         def local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code):
             return ('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
                                     ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
         return local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code, autocommit = autocommit)
 
-    def upsert_sn_accounts(self, id_www_sources,      id_project,     account_type,         account_id,             account_name,
-                                 account_screen_name, account_closed, account_extra_1 = '', num_subscribers = None, parameters = '', 
-                                 autocommit = True, **kwargs):
+    def upsert_sn_accounts(self, id_www_sources=0,       id_project=0,         account_type='',      account_id='',          account_name='',
+                                 account_screen_name='', account_closed=False, account_extra_1 = '', num_subscribers = None, parameters = '', 
+                                 autocommit = True, **kvargs):
         @wrap.execute_with_query_plan_0
         def local(self, id_www_sources,      id_project,     account_type,    account_id,      account_name,
-                        account_screen_name, account_closed, account_extra_1, num_subscribers, parameters, 
-                        **kwargs):
+                        account_screen_name, account_closed, account_extra_1, num_subscribers, parameters):
             return ('''SELECT * FROM git200_crawl.upsert_sn_accounts($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)''', 
                         ["dmn.git_pk", "dmn.git_pk", "dmn.git_string_1", "dmn.git_sn_id", "dmn.git_string", 
                          "dmn.git_string", "dmn.git_boolean", "dmn.git_string", "dmn.git_integer", "dmn.git_string"])
@@ -69,20 +68,22 @@ class Cassandra_git200_crawl(QueueFunc):
                            autocommit = autocommit)
 
 
-    @wrap.execute_with_query_plan
-    def upsert_sn_activity(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date, **kwargs):
-        return ('select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);',
+    def upsert_sn_activity(self, id_source=0, id_project=0, sn_id='', sn_post_id='', last_date=None, upd_date=None, autocommit = True, **kwargs):
+        @wrap.execute_with_query_plan
+        def local(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date):
+            return ('select git200_crawl.upsert_sn_activity($1, $2, $3, $4, $5, $6);',
                 ["dmn.git_pk","dmn.git_pk","dmn.git_sn_id","dmn.git_sn_id","dmn.git_datetime","dmn.git_datetime"])
+        return local(self, id_source, id_project, sn_id, sn_post_id, last_date, upd_date, autocommit = autocommit)
 
     @wrap.select_with_query_plan
-    def get_sn_activity(self, id_www_sources, id_project, sn_id, recrawl_days_post, str_to_date_conv_fields = ['last_date', 'upd_date']):
+    def get_sn_activity(self, id_www_sources=0, id_project=0, sn_id='', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date']):
         return ('''
                 SELECT * FROM git200_crawl.get_sn_activity($1, $2, $3, $4)
                 ''', 
                 ["dmn.git_pk", "dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer"])
 
     @wrap.execute_with_query_plan
-    def set_sn_activity_fin_date(self, id_www_sources, id_project, sn_id, fin_date):
+    def set_sn_activity_fin_date(self, id_www_sources=0, id_project=0, sn_id='', fin_date=None):
         return ('''
                 SELECT * FROM git200_crawl.set_sn_activity_fin_date($1, $2, $3, $4)
                 ''', 

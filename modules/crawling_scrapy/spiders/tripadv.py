@@ -359,7 +359,7 @@ def LemmatizeTripAdvisor(cass_db):
     #from modules.db.cassandra import Cassandra, NeedStopChecker
     #cass_db = Cassandra(plpy, GD)
 
-    non_lemmatized_recs = cass_db.custom_simple_request("SELECT id, name \
+    non_lemmatized_recs = cass_db.free_query("SELECT id, name \
                                                          FROM git010_dict.trip_advisor \
                                                          WHERE name_lemma = '';")
 
@@ -381,7 +381,7 @@ def LemmatizeTripAdvisor(cass_db):
     for result in zip(non_lemmatized_recs, lemma_result, _sentences):
         lemma = ' '.join([i['lemma'] for i in result[1]])
         print(f"id: {result[0]['id']} name: {result[0]['name']}  lemma:{lemma}   _sent: {result[2]}")
-        cass_db.custom_simple_request(f"UPDATE git010_dict.trip_advisor \
+        cass_db.free_query(f"UPDATE git010_dict.trip_advisor \
                                        SET name_lemma = '{lemma}' \
                                        WHERE id = {result[0]['id']} ;")
 

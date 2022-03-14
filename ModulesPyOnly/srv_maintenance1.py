@@ -70,7 +70,7 @@ class Turn_off_doublegroups():
             WHERE \
               id = {str(id)}::dmn.git_pk \
             '
-        res = self.db.custom_simple_request(upd_select)
+        res = self.db.free_query(upd_select)
 
     def turn_off_doublegroups(self): 
         res = self.db.git200_crawl.get_doubles_accounts(self.projects_arr)

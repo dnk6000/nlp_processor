@@ -15,7 +15,7 @@ def LemmatizeAddrBase():
     import modules.parsing.lemma as lemma
     lemmatizer = lemma.Lemmatizer()
 
-    socr_recs = cass_db.custom_simple_request('SELECT scname FROM addr.fias_socrbase WHERE NOT scname IS NULL;')
+    socr_recs = cass_db.free_query('SELECT scname FROM addr.fias_socrbase WHERE NOT scname IS NULL;')
     socr = [i['scname'].strip() for i in socr_recs]
 
     counter = 0
@@ -25,7 +25,7 @@ def LemmatizeAddrBase():
 
         print(f'Batch: {counter} ####################################################################')
 
-        non_lemmatized_recs = cass_db.custom_simple_request("SELECT \
+        non_lemmatized_recs = cass_db.free_query("SELECT \
                                                               id, \
                                                               full_addr, \
                                                               full_addr_lemm, \
@@ -88,7 +88,7 @@ def LemmatizeAddrBase():
 
 
             print(f"id: {result[0]['id']} sent1: {result[2]}   lemma_1: {lemm}   sent2: {result[4]}  lemma_2:{lemm_2}  sent3: {result[6]}  lemma_3:{lemm_3}")
-            cass_db.custom_simple_request(f"UPDATE \
+            cass_db.free_query(f"UPDATE \
                                               git010_dict.full_fias_addr \
                                             SET \
                                               full_addr_lemm = '{lemm}', \

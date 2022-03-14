@@ -113,19 +113,26 @@ if __name__ == "__main__":
 
     #cass_db.git300_scrap.upsert_data_text(11111, 1, 1, 'Test content', content_header = 'Test header', content_date = date.date_now_str(),
     #                            sn_id = 1, sn_post_id = 2, sn_post_parent_id = 3, autocommit = True)
+
+    #kwargs = {'content_header': 'Test header', 'content_date': date.date_now_str(), 'sn_id': 1, 'sn_post_id': 2, 'sn_post_parent_id': 3, 'autocommit': True}
+
+    #cass_db.git300_scrap.upsert_data_text(11111, 1, 1, 'Test content', **kwargs)
+    
+    #cass_db.git300_scrap.upsert_data_text(id_data_html = id_data_html, id_project = id_project,  id_www_sources = gvars.get('VK_SOURCE_ID'),**res_unit)
+
     #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, '502', autocommit = True)
     #cass_db.git200_crawl.update_sn_num_subscribers(3, '50369640', 83497, True, broken_status_code = '502', autocommit = True)
     #cass_db.git200_crawl.upsert_data_html('tst.ru', 'test content', 1, 1)
     #res = cass_db.git200_crawl.upsert_sn_accounts(1,      1,     'G',         1036240821,             'meduzalive',
     #                             'Медуза — LIVE', False, account_extra_1 = '', num_subscribers = 435435, parameters = '', 
     #                             autocommit = True)
-    #res = cass_db.git200_crawl.upsert_sn_activity(1, 1, '50369640', 12, '2022.03.04', '2022.03.06')
+    res = cass_db.git200_crawl.upsert_sn_activity(1, 1, '50369640', 12, '2022.03.04', '2022.03.06')
     #res = cass_db.query.select_groups_id(10)
     #cass_db.query.clear_table_by_project('git200_crawl.queue', 10)
     #res = cass_db.git200_crawl.queue_generate(4, 10, min_num_subscribers = 15000, max_num_subscribers = 99999999, autocommit = True)
     #res = cass_db.git200_crawl.queue_update(id_queue=2135587, is_process = True,    date_start_process = '2022.03.04')
     #res = cass_db.git200_crawl.queue_select(4, id_project=10)
-    res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
+    #res = cass_db.git200_crawl.get_sn_activity(4, 10, '1117628569', recrawl_days_post=30, str_to_date_conv_fields = ['last_date', 'upd_date'])
     #res = cass_db.git200_crawl.set_sn_activity_fin_date(id_www_sources = 4, id_project = 1, sn_id = '1430295016', fin_date = '2022.03.05', autocommit = True)
     #res = cass_db.git000_cfg.get_proxy_project(1)
     #res = cass_db.git000_cfg.get_project_params(10)
@@ -150,4 +157,18 @@ if __name__ == "__main__":
     #print(str(res))
     #cass_db.git300_scrap.upsert_data_text(id_data_html, id_project, id_www_sources, content, content_header = '', content_date = const.EMPTY_DATE,
     #                            sn_id = None, sn_post_id = None, sn_post_parent_id = None, autocommit = True, **kwargs)
+    
+    #id_project = 10
+    #select = f"\
+    #SELECT \
+    #    id, id_www_sources, id_project, account_type, account_id, account_name, account_screen_name, \
+    #    account_closed, num_subscribers, is_broken \
+    #FROM \
+    #    git200_crawl.sn_accounts \
+    #WHERE id_project = {id_project}::dmn.git_integer AND suitable_degree = 100 \
+	   # AND coalesce(parameters,'') <> '' LIMIT 10 \
+    #"
+
+    #res = cass_db.free_query(select)
+    
     f=1

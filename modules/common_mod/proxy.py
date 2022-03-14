@@ -123,7 +123,7 @@ class ProxyCassandra(Proxy):
 		if res is None or len(res) == 0:
 			self.msg(f'Proxy by project id = {id_project} not found')
 			return
-		params = res[0]
+		params = res
 
 		self.ip   = str(params['ip']).strip()
 		self.port = str(params['port']).strip()

@@ -289,7 +289,7 @@ def tg_crawl_messages_channel(id_project, id_group, name_group, hash_group = '',
     project_params = cass_db.git000_cfg.get_project_params(id_project)
 
     if parameters == '':
-        res = cass_db.custom_simple_request(f"SELECT \
+        res = cass_db.free_query(f"SELECT \
                                           parameters \
                                         FROM \
                                           git200_crawl.sn_accounts \
@@ -344,7 +344,7 @@ def tg_fill_group_parameters(id_project):
 	        AND coalesce(parameters,'') = '' \
         "
 
-    res = cass_db.custom_simple_request(select)
+    res = cass_db.free_query(select)
 
     project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
 
@@ -376,7 +376,7 @@ def tg_fill_group_parameters(id_project):
                     WHERE \
                         id = {acc['id']}::dmn.git_pk \
                     "
-                res = cass_db.custom_simple_request(upd_select)
+                res = cass_db.free_query(upd_select)
         except:
             msg('   Error was raised')
             msg(exceptions.get_err_description(e))

@@ -19,17 +19,17 @@ class Cassandra_git400_token(PgDbCassandra):
         return (''' SELECT * FROM git400_token.upsert_word($1, $2, $3, $4, $5, $6, $7) ''', 
                 ["dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_pk", "dmn.git_text []", "dmn.git_text []", "dmn.git_pk []"])
     
-    def sentence_set_is_process(self, id, is_broken = False, id_broken_type = None, **kwargs):
+    def sentence_set_is_process(self, id, is_broken = False, id_broken_type = None):
         @wrap.execute_with_query_plan
-        def local(self, id, is_broken, id_broken_type, **kwargs):
+        def local(self, id, is_broken, id_broken_type):
             return ('''SELECT * FROM git400_token.sentence_set_is_process($1, $2, $3)''', 
                     ["dmn.git_pk","dmn.git_boolean","dmn.git_pk"])
-        return local(self, id, is_broken, id_broken_type, **kwargs)
+        return local(self, id, is_broken, id_broken_type)
 
-    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0, debug_sentence_id_arr = [], **kwargs):
+    def sentence_select_unprocess(self, id_www_source, id_project, number_records = 100, debug_sentence_id = 0, debug_sentence_id_arr = []):
         @wrap.select_with_query_plan
-        def local(self, id_www_source, id_project, number_records, debug_sentence_id, debug_sentence_id_arr, **kwargs):
+        def local(self, id_www_source, id_project, number_records, debug_sentence_id, debug_sentence_id_arr):
             return ('''select * from git400_token.sentence_select_unprocess($1, $2, $3, $4, $5);''', 
                     ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk","dmn.git_pk[]"])
-        return local(self, id_www_source, id_project, number_records, debug_sentence_id, debug_sentence_id_arr, **kwargs)
+        return local(self, id_www_source, id_project, number_records, debug_sentence_id, debug_sentence_id_arr)
 

@@ -220,7 +220,7 @@ try:
             dp.debug_sentence_id_list_whole(debug_id_sent_list)
 
         if step_name == 'process':
-            #cass_db.custom_simple_request(f'UPDATE git400_token.sentence SET is_process = FALSE WHERE is_process = TRUE AND id_project = {ID_PROJECT_main} AND id_www_sources = {TG_SOURCE_ID}')
+            #cass_db.free_query(f'UPDATE git400_token.sentence SET is_process = FALSE WHERE is_process = TRUE AND id_project = {ID_PROJECT_main} AND id_www_sources = {TG_SOURCE_ID}')
             #clear_tables_by_project(ID_PROJECT_main)
 
             dp = processor.NerProcessor(db = cass_db,
