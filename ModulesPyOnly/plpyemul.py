@@ -85,7 +85,10 @@ class PlPy(object):
                 successfully = True
             
             except InvalidSqlStatementName_psycopg as expt:
-                self.rollback()
+                try:
+                    self.rollback()
+                except:
+                    pass
                 match = re.search(r'prepared statement \"(\w*)\" does not exist', expt.args[0]) 
                 if match:
                     plan = match.groups()[0]
