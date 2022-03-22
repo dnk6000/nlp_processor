@@ -114,6 +114,12 @@ class PlPy(object):
                         self.notice('  Trying to reconnect...')
                         self.connection = None
                         self._connect()
+                    elif type(expt) == psycopg2.InterfaceError and len(expt.args) >= 1 and isinstance(expt.args[0], str) \
+                        and ('cursor already closed' in expt.args[0]:
+                        self.notice(f'{date.date_now_str()} Ошибка чтения/записи в БД !!! Попытка {str(attempt)}')
+                        self.notice('  Trying to reconnect...')
+                        self.connection = None
+                        self._connect()
                     else:
                         self.notice(f'{date.date_now_str()} Ошибка чтения/записи в БД !!!')
                         #print('Error: ')
