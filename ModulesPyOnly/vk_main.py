@@ -152,8 +152,8 @@ def vk_crawl_wall(id_project, id_group, id_queue,
 
     need_stop_cheker = NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
 
-    #request_error_pauser = pauser.ExpPauser()
-    request_error_pauser = pauser.ExpPauser(delay_seconds = 1, number_intervals = 5)  #DEBUG
+    request_error_pauser = pauser.ExpPauser()
+    #request_error_pauser = pauser.ExpPauser(delay_seconds = 1, number_intervals = 5)  #DEBUG
 
     wall_processed = False
     CriticalErrorsLimit = 3
