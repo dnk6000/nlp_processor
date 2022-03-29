@@ -25,7 +25,7 @@ class Proxy(common.CommonFunc):
 		if self.debug_mode:
 			#self.ip = '121.244.147.137'
 			#self.port = '8080'
-			self.ip = '193.233.31.177'
+			self.ip = '5.180.103.152'
 			self.port = '45785'
 			self.user = 'Selfedot7'
 			self.psw = 'F4o5LlN'
@@ -167,8 +167,8 @@ class HTTPAdapterForProxy(HTTPAdapter):
 
 		return super().proxy_manager_for(proxy, **kwargs)
 
-if __name__ == "__main__":
 
+def _debug_tls():
 	adapter = HTTPAdapterForProxy()
 
 	tst = Proxy(debug_mode = True, msg_func = print)
@@ -199,6 +199,13 @@ if __name__ == "__main__":
 	#tst.check_ip(session)
 	#sess.rebuild_proxies()
 
+def _debug_proxy():
+	tst = Proxy(debug_mode = True, msg_func = print)
+	tst.check_ip()
 
+if __name__ == "__main__":
+	#_debug_tls()
+
+	#_debug_proxy()
 
 	pass

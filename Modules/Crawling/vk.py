@@ -1309,7 +1309,7 @@ class CrawlerVkWall(CrawlerVk):
                 'author': par['author'],
                 'content_date': _dt_in_str,
                 'content_header': '',
-                'content': crawler.remove_empty_symbols(result.text)
+                'content': crawler.RemoveEmojiSymbols(crawler.remove_empty_symbols(result.text))
                 }
 
             if not self._sn_recrawler_checker.is_reply_out_of_upd_date(par['post_id'], _dt_in_dt):
