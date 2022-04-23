@@ -311,7 +311,7 @@ class NerProcessor(DataProcessor):
                     #check ne-recognition errors
                     ner_error = result[5]
                     if ner_error == ner.ERROR_NER_512TOKENS:
-                        self.log_error_too_many_entity(id_data_text, id_sentence, description=result[0]['txt'])
+                        self.log_error_too_many_entity(id_data_text, id_sentence, txt=result[0]['txt'])
                         continue
 
                     #record word tokens
