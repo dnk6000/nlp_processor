@@ -25,7 +25,7 @@ class Proxy(common.CommonFunc):
 		if self.debug_mode:
 			#self.ip = '121.244.147.137'
 			#self.port = '8080'
-			self.ip = '45.142.39.220'
+			self.ip = '91.90.213.106'
 			self.port = '45785'
 			self.user = 'Selfedot7'
 			self.psw = 'F4o5LlN'

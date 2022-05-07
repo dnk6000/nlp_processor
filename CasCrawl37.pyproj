@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>24fd79fb-77e3-4d10-b41d-d0c54f74baa7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>modules\common_mod\proxy.py</StartupFile>
+    <StartupFile>ModulesTemp\tst.py</StartupFile>
     <SearchPath>CassandraPy37\Scripts\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -38,6 +38,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesPyOnly\sentiment_main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ModulesTemp\tst.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ModulesTemp\test_tls.py">
