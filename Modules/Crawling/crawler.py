@@ -394,9 +394,11 @@ def RemoveEmojiSymbols(text):
         u"\U0001F680-\U0001F6FF"  # transport & map symbols
         u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
         u"\U0001F910-\U0001F978"  # smiles and other
-        u"\U0000D903-\U0000D903"  # 
-        u"\U0000ddd5-\U0000ddd5"  # 
+        u"\U0000D800-\U0000DFFF"  # surrogates
                            "]+", flags=re.UNICODE)
+        #u"\U0000D903-\U0000D903"  # 
+        #u"\U0000ddd5-\U0000ddd5"  # 
+        #u"\U0000d9c4-\U0000d9c4"  # 
     
    return emoji_pattern.sub(r'', text)
 
