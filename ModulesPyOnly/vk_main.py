@@ -478,7 +478,7 @@ try:
             if queue_generate:
                 plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
                 #cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
-                cass_db.git200_crawl.query.queue_delete(ID_PROJECT, id_process)
+                cass_db.git200_crawl.queue_delete(ID_PROJECT, id_process)
                 cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, num_subscribers_1, num_subscribers_2, id_process)
    
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 10001)
