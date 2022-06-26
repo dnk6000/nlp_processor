@@ -316,11 +316,12 @@ class SnRecrawlerCheker(common.CommonFunc):
 
 
 class QueueManager(common.CommonFunc):
-	def __init__(self, *args, id_source, id_project, db, min_subscribers = 0, max_subscribers = 99999999, **kwargs):
+	def __init__(self, *args, id_source, id_project, db, id_process = 0, min_subscribers = 0, max_subscribers = 99999999, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		self.id_source = id_source
 		self.id_project = id_project
+		self.id_process = id_process
 		self.db = db
 		self.min_subscribers = min_subscribers
 		self.max_subscribers = max_subscribers
@@ -330,12 +331,13 @@ class QueueManager(common.CommonFunc):
 		self.date_start = None
 
 	def clear(self):
-		self.debug_msg('CLEARING QUEUE id_project = {}'.format(self.id_project))
-		self.db.query.clear_table_by_project('git200_crawl.queue', self.id_project)
+		self.debug_msg('CLEARING QUEUE id_project = {} id_process = {}'.format(self.id_project, self.id_process))
+		#self.db.query.clear_table_by_project('git200_crawl.queue', self.id_project)
+		self.db.git200_crawl.queue_delete(self.id_project, self.id_process)
 
 	def generate(self):
-		self.debug_msg('GENERATE QUEUE id_project = {}'.format(self.id_project));
-		self.db.git200_crawl.queue_generate(self.id_source, self.id_project, self.min_subscribers, self.max_subscribers)
+		self.debug_msg('GENERATE QUEUE id_project = {} id_process = {}'.format(self.id_project, self.id_process));
+		self.db.git200_crawl.queue_generate(self.id_source, self.id_project, self.min_subscribers, self.max_subscribers, self.id_process)
 
 	def regenerate(self):
 		self.clear()
@@ -344,7 +346,7 @@ class QueueManager(common.CommonFunc):
 	def read_portion(self, portion_size):
 		self.portion_counter += 1
 		self.debug_msg('GET QUEUE PORTION № {}'.format(self.portion_counter));
-		self.portion = self.db.git200_crawl.queue_select(self.id_source, self.id_project, number_records = portion_size)
+		self.portion = self.db.git200_crawl.queue_select(self.id_source, self.id_project, number_records = portion_size, id_process = self.id_process)
 		return len(self.portion) != 0
 
 	def portion_elements(self):

@@ -19,6 +19,15 @@ class Cassandra_queries(PgDbCassandra):
                 ''', 
                 ["integer"])
 
+    @wrap.select_with_query_plan_0
+    def select_sn_account_params(self, id_project, account_id):
+        return ('''
+                SELECT * 
+                   FROM git200_crawl.sn_accounts
+                   WHERE id_project = $1 AND account_id = $2
+                ''', 
+                ["dmn.git_pk","dmn.git_sn_id"])
+
     def clear_table_by_project(self, table_name, id_project, autocommit = True):
         @wrap.execute_with_query_plan
         def local(self):

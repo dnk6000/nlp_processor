@@ -33,6 +33,8 @@ class JobManager(common.CommonFunc):
 	def _get_step_default_params(self):
 		return {
 			'id_project': 0,
+			'id_process': 0,
+			'id_proxy': 0,
 			'step_name': 'None',
 			'num_subscribers_1': 0,
 			'num_subscribers_2': 0,

@@ -677,6 +677,13 @@ class CrawlerVkWall(CrawlerVk):
             self._write_file_func = None
         self._cw_url = ''
 
+        self.compliance_analize = kwargs.get('compliance_analize', False)
+        self.compliance_account_params = None
+        self.compliance_search_arr = []
+        self.compliance_unsearch_arr = []
+        self.compliance_broken_code = '001'
+        self.compliance_ok = True
+
     def _cw_define_tags(self):
 
         TN = scraper.TagNode
@@ -704,6 +711,11 @@ class CrawlerVkWall(CrawlerVk):
                                       TN( fn, self._cw_check_not_found , pr(rc('message_page_body') , OneTag, 'tag 2') )
                                     ]
                                   )
+
+        self._cw_tg_Compliance_analize = TT ( [ TN( fn, self._cw_compliance_analize , pr( { 'id' : 'page_block_group_main_info' }, OneTag, '') )  
+                                    ]
+                                  ) 
+        
 
         self._cw_tg_Subscribers = TT ( TN( fn, None , pr( { 'aria-label' : re.compile('(Подписчики)|(Участники)') }, OneTag  , '-' ) ) )
         #self._cw_tg_Subscribers.add  (    TN( fn, self._cw_scrap_subscribers , pr( { 'class' : 'header_count fl_l' }, OneTag, 'number') ) )
@@ -847,6 +859,10 @@ class CrawlerVkWall(CrawlerVk):
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
 
+        #analize the group for comliance to the project
+        if self.compliance_analize:
+            self._cw_tg_Compliance_analize.scan(self._cw_soup, {})
+
         #get subscribers
         self._cw_tg_Subscribers.scan(self._cw_soup, {})
         
@@ -856,6 +872,8 @@ class CrawlerVkWall(CrawlerVk):
                 'datetime': date.date_to_str(datetime.datetime.now()),
                 'event_description': self._cw_get_post_repr()
                 } )
+
+        if self._cw_subscribers_only or self.compliance_analize:
             yield self._cw_res_for_pg.get_json_result(self._cw_scrape_result)
             return
 
@@ -1356,11 +1374,52 @@ class CrawlerVkWall(CrawlerVk):
 
             try:
                 self._cw_num_subscribers = int(result.text.replace(' ', ''))
-                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 'sn_id': self._cw_group_id,  'num_subscribers': self._cw_num_subscribers } )  
+                self._cw_scrape_result.append( {'result_type': const.CW_RESULT_TYPE_NUM_SUBSCRIBERS, 
+                                                'sn_id': self._cw_group_id,  
+                                                'account_id': self._cw_group_id,  
+                                                'num_subscribers': self._cw_num_subscribers,
+                                                'is_broken': False if self.compliance_ok else True,
+                                                'broken_status_code': '' if self.compliance_ok else self.compliance_broken_code
+                                               } 
+                                              )  
             except:
                 self._cw_add_to_result_noncritical_error(const.ERROR_SCRAP_NUMBER_SUBSCRIBERS, self._cw_get_post_repr())
 
             return result, par
+
+        return result, par
+
+    def _cw_compliance_analize(self, result, par, **kwargs):
+        #self.msg(str(result))
+
+        if result is None: return None, par
+        
+        txt = result.text.lower()
+
+        keyword_present = False
+        for word in self.compliance_search_arr:
+            if (self.compliance_account_params is not None and 
+                 (word in self.compliance_account_params['account_name'].lower() 
+                  or word in self.compliance_account_params['account_screen_name'].lower()
+                 )
+               ):
+                keyword_present = True
+                break
+            elif word in txt:
+                unword_present = False
+                for unword in self.compliance_unsearch_arr:
+                    if word in unword:
+                        if unword in txt:
+                            unword_present = True
+                            break
+                if unword_present:
+                    continue
+                else:
+                    keyword_present = True
+                    break
+
+        if not keyword_present:
+            self.compliance_ok = False
 
         return result, par
 

@@ -22,6 +22,11 @@ class Cassandra_git000_cfg(PgDbCassandra):
         return (''' SELECT * FROM git000_cfg.get_proxy_project($1) ''', 
                 ["dmn.git_pk"])
 
+    @wrap.select_with_query_plan_0
+    def get_proxy(self, id_proxy):
+        return (''' SELECT * FROM git000_cfg.get_proxy($1) ''', 
+                ["dmn.git_pk"])
+
     def create_project(self, 
                        id_project, 
                        name = '', 

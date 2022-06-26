@@ -8,12 +8,12 @@ class QueueFunc(PgDbCassandra):
         ''' initialized only from class Cassandra '''
         super().__init__(**kwargs)
 
-    def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999, autocommit = True):
+    def queue_generate(self, id_www_source, id_project, min_num_subscribers = 0, max_num_subscribers = 99999999, id_process = 0, autocommit = True):
         @wrap.execute_with_query_plan
-        def local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers):
-            return ('select * from git200_crawl.queue_generate($1, $2, $3, $4);',
-                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer"])
-        return local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers, autocommit=autocommit)
+        def local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers, id_process):
+            return ('select * from git200_crawl.queue_generate($1, $2, $3, $4, $5);',
+                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_integer","dmn.git_pk"])
+        return local(self, id_www_source, id_project, min_num_subscribers, max_num_subscribers, id_process, autocommit=autocommit)
 
     def queue_update(self, id_queue,                is_process = None,    date_start_process = None, 
                            date_end_process = None, date_deferred = None, attempts_counter = None, 
@@ -24,12 +24,19 @@ class QueueFunc(PgDbCassandra):
                     ["dmn.git_pk","dmn.git_boolean","dmn.git_datetime","dmn.git_datetime","dmn.git_datetime","dmn.git_integer"])
         return local(self, id_queue, is_process, date_start_process, date_end_process, date_deferred, attempts_counter, autocommit=autocommit)
     
-    def queue_select(self, id_www_source, id_project, number_records = 10):
+    def queue_select(self, id_www_source, id_project, number_records = 10, id_process = 0):
         @wrap.select_with_query_plan
-        def local(self, id_www_source, id_project, number_records):
-            return ('select * from git200_crawl.queue_select($1, $2, $3);',
-                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer"])
-        return local(self, id_www_source, id_project, number_records)
+        def local(self, id_www_source, id_project, number_records, id_process):
+            return ('select * from git200_crawl.queue_select($1, $2, $3, $4);',
+                    ["dmn.git_pk","dmn.git_pk","dmn.git_integer","dmn.git_pk"])
+        return local(self, id_www_source, id_project, number_records, id_process)
+
+    def queue_delete(self, id_project, id_process = 0, autocommit = True):
+        @wrap.execute_with_query_plan
+        def local(self):
+            return (f'delete from git200_crawl.queue where id_project = {id_project} AND id_process = {id_process};',
+                    [])
+        return local(self, autocommit = autocommit)
 
 
 
@@ -47,12 +54,12 @@ class Cassandra_git200_crawl(QueueFunc):
                 ["dmn.git_string","dmn.git_text","dmn.git_pk","dmn.git_pk"])
 
 
-    def update_sn_num_subscribers(self, id_www_source=0, account_id='', num_subscribers=0, is_broken = False, broken_status_code = '', autocommit = True, **kwargs):
+    def update_sn_num_subscribers(self, id_www_source=0, account_id='', num_subscribers=0, is_broken = False, broken_status_code = '', id_project = 0, autocommit = True, **kwargs):
         @wrap.execute_with_query_plan
-        def local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code):
-            return ('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5)''', 
-                                    ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32"])
-        return local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code, autocommit = autocommit)
+        def local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code, id_project):
+            return ('''SELECT * FROM git200_crawl.set_sn_accounts_num_subscribers($1, $2, $3, $4, $5, $6)''', 
+                                    ["dmn.git_pk", "dmn.git_sn_id", "dmn.git_integer", "dmn.git_boolean", "dmn.git_string_32", "dmn.git_pk"])
+        return local(self, id_www_source, account_id, num_subscribers, is_broken, broken_status_code, id_project, autocommit = autocommit)
 
     def upsert_sn_accounts(self, id_www_sources=0,       id_project=0,         account_type='',      account_id='',          account_name='',
                                  account_screen_name='', account_closed=False, account_extra_1 = '', num_subscribers = None, parameters = '', 

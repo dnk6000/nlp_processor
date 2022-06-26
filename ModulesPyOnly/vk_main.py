@@ -28,7 +28,7 @@ DEBUG_MODE = False
 
 ####################################################
 ####### begin: for PY environment only #############
-job_id = 10
+job_id = 51
 job_id = None
 
 step_name = 'crawl_subscribers'
@@ -39,7 +39,7 @@ step_name = 'debug'
 num_subscribers_1 = 1
 num_subscribers_2 = 10
 
-ID_PROJECT = 11
+ID_PROJECT = 9
 queue_generate = True
 
 if const.PY_ENVIRONMENT:
@@ -57,7 +57,7 @@ else:
 
 
 
-def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}):
+def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter': 0}, id_proxy = None):
 
     project_params = cass_db.git000_cfg.get_project_params(id_project)
     group_search_str = project_params['group_search_str']
@@ -66,7 +66,8 @@ def vk_crawl_groups(id_project, job = None, critical_error_counter = {'counter':
         cass_db.git999_log.log_error(const.CW_RESULT_TYPE_ERROR, id_project, description='Search string is empty!')
         return
 
-    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, id_proxy = id_proxy, msg_func = plpy.notice)
+
 
     base_search_words = group_search_str.split(',')
 
@@ -129,8 +130,10 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                   job = None,
                   attempts_counter = 0, 
                   subscribers_only = False, 
+                  compliance_analize = False, 
                   id_post = '',
-                  critical_error_counter = {'counter': 0}
+                  critical_error_counter = {'counter': 0}, 
+                  id_proxy = None
                   ):
 
     if id_queue is not None:
@@ -138,17 +141,20 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         if not res[0]['Success']:
             cass_db.git999_log.log_error(const.LOG_LEVEL_ERROR, id_project, description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_start_process', id_project, id_queue))
 
-    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, msg_func = plpy.notice)
+    project_proxy = proxy.ProxyCassandra(cass_db = cass_db, id_project = id_project, id_proxy = id_proxy, msg_func = plpy.notice)
 
     vk_source_id = gvars.get('VK_SOURCE_ID')
 
-    sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
-                                                vk_source_id, 
-                                                id_project, 
-                                                sn_id = id_group, 
-                                                recrawl_days_post = project_params['recrawl_days_post'], 
-                                                recrawl_days_reply = project_params['recrawl_days_reply'],
-                                                plpy = plpy)
+    if subscribers_only:
+        sn_recrawler_checker = None
+    else:
+        sn_recrawler_checker = crawler.SnRecrawlerCheker(cass_db, 
+                                                    vk_source_id, 
+                                                    id_project, 
+                                                    sn_id = id_group, 
+                                                    recrawl_days_post = project_params['recrawl_days_post'], 
+                                                    recrawl_days_reply = project_params['recrawl_days_reply'],
+                                                    plpy = plpy)
 
     need_stop_cheker = NeedStopChecker.get_need_stop_cheker(job, cass_db, id_project, 'crawl_wall')
 
@@ -170,9 +176,17 @@ def vk_crawl_wall(id_project, id_group, id_queue,
                                   write_file_func = None,
                                   requests_delay_sec = project_params['requests_delay_sec'],
                                   request_error_pauser = request_error_pauser,
-                                  proxy = project_proxy
+                                  proxy = project_proxy,
+                                  compliance_analize = compliance_analize
                                   )
     vk_crawler._cw_set_debug_mode(turn_on = DEBUG_MODE, debug_post_filter = id_post)
+
+    if compliance_analize:
+        vk_crawler.compliance_search_arr = project_params['group_search_str'].split(',')
+        vk_crawler.compliance_unsearch_arr = project_params['group_unsearch_str'].split(',')
+        vk_crawler.compliance_account_params = cass_db.query.select_sn_account_params(id_project, id_group)
+
+
 
     for res_list in vk_crawler.crawl_wall(id_group):
         _res_list = json.loads(res_list)
@@ -192,7 +206,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
             
             if res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS:
                 msg(res_unit['num_subscribers'])
-                cass_db.git200_crawl.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), **res_unit)
+                cass_db.git200_crawl.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), id_project = id_project, **res_unit)
             
             elif res_unit['result_type'] == const.CW_RESULT_TYPE_NUM_SUBSCRIBERS_NOT_FOUND:
                 cass_db.git999_log.log_error(res_unit['result_type'], id_project, description=res_unit['event_description'])
@@ -262,7 +276,7 @@ def vk_crawl_wall(id_project, id_group, id_queue,
         if not res[0]['Success']:
             cass_db.git999_log.log_error(const.LOG_LEVEL_ERROR, id_project, description='Error saving "git200_crawl.queue.{}" id_project = {} id = {}'.format('date_end_process', id_project, id_queue))
 
-def vk_crawl_wall_subscribers(id_project, job):
+def vk_crawl_wall_subscribers(id_project, id_process, id_proxy, job):
     select_result = cass_db.query.select_groups_id(id_project = id_project)
     project_params = cass_db.git000_cfg.get_project_params(id_project)
 
@@ -277,7 +291,7 @@ def vk_crawl_wall_subscribers(id_project, job):
     PORTION_SIZE = 1
 
     while True:
-        queue_portion = cass_db.git200_crawl.queue_select(gvars.get('VK_SOURCE_ID'), id_project, PORTION_SIZE)
+        queue_portion = cass_db.git200_crawl.queue_select(gvars.get('VK_SOURCE_ID'), id_project, PORTION_SIZE, id_process = id_process)
 
         portion_counter += 1
         msg('GET QUEUE PORTION № {}'.format(portion_counter));
@@ -294,11 +308,12 @@ def vk_crawl_wall_subscribers(id_project, job):
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params, 
                           job = job,
+                          id_proxy = id_proxy,
                           subscribers_only = True,
                           critical_error_counter = critical_error_counter)
             time.sleep(1)
 
-def vk_crawling(id_project, job):
+def vk_crawling(id_project, id_process, id_proxy, job):
 
     portion_counter = 0
     critical_error_counter = {'counter': 0}
@@ -306,7 +321,7 @@ def vk_crawling(id_project, job):
     while True:
         project_params = cass_db.git000_cfg.get_project_params(id_project)  #temporarily in the loop to adjust the pause 
 
-        queue_portion = cass_db.git200_crawl.queue_select(gvars.get('VK_SOURCE_ID'), id_project)
+        queue_portion = cass_db.git200_crawl.queue_select(gvars.get('VK_SOURCE_ID'), id_project, id_process = id_process)
 
         portion_counter += 1
         plpy.notice('GET QUEUE PORTION № {}'.format(portion_counter));
@@ -326,9 +341,11 @@ def vk_crawling(id_project, job):
                           attempts_counter = elem['attempts_counter'], 
                           project_params = project_params,
                           job = job,
+                          id_proxy = id_proxy,
                           critical_error_counter = critical_error_counter)
 
-def vk_crawling_wall_group(id_project, id_group, id_post = '', job = None):
+def vk_crawling_wall_group(id_project, id_group, id_post = '', id_proxy = None, job = None, subscribers_only = False, compliance_analize = False):
+    ''' debuging procedure '''
 
     project_params = cass_db.git000_cfg.get_project_params(id_project)
 
@@ -338,7 +355,10 @@ def vk_crawling_wall_group(id_project, id_group, id_post = '', job = None):
                   id_queue = None, 
                   attempts_counter = 0, 
                   project_params = project_params, 
-                  id_post = id_post)
+                  id_post = id_post,
+                  id_proxy = id_proxy,
+                  subscribers_only = subscribers_only,
+                  compliance_analize = compliance_analize)
             
 def msg(msgstr):
     if DEBUG_MODE:
@@ -361,7 +381,6 @@ def write_debug_file(msg):
     #print(msg)
     pass
 
-
 #########################################
 
 try:
@@ -381,6 +400,8 @@ try:
             num_subscribers_2 = step_params['num_subscribers_2']
             ID_PROJECT = step_params['id_project']
             DEBUG_MODE = step_params['debug_mode']
+            id_process = step_params.get('id_process', 0)
+            id_proxy = step_params.get('id_proxy', 0)
             if 'queue_generate' in step_params:
                 queue_generate = step_params['queue_generate']
             else:
@@ -394,12 +415,37 @@ try:
 
         #--0-- debug
         if step_name == 'debug':
-            prox = proxy.ProxyCassandra(cass_db = cass_db, id_project = ID_PROJECT, msg_func = print)
-            prox.check_ip()
+            #prox = proxy.ProxyCassandra(cass_db = cass_db, id_project = ID_PROJECT, msg_func = print)
+            #prox.check_ip()
             #clear_tables_by_project(ID_PROJECT)
             #vk_crawling_wall_group(ID_PROJECT, id_group = '15158721')                       #debug group
             #vk_crawling_wall_group(ID_PROJECT, id_group = '87721351', id_post = '2359271')  #debug post
+            #vk_crawling_wall_group(ID_PROJECT, id_group = '78498034', id_post = '', id_proxy = 14, job = None, subscribers_only = True, compliance_analize = True)
+            #vk_crawling_wall_group(ID_PROJECT, id_group = '212907690', id_post = '', id_proxy = 14, job = None, subscribers_only = True, compliance_analize = True)
+
+            #cass_db.git200_crawl.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), account_id='212907690', num_subscribers=0, is_broken = True, broken_status_code = '001', id_project = 9)
+            #cass_db.git200_crawl.update_sn_num_subscribers(gvars.get('VK_SOURCE_ID'), account_id='212907690', num_subscribers=0, is_broken = True, broken_status_code = '001')
             #tst = proxy.ProxyCassandra(debug_mode = False, msg_func = print, cass_db = cass_db, id_project = 11)
+
+            res = cass_db.free_query('''SELECT
+                                          id,
+                                          account_id,
+                                          account_name,
+                                          account_screen_name
+                                        FROM
+                                          git200_crawl.sn_accounts
+                                        WHERE id_project = 9
+	                                          AND created >= '2022.06.23 00:00:00'
+                                              AND is_broken is Null
+                                              --AND not coalesce(is_broken, False)
+                                        LIMIT 100000;''', 
+                                     autocommit = False)
+
+            for acc in res:
+                print('{}: {} -- {} -- {}'.format(date.date_now_str(),acc['account_id'],acc['account_name'],acc['account_screen_name']))
+                vk_crawling_wall_group(ID_PROJECT, id_group = acc['account_id'], id_post = '', id_proxy = 14, job = None, subscribers_only = True, compliance_analize = True)
+                time.sleep(1)
+
             f = 1
 
         #--0-- clear
@@ -419,9 +465,10 @@ try:
             cass_db.git999_log.log_info('Start '+step_name, ID_PROJECT, description='')
             if queue_generate:
                 plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
-                cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
-                cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT)
-            vk_crawl_wall_subscribers(ID_PROJECT, job)
+                #cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
+                cass_db.git200_crawl.query.queue_delete(ID_PROJECT, id_process)
+                cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, id_process = id_process)
+            vk_crawl_wall_subscribers(ID_PROJECT, id_process, job)
 
         #--3--
         if step_name == 'crawl_wall':
@@ -429,8 +476,9 @@ try:
             
             if queue_generate:
                 plpy.notice('GENERATE QUEUE id_project = {}'.format(ID_PROJECT));
-                cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
-                cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, num_subscribers_1, num_subscribers_2)
+                #cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
+                cass_db.git200_crawl.query.queue_delete(ID_PROJECT, id_process)
+                cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, num_subscribers_1, num_subscribers_2, id_process)
    
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 10001)
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 5000, 10000)
@@ -442,7 +490,7 @@ try:
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 50, 100)
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 0, 9)
 
-            vk_crawling(ID_PROJECT, job)
+            vk_crawling(ID_PROJECT, id_process, job)
 
 
         #vk_crawl_wall(5, 52233236, subscribers_only = True)

@@ -115,22 +115,35 @@ class ProxyCassandra(Proxy):
 
 		self.cass_db = cass_db
 
-		if not id_project is None:
+		if not id_proxy is None or id_proxy != 0:
+			self.load_proxy_by_id(id_proxy)
+		elif not id_project is None:
 			self.load_proxy_by_project(id_project)
 
-	def load_proxy_by_project(self, id_project):
-		res = self.cass_db.git000_cfg.get_proxy_project(id_project)
-		if res is None or len(res) == 0:
-			self.msg(f'Proxy by project id = {id_project} not found')
-			return
-		params = res
-
+	def _fill_proxy_params(self, params: dict):
 		self.ip   = str(params['ip']).strip()
 		self.port = str(params['port']).strip()
 		self.port_socks5 = str(params['port_socks5']).strip()
 		self.user = str(params['user']).strip()
 		self.psw  = str(params['psw']).strip()
 		self.ssl  = str(params['ssl']).strip()
+
+
+	def load_proxy_by_project(self, id_project):
+		res = self.cass_db.git000_cfg.get_proxy_project(id_project)
+		if res is None or len(res) == 0:
+			self.msg(f'Proxy by project id = {id_project} not found')
+			return
+
+		self._fill_proxy_params(params = res)
+
+	def load_proxy_by_id(self, id_proxy):
+		res = self.cass_db.git000_cfg.get_proxy(id_proxy)
+		if res is None or len(res) == 0:
+			self.msg(f'Proxy by id = {id_project} not found')
+			return
+
+		self._fill_proxy_params(params = res)
 
 class HTTPAdapterForProxy(HTTPAdapter):
 	''' for managing TLS version '''
