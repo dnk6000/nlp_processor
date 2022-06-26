@@ -115,7 +115,7 @@ class ProxyCassandra(Proxy):
 
 		self.cass_db = cass_db
 
-		if not id_proxy is None or id_proxy != 0:
+		if not id_proxy is None and id_proxy != 0:
 			self.load_proxy_by_id(id_proxy)
 		elif not id_project is None:
 			self.load_proxy_by_project(id_project)

@@ -437,13 +437,14 @@ try:
                                         WHERE id_project = 9
 	                                          AND created >= '2022.06.23 00:00:00'
                                               AND is_broken is Null
-                                              --AND not coalesce(is_broken, False)
+                                              AND (id - (id / 3)::dmn.git_integer * 3) = 0
                                         LIMIT 100000;''', 
                                      autocommit = False)
+                                              #--AND not coalesce(is_broken, False)
 
             for acc in res:
                 print('{}: {} -- {} -- {}'.format(date.date_now_str(),acc['account_id'],acc['account_name'],acc['account_screen_name']))
-                vk_crawling_wall_group(ID_PROJECT, id_group = acc['account_id'], id_post = '', id_proxy = 14, job = None, subscribers_only = True, compliance_analize = True)
+                vk_crawling_wall_group(ID_PROJECT, id_group = acc['account_id'], id_post = '', id_proxy = None, job = None, subscribers_only = True, compliance_analize = True)
                 time.sleep(1)
 
             f = 1
