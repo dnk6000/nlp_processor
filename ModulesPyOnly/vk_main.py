@@ -39,8 +39,11 @@ step_name = 'debug'
 num_subscribers_1 = 1
 num_subscribers_2 = 10
 
+#when job is None then used these values
 ID_PROJECT = 9
 queue_generate = True
+id_process = 0
+id_proxy = 0
 
 if const.PY_ENVIRONMENT:
     import ModulesPyOnly.plpyemul as plpyemul
@@ -459,7 +462,7 @@ try:
         #--1--
         if step_name == 'crawl_groups':
             cass_db.git999_log.log_info('Start '+step_name, ID_PROJECT, description='')
-            vk_crawl_groups(ID_PROJECT, job)
+            vk_crawl_groups(ID_PROJECT, job, id_proxy = id_proxy)
 
         #--2--
         if step_name == 'crawl_subscribers':
@@ -469,7 +472,7 @@ try:
                 #cass_db.query.clear_table_by_project('git200_crawl.queue', ID_PROJECT)
                 cass_db.git200_crawl.query.queue_delete(ID_PROJECT, id_process)
                 cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, id_process = id_process)
-            vk_crawl_wall_subscribers(ID_PROJECT, id_process, job)
+            vk_crawl_wall_subscribers(ID_PROJECT, id_process, id_proxy, job)
 
         #--3--
         if step_name == 'crawl_wall':
@@ -491,7 +494,7 @@ try:
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 50, 100)
             #cass_db.git200_crawl.queue_generate(gvars.get('VK_SOURCE_ID'), ID_PROJECT, 0, 9)
 
-            vk_crawling(ID_PROJECT, id_process, job)
+            vk_crawling(ID_PROJECT, id_process, id_proxy, job)
 
 
         #vk_crawl_wall(5, 52233236, subscribers_only = True)
