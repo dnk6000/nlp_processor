@@ -220,6 +220,7 @@
     <Content Include="ModulesTemp\CheckScraping_Log.txt" />
     <Content Include="ModulesTemp\Графики для интерфейса.xlsx" />
     <Content Include="modules\crawling_scrapy\selenium\chromedriver.exe" />
+    <Content Include="PGscripts\accounts analize num subscribers.sql" />
     <Content Include="PGscripts\accounts analize.sql" />
     <Content Include="PGscripts\dbf_import.sql" />
     <Content Include="PGscripts\fias_geocode.sql" />
