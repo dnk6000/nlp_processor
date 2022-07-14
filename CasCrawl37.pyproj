@@ -201,6 +201,7 @@
     <Folder Include="Logs\" />
     <Folder Include="ModulesArchive\" />
     <Folder Include="PGscripts\" />
+    <Folder Include="PGscripts\reserv\" />
     <Folder Include="ServiceInfo\" />
   </ItemGroup>
   <ItemGroup>
@@ -230,6 +231,17 @@
     <Content Include="PGscripts\monitor_vk.sql" />
     <Content Include="PGscripts\ner.sql" />
     <Content Include="PGscripts\pg sql exapmples.sql" />
+    <Content Include="PGscripts\reserv\EXP.sql" />
+    <Content Include="PGscripts\reserv\arh1.sql" />
+    <Content Include="PGscripts\reserv\FIAS.sql" />
+    <Content Include="PGscripts\reserv\GeoCodeAnaliz.sql" />
+    <Content Include="PGscripts\reserv\GeoCode.sql" />
+    <Content Include="PGscripts\reserv\TripAdv.sql" />
+    <Content Include="PGscripts\reserv\NER.sql" />
+    <Content Include="PGscripts\reserv\AccAn.sql" />
+    <Content Include="PGscripts\reserv\log.sql" />
+    <Content Include="PGscripts\reserv\TG.sql" />
+    <Content Include="PGscripts\reserv\VK.sql" />
     <Content Include="ServiceInfo\Debug on Linux server.docx" />
     <Content Include="ServiceInfo\DP dict import.docx" />
     <Content Include="ServiceInfo\Pg Inheritance.docx" />
